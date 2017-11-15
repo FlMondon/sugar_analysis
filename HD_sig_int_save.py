@@ -376,7 +376,7 @@ class Hubble_fit():
                         print 'error : calls limit are exceeded'
                         break
             
-        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof_salt2, err=True, variance=self.var)        
+        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)        
         return Find_param, sig_int
         
 

@@ -139,22 +139,7 @@ def comp_rms(residuals, dof, err=True, variance=None):
         
 class Hubble_fit():   
     
-    def __init__(self, X, Y, cov_x, cov_y, zhl, zcmb, zerr, qi=True):
-        self.sugar_par = X
-        self.salt2_par = Y
-        self.cov_sugar = cov_x
-        self .cov_salt2 = cov_y
-        self.zcmb = zcmb
-        self.zhl = zhl
-        self.zerr = zerr
-        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof_salt2 = len(Y)-3        
-        self.qi = qi
-        
-        if self.qi == False:
-            self.dof_sugar = len(X) - 1
-        else:
-            self.dof_sugar = len(X)- 5
+
             
             
     def int_cosmo(self, z, Omega_M=0.3):     
@@ -174,128 +159,63 @@ class Hubble_fit():
     def distance_modulus(self):      
         return 5.*np.log(self.luminosity_distance())/np.log(10.)-5.
         
-    def distance_modulus_sugar_grey(self, cst):      
-        return self.sugar_par[:,0] - cst
 
-    def distance_modulus_sugar_corr(self, cst, alpha1, alpha2, alpha3, beta):      
-        return self.sugar_par[:,0] - cst - alpha1*self.sugar_par[:,1] - alpha2*self.sugar_par[:,2] - alpha3*self.sugar_par[:,3] - beta*self.sugar_par[:,4]
-        
 
+class Hubble_fit_salt2(Hubble_fit):
     
-    def build_cov_mat_sugar(self):
-        
-        if self.qi == False:
-            cov_mat_sugar = np.zeros([len(self.sugar_par), len(self.sugar_par)])
-            cv = self.cov_sugar
-    
-            for i in range (len(self.sugar_par)):
-                cov_mat_sugar[i,i] = cv[i,0,0]
-            self.cov_mat_sugar = cov_mat_sugar
-        else: 
-            cov_mat_sugar = np.zeros([len(self.sugar_par)*5, len(self.sugar_par)*5])
-            cv = self.cov_sugar
-            for i in range (len(self.sugar_par)):
-                cov_mat_sugar[i*5,i*5] = cv[i,0,0]
-                cov_mat_sugar[i*5 +1,i*5] = cv[i,1,0]
-                cov_mat_sugar[i*5 +2,i*5] = cv[i,2,0]
-                cov_mat_sugar[i*5 +3,i*5] = cv[i,3,0]
-                cov_mat_sugar[i*5 +4,i*5] = cv[i,4,0]
-                cov_mat_sugar[i*5,i*5 +1] = cv[i,0,1]
-                cov_mat_sugar[i*5 +1,i*5 +1] = cv[i,1,1]
-                cov_mat_sugar[i*5 +2,i*5 +1] = cv[i,2,1]
-                cov_mat_sugar[i*5 +3,i*5 +1] = cv[i,3,1]
-                cov_mat_sugar[i*5 +4,i*5 +1] = cv[i,4,1]
-                cov_mat_sugar[i*5 ,i*5 +2] = cv[i,0,2]
-                cov_mat_sugar[i*5 +1,i*5 +2] = cv[i,1,2]
-                cov_mat_sugar[i*5 +2,i*5 +2] = cv[i,2,2]
-                cov_mat_sugar[i*5 +3,i*5 +2] = cv[i,3,2]
-                cov_mat_sugar[i*5 +4,i*5 +2] = cv[i,4,2]
-                cov_mat_sugar[i*5,i*5 +3] = cv[i,0,3]
-                cov_mat_sugar[i*5 +1,i*5 +3] = cv[i,1,3]
-                cov_mat_sugar[i*5 +2,i*5 +3] = cv[i,2,3]
-                cov_mat_sugar[i*5 +3,i*5 +3] = cv[i,3,3]
-                cov_mat_sugar[i*5 +4,i*5 +3] = cv[i,4,3]
-                cov_mat_sugar[i*5,i*5 +4] = cv[i,0,4]
-                cov_mat_sugar[i*5 +1,i*5 +4] = cv[i,1,4]
-                cov_mat_sugar[i*5 +2,i*5 +4] = cv[i,2,4]
-                cov_mat_sugar[i*5 +3,i*5 +4] = cv[i,3,4]
-                cov_mat_sugar[i*5 +4,i*5 +4] = cv[i,4,4]
-                self.cov_mat_sugar = cov_mat_sugar
-                
-        
-    
-    
+    def __init__(self, Y, cov_y, zhl, zcmb, zerr):
+        self.salt2_par = Y
+        self .cov = cov_y
+        self.zcmb = zcmb
+        self.zhl = zhl
+        self.zerr = zerr
+        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
+        self.dof = len(Y)-3        
 
-    def chi2_sugar(self, cst, alpha1, alpha2, alpha3, beta,sig_int):
-        
+    def distance_modulus(self, alpha, beta, Mb):
+        return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
 
-        if self.qi == False:
-            self.build_cov_mat_sugar()
-            Cmu =  self.cov_mat_sugar
-            Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
-            
-            L = self.distance_modulus_sugar_grey(cst) - self.distance_modulus()
-
-        else:
-            self.build_cov_mat_sugar()
-            Cmu = np.zeros_like(self.cov_mat_sugar[::5,::5])
-            for i, coef1 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
-                for j, coef2 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
-                    Cmu += (coef1 * coef2) * self.cov_mat_sugar[i::5,j::5]
-            Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
-            L = self.distance_modulus_sugar_corr(cst, alpha1, alpha2, alpha3, beta) - self.distance_modulus()
-            
-        self.Cmu = Cmu
-        C = inv(Cmu)
-        self.residuals = L
-        self.var = np.diag(Cmu)            
-        return P.dot(L.T,P.dot(C,L))        
-        
-    def chi2_salt2(self, alpha, beta, Mb, sig_int):
+    def chi2(self, alpha, beta, Mb, sig_int):
 
 
-        Cmu = np.zeros_like(self.cov_salt2[::3,::3])
+        Cmu = np.zeros_like(self.cov[::3,::3])
         for i, coef1 in enumerate([1., alpha, -beta]):
             for j, coef2 in enumerate([1., alpha, -beta]):
-                Cmu += (coef1 * coef2) * self.cov_salt2[i::3,j::3]               
+                Cmu += (coef1 * coef2) * self.cov[i::3,j::3]               
         Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
         C = inv(Cmu)
         
-        L = self.distance_modulus_salt2(alpha, beta, Mb) - self.distance_modulus()
+        L = self.distance_modulus(alpha, beta, Mb) - self.distance_modulus()
         self.residuals = L
         self.var = np.diag(Cmu)
         return P.dot(L,P.dot(C,L))
-
-
-
-
-
+        
     def _compute_dispertion(self, sig_int):
         sig = optimize.fmin(self._disp_function, sig_int)[0]
         return sig
              
     def _disp_function(self,d):
-        return abs((self.chi2_salt2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], d)/self.dof_salt2)-1.)
+        return abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], d)/self.dof)-1.)
                
          
-    def fit_sigma_int_salt2(self):
+    def fit_sigma_int(self):
         
         sig_int = 0.001
         
-        Find_param = minuit.Minuit(self.chi2_salt2, alpha=0.15,beta=2.9, Mb=-19.1, sig_int=sig_int, fix_sig_int= True)
+        Find_param = minuit.Minuit(self.chi2, alpha=0.15,beta=2.9, Mb=-19.1, sig_int=sig_int, fix_sig_int= True)
         Find_param.migrad()
         self.Params = Find_param.values
         self.Params_Covariance = Find_param.covariance
         
 
         calls=0
-        if abs((self.chi2_salt2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof_salt2))-1.)>0.1:
-            while abs((self.chi2_salt2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof_salt2))-1.) > 0.001:
+        if abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof))-1.)>0.1:
+            while abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof))-1.) > 0.001:
    
                 if calls<100:
                     print 'je cherche de la dispersion pour la %i eme fois'%(calls+1)
                     sig_int = self._compute_dispertion(sig_int)                  
-                    Find_param = minuit.Minuit(self.chi2_salt2, alpha=self.Params['alpha'], beta=self.Params['beta'], Mb=self.Params['Mb'], sig_int = sig_int, fix_sig_int= True)
+                    Find_param = minuit.Minuit(self.chi2, alpha=self.Params['alpha'], beta=self.Params['beta'], Mb=self.Params['Mb'], sig_int = sig_int, fix_sig_int= True)
                 
                     Find_param.migrad()
                     self.Params = Find_param.values
@@ -306,24 +226,125 @@ class Hubble_fit():
                     print 'error : calls limit are exceeded'
                     break
         
-        self.wrms_salt2, self.wrms_salt2_err = comp_rms(self.residuals, self.dof_salt2, err=True, variance=self.var)
-        return Find_param, sig_int
+        self.wrms, self.wrms_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)
+        return Find_param, sig_int        
+        
+class Hubble_fit_sugar(Hubble_fit):
 
-    def _compute_dispertion_sugar(self, sig_int):
-        sig = optimize.fmin(self._disp_function_sugar, sig_int)[0]
+    def __init__(self, X, cov_x, zhl, zcmb, zerr, qi=True):
+        self.sugar_par = X
+        self.cov = cov_x
+        self.zcmb = zcmb
+        self.zhl = zhl
+        self.zerr = zerr
+        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb       
+        self.qi = qi
+        
+        if self.qi == False:
+            self.dof = len(X) - 1
+        else:
+            self.dof = len(X)- 5
+    
+    def distance_modulus_grey(self, cst):      
+        return self.sugar_par[:,0] - cst
+
+    def distance_modulus_corr(self, cst, alpha1, alpha2, alpha3, beta):      
+        return self.sugar_par[:,0] - cst - alpha1*self.sugar_par[:,1] - alpha2*self.sugar_par[:,2] - alpha3*self.sugar_par[:,3] - beta*self.sugar_par[:,4]
+        
+
+    
+    def build_cov_mat(self):
+        
+        if self.qi == False:
+            cov_mat = np.zeros([len(self.sugar_par), len(self.sugar_par)])
+            cv = self.cov
+    
+            for i in range (len(self.sugar_par)):
+                cov_mat[i,i] = cv[i,0,0]
+            self.cov_mat = cov_mat
+        else: 
+            cov_mat = np.zeros([len(self.sugar_par)*5, len(self.sugar_par)*5])
+            cv = self.cov
+            for i in range (len(self.sugar_par)):
+                cov_mat[i*5,i*5] = cv[i,0,0]
+                cov_mat[i*5 +1,i*5] = cv[i,1,0]
+                cov_mat[i*5 +2,i*5] = cv[i,2,0]
+                cov_mat[i*5 +3,i*5] = cv[i,3,0]
+                cov_mat[i*5 +4,i*5] = cv[i,4,0]
+                cov_mat[i*5,i*5 +1] = cv[i,0,1]
+                cov_mat[i*5 +1,i*5 +1] = cv[i,1,1]
+                cov_mat[i*5 +2,i*5 +1] = cv[i,2,1]
+                cov_mat[i*5 +3,i*5 +1] = cv[i,3,1]
+                cov_mat[i*5 +4,i*5 +1] = cv[i,4,1]
+                cov_mat[i*5 ,i*5 +2] = cv[i,0,2]
+                cov_mat[i*5 +1,i*5 +2] = cv[i,1,2]
+                cov_mat[i*5 +2,i*5 +2] = cv[i,2,2]
+                cov_mat[i*5 +3,i*5 +2] = cv[i,3,2]
+                cov_mat[i*5 +4,i*5 +2] = cv[i,4,2]
+                cov_mat[i*5,i*5 +3] = cv[i,0,3]
+                cov_mat[i*5 +1,i*5 +3] = cv[i,1,3]
+                cov_mat[i*5 +2,i*5 +3] = cv[i,2,3]
+                cov_mat[i*5 +3,i*5 +3] = cv[i,3,3]
+                cov_mat[i*5 +4,i*5 +3] = cv[i,4,3]
+                cov_mat[i*5,i*5 +4] = cv[i,0,4]
+                cov_mat[i*5 +1,i*5 +4] = cv[i,1,4]
+                cov_mat[i*5 +2,i*5 +4] = cv[i,2,4]
+                cov_mat[i*5 +3,i*5 +4] = cv[i,3,4]
+                cov_mat[i*5 +4,i*5 +4] = cv[i,4,4]
+                self.cov_mat  = cov_mat 
+                
+        
+    
+    
+
+    def chi2(self, cst, alpha1, alpha2, alpha3, beta,sig_int):
+        
+
+        if self.qi == False:
+            self.build_cov_mat()
+            Cmu =  self.cov_mat
+            Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
+            
+            L = self.distance_modulus_grey(cst) - self.distance_modulus()
+
+        else:
+            self.build_cov_mat()
+            Cmu = np.zeros_like(self.cov_mat[::5,::5])
+            for i, coef1 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
+                for j, coef2 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
+                    Cmu += (coef1 * coef2) * self.cov_mat[i::5,j::5]
+            Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
+            L = self.distance_modulus_corr(cst, alpha1, alpha2, alpha3, beta) - self.distance_modulus()
+            
+        self.Cmu = Cmu
+        C = inv(Cmu)
+        self.residuals = L
+        self.var = np.diag(Cmu)            
+        return P.dot(L.T,P.dot(C,L))        
+        
+
+
+
+
+
+
+
+
+    def _compute_dispertion(self, sig_int):
+        sig = optimize.fmin(self._disp_function, sig_int)[0]
         print sig
         return sig
              
-    def _disp_function_sugar(self,d):
+    def _disp_function(self,d):
         print d
-        return abs((self.chi2_sugar(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'], self.Params['alpha3'], self.Params['beta'] ,d)/self.dof_sugar)-1.)        
+        return abs((self.chi2(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'], self.Params['alpha3'], self.Params['beta'] ,d)/self.dof)-1.)        
         
         
-    def fit_sigma_int_sugar(self):
+    def fit_sigma_int(self):
         sig_int = 0.001
         
         if self.qi == False: 
-            Find_param = minuit.Minuit(self.chi2_sugar, cst=0.01,alpha1=0., alpha2=0., alpha3=0., beta=0.,sig_int=sig_int, fix_sig_int= True, fix_alpha1=True, fix_alpha2=True, fix_alpha3=True, fix_beta=True)
+            Find_param = minuit.Minuit(self.chi2, cst=0.01,alpha1=0., alpha2=0., alpha3=0., beta=0.,sig_int=sig_int, fix_sig_int= True, fix_alpha1=True, fix_alpha2=True, fix_alpha3=True, fix_beta=True)
             print sig_int
             Find_param.migrad()
             self.Params = Find_param.values
@@ -331,14 +352,14 @@ class Hubble_fit():
             
     
             calls=0
-            if abs((self.chi2_sugar(self.Params['cst'], 0., 0., 0., 0.,sig_int)/(self.dof_sugar))-1.)>0.1:
-                while abs((self.chi2_sugar(self.Params['cst'],0., 0., 0., 0.,sig_int)/(self.dof_sugar))-1.) > 0.001:
+            if abs((self.chi2(self.Params['cst'], 0., 0., 0., 0.,sig_int)/(self.dof))-1.)>0.1:
+                while abs((self.chi2(self.Params['cst'],0., 0., 0., 0.,sig_int)/(self.dof))-1.) > 0.001:
        
                     if calls<100:
                         print 'je cherche de la dispersion pour la %i eme fois'%(calls+1)
-                        sig_int = self._compute_dispertion_sugar(sig_int)
+                        sig_int = self._compute_dispertion(sig_int)
                         print sig_int
-                        Find_param = minuit.Minuit(self.chi2_sugar, cst=self.Params['cst'], alpha1=0., alpha2=0., alpha3=0., beta=0., sig_int = sig_int, fix_sig_int=True, fix_alpha1=True, fix_alpha2=True, fix_alpha3=True, fix_beta=True)             
+                        Find_param = minuit.Minuit(self.chi2, cst=self.Params['cst'], alpha1=0., alpha2=0., alpha3=0., beta=0., sig_int = sig_int, fix_sig_int=True, fix_alpha1=True, fix_alpha2=True, fix_alpha3=True, fix_beta=True)             
                         Find_param.migrad()
                         self.Params = Find_param.values
                         print self.Params
@@ -349,7 +370,7 @@ class Hubble_fit():
                         print 'error : calls limit are exceeded'
                         break
         else:
-            Find_param = minuit.Minuit(self.chi2_sugar, cst=0.01 ,alpha1=0.001, alpha2=0.001, alpha3=0.001, beta=0.001, sig_int=sig_int, fix_sig_int= True)
+            Find_param = minuit.Minuit(self.chi2, cst=0.01 ,alpha1=0.001, alpha2=0.001, alpha3=0.001, beta=0.001, sig_int=sig_int, fix_sig_int= True)
             print sig_int
             Find_param.migrad()
             self.Params = Find_param.values
@@ -357,14 +378,14 @@ class Hubble_fit():
             
     
             calls=0
-            if abs((self.chi2_sugar(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'],self.Params['alpha3'], self.Params['beta'],sig_int)/(self.dof_sugar))-1.)>0.1:
-                while abs((self.chi2_sugar(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'],self.Params['alpha3'], self.Params['beta'], sig_int)/(self.dof_sugar))-1.) > 0.001:
+            if abs((self.chi2(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'],self.Params['alpha3'], self.Params['beta'],sig_int)/(self.dof))-1.)>0.1:
+                while abs((self.chi2(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'],self.Params['alpha3'], self.Params['beta'], sig_int)/(self.dof))-1.) > 0.001:
        
                     if calls<100:
                         print 'je cherche de la dispersion pour la %i eme fois'%(calls+1)
-                        sig_int = self._compute_dispertion_sugar(sig_int)
+                        sig_int = self._compute_dispertion(sig_int)
                         print sig_int
-                        Find_param = minuit.Minuit(self.chi2_sugar, cst=self.Params['cst'], alpha1=self.Params['alpha1'], alpha2=self.Params['alpha2'], alpha3=self.Params['alpha3'], beta=self.Params['beta'], sig_int = sig_int, fix_sig_int= True)             
+                        Find_param = minuit.Minuit(self.chi2, cst=self.Params['cst'], alpha1=self.Params['alpha1'], alpha2=self.Params['alpha2'], alpha3=self.Params['alpha3'], beta=self.Params['beta'], sig_int = sig_int, fix_sig_int= True)             
                         Find_param.migrad()
                         self.Params = Find_param.values
                         print self.Params
@@ -375,21 +396,6 @@ class Hubble_fit():
                         print 'error : calls limit are exceeded'
                         break
             
-        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof_salt2, err=True, variance=self.var)        
+        self.wrms, self.wrms_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)        
         return Find_param, sig_int
         
-
-class Hubble_fit_salt2(Hubble_fit):
-    
-    def __init__(self, Y, cov_y, zhl, zcmb, zerr, qi=True):
-        self.salt2_par = Y
-        self .cov_salt2 = cov_y
-        self.zcmb = zcmb
-        self.zhl = zhl
-        self.zerr = zerr
-        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof_salt2 = len(Y)-3        
-
-    def distance_modulus_salt2(self, alpha, beta, Mb):
-        return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
-    
