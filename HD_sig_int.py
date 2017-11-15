@@ -148,13 +148,13 @@ class Hubble_fit():
         self.zhl = zhl
         self.zerr = zerr
         self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof_salt2 = len(X)-3        
+        self.dof_salt2 = len(Y)-3        
         self.qi = qi
         
         if self.qi == False:
-            self.dof_sugar = len(Y) - 1
+            self.dof_sugar = len(X) - 1
         else:
-            self.dof_sugar = len(Y)- 5
+            self.dof_sugar = len(X)- 5
             
             
     def int_cosmo(self, z, Omega_M=0.3):     
@@ -180,8 +180,7 @@ class Hubble_fit():
     def distance_modulus_sugar_corr(self, cst, alpha1, alpha2, alpha3, beta):      
         return self.sugar_par[:,0] - cst - alpha1*self.sugar_par[:,1] - alpha2*self.sugar_par[:,2] - alpha3*self.sugar_par[:,3] - beta*self.sugar_par[:,4]
         
-    def distance_modulus_salt2(self, alpha, beta, Mb):
-        return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
+
     
     def build_cov_mat_sugar(self):
         
@@ -380,5 +379,17 @@ class Hubble_fit():
         return Find_param, sig_int
         
 
+class Hubble_fit_salt2(Hubble_fit):
     
+    def __init__(self, Y, cov_y, zhl, zcmb, zerr, qi=True):
+        self.salt2_par = Y
+        self .cov_salt2 = cov_y
+        self.zcmb = zcmb
+        self.zhl = zhl
+        self.zerr = zerr
+        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
+        self.dof_salt2 = len(Y)-3        
+
+    def distance_modulus_salt2(self, alpha, beta, Mb):
+        return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
     

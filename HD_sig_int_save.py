@@ -148,13 +148,13 @@ class Hubble_fit():
         self.zhl = zhl
         self.zerr = zerr
         self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof_salt2 = len(X)-3        
+        self.dof_salt2 = len(Y)-3        
         self.qi = qi
         
         if self.qi == False:
-            self.dof_sugar = len(Y) - 1
+            self.dof_sugar = len(X) - 1
         else:
-            self.dof_sugar = len(Y)- 5
+            self.dof_sugar = len(X)- 5
             
             
     def int_cosmo(self, z, Omega_M=0.3):     
