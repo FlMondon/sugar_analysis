@@ -139,9 +139,6 @@ def comp_rms(residuals, dof, err=True, variance=None):
         
 class Hubble_fit():   
     
-
-            
-            
     def int_cosmo(self, z, Omega_M=0.3):     
         return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
         
@@ -305,7 +302,7 @@ class Hubble_fit_sugar(Hubble_fit):
             Cmu =  self.cov_mat
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
             
-            L = self.distance_modulus_grey(cst) - self.distance_modulus()
+            L = self.distance_modulus_grey(cst) #- self.distance_modulus()
 
         else:
             self.build_cov_mat()
@@ -314,7 +311,7 @@ class Hubble_fit_sugar(Hubble_fit):
                 for j, coef2 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
                     Cmu += (coef1 * coef2) * self.cov_mat[i::5,j::5]
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
-            L = self.distance_modulus_corr(cst, alpha1, alpha2, alpha3, beta) - self.distance_modulus()
+            L = self.distance_modulus_corr(cst, alpha1, alpha2, alpha3, beta) #- self.distance_modulus()
             
         self.Cmu = Cmu
         C = inv(Cmu)
