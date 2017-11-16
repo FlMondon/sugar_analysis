@@ -153,7 +153,7 @@ class Hubble_fit():
     
         return (1+self.zhl)*(clight/H0)*integr
  
-    def distance_modulus(self):      
+    def distance_modulus_th(self):      
         return 5.*np.log(self.luminosity_distance())/np.log(10.)-5.
         
 
@@ -181,8 +181,7 @@ class Hubble_fit_salt2(Hubble_fit):
                 Cmu += (coef1 * coef2) * self.cov[i::3,j::3]               
         Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
         C = inv(Cmu)
-        
-        L = self.distance_modulus(alpha, beta, Mb) - self.distance_modulus()
+        L = self.distance_modulus(alpha, beta, Mb) - self.distance_modulus_th()
         self.residuals = L
         self.var = np.diag(Cmu)
         return P.dot(L,P.dot(C,L))
@@ -302,7 +301,7 @@ class Hubble_fit_sugar(Hubble_fit):
             Cmu =  self.cov_mat
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
             
-            L = self.distance_modulus_grey(cst) #- self.distance_modulus()
+            L = self.distance_modulus_grey(cst) #- self.distance_modulus_th()
 
         else:
             self.build_cov_mat()
@@ -311,7 +310,7 @@ class Hubble_fit_sugar(Hubble_fit):
                 for j, coef2 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
                     Cmu += (coef1 * coef2) * self.cov_mat[i::5,j::5]
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
-            L = self.distance_modulus_corr(cst, alpha1, alpha2, alpha3, beta) #- self.distance_modulus()
+            L = self.distance_modulus_corr(cst, alpha1, alpha2, alpha3, beta) #- self.distance_modulus_th()
             
         self.Cmu = Cmu
         C = inv(Cmu)
