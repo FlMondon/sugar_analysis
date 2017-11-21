@@ -12,6 +12,7 @@ import sugar
 from scipy import integrate
 from numpy.linalg import inv
 import iminuit as minuit
+
 from scipy import optimize,integrate
 
 
@@ -25,6 +26,22 @@ clight = 299792.458
 H0 = 0.000070
 ###############
 
+def make_method(obj):
+    """Decorator to make the function a method of *obj*.
+    In the current context::
+      @make_method(Axes)
+      def toto(ax, ...):
+          ...
+    makes *toto* a method of `Axes`, so that one can directly use::
+      ax.toto()
+    COPYRIGHT: from Yannick Copin
+    """
+
+    def decorate(f):
+        setattr(obj, f.__name__, f)
+        return f
+
+    return decorate
 
 
 def read_sugar_salt2_par():
@@ -105,11 +122,62 @@ def read_sugar_salt2_par():
     q3 = q3[Filtre]
     av = av[Filtre]
     
-      
+    def int_cosmo(z, Omega_M=0.3):     
+        return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
+        
+    def luminosity_distance(zhl,zcmb):
+        
+
+        integr = np.zeros_like(zcmb)
+        for i in range(len(zcmb)):
+            integr[i] = integrate.quad(int_cosmo, 0, zcmb[i])[0]
+    
+        return (1+zhl)*(clight/H0)*integr
+ 
+    def distance_modulus_th(zhl,zcmb):      
+        return 5.*np.log(luminosity_distance(zhl,zcmb))/np.log(10.)-5.                
+    grey = grey + distance_modulus_th(zhl,zcmb)               
     X = np.array([grey,q1,q2,q3,av]).T
-    Y = np.array([mb,x1,c]).T
-    print len(Y)
-    return X, Y, cov_x, cov_y,  zhl, zcmb, zerr
+    Y = np.array([mb,x1,c]).T    
+    
+    cov_mat = np.zeros([len(grey)*5, len(grey)*5])
+    cv = cov_x
+    for i in range (len(grey)):
+        cov_mat[i*5,i*5] = cv[i,0,0]
+        cov_mat[i*5 +1,i*5] = cv[i,1,0]
+        cov_mat[i*5 +2,i*5] = cv[i,2,0]
+        cov_mat[i*5 +3,i*5] = cv[i,3,0]
+        cov_mat[i*5 +4,i*5] = cv[i,4,0]
+        cov_mat[i*5,i*5 +1] = cv[i,0,1]
+        cov_mat[i*5 +1,i*5 +1] = cv[i,1,1]
+        cov_mat[i*5 +2,i*5 +1] = cv[i,2,1]
+        cov_mat[i*5 +3,i*5 +1] = cv[i,3,1]
+        cov_mat[i*5 +4,i*5 +1] = cv[i,4,1]
+        cov_mat[i*5 ,i*5 +2] = cv[i,0,2]
+        cov_mat[i*5 +1,i*5 +2] = cv[i,1,2]
+        cov_mat[i*5 +2,i*5 +2] = cv[i,2,2]
+        cov_mat[i*5 +3,i*5 +2] = cv[i,3,2]
+        cov_mat[i*5 +4,i*5 +2] = cv[i,4,2]
+        cov_mat[i*5,i*5 +3] = cv[i,0,3]
+        cov_mat[i*5 +1,i*5 +3] = cv[i,1,3]
+        cov_mat[i*5 +2,i*5 +3] = cv[i,2,3]
+        cov_mat[i*5 +3,i*5 +3] = cv[i,3,3]
+        cov_mat[i*5 +4,i*5 +3] = cv[i,4,3]
+        cov_mat[i*5,i*5 +4] = cv[i,0,4]
+        cov_mat[i*5 +1,i*5 +4] = cv[i,1,4]
+        cov_mat[i*5 +2,i*5 +4] = cv[i,2,4]
+        cov_mat[i*5 +3,i*5 +4] = cv[i,3,4]
+        cov_mat[i*5 +4,i*5 +4] = cv[i,4,4]
+    
+    cov_mat_grey = np.zeros([len(grey), len(grey)])
+
+    for i in range (len(grey)):
+        cov_mat_grey[i,i] = cv[i,0,0]
+       
+
+
+    
+    return X, Y, cov_x, cov_mat_grey, cov_mat,  zhl, zcmb, zerr
 
 def comp_rms(residuals, dof, err=True, variance=None):
     """
@@ -136,14 +204,89 @@ def comp_rms(residuals, dof, err=True, variance=None):
         return rms, rms_err
     else:
         return rms
-        
-class Hubble_fit():   
+
+
+
+
+
+##########################
+#                        #
+#   Hubble Fit           #
+#                        #
+########################## 
+PARAM_NAME = np.asarray(['alpha','beta',"gamma","epsilon","delta"])
+
+def get_hubblefit(x, cov_x, zhl, zcmb, zerr, parameters=None):
+    """
+    Parameters
+    ----------
+    x: type
+        infor
     
-    def int_cosmo(self, z, Omega_M=0.3):     
+    cov_x ....
+    
+    
+    parameters: list of int to specify if you want to remove some parameters in the fit in PARAM_NAME. 
+                By default is None and this take all parameters. If you don't want to put a correction use 
+                parameters=[]
+        example: 
+            for usual salt x1 c correction if you want only color correction, use parameters = [2]. 
+            Warning if you have more than 5 parameters, add parameters in PARAM_NAME
+    """
+    n_corr =  np.shape(x)[1]-1
+    class hubble_fit_case(Hubble_fit):
+        freeparameters = ["Mb"]+PARAM_NAME[:n_corr].tolist()
+        
+    if parameters is None:
+        parameters = np.arange(n_corr)
+        
+    h = hubble_fit_case(x, cov_x, zhl, zcmb, zerr)
+    # Do we have fixed (set to 0) parameters
+    for i,param in enumerate(h.freeparameters[1:]):
+        if i not in parameters:
+            setattr(h,"%s_guess"%param,0)
+            setattr(h,"%s_fixed"%param,True)
+    return h
+    
+
+      
+class Hubble_fit(object):
+    
+    def __new__(cls,*arg,**kwargs):
+        """ Upgrade of the New function to enable the
+        the _minuit_ black magic
+        """
+        obj = super(Hubble_fit,cls).__new__(cls)
+        
+        exec "@make_method(Hubble_fit)\n"+\
+             "def _minuit_chi2_(self,%s): \n"%(", ".join(obj.freeparameters))+\
+             "    parameters = %s \n"%(", ".join(obj.freeparameters))+\
+             "    return self.get_chi2(parameters)\n"
+
+
+        return obj
+        
+    def __init__(self,X, cov_x, zhl, zcmb, zerr):
+        self.variable = np.asarray(X)
+        self.cov = cov_x
+        self.zcmb = zcmb
+        self.zhl = zhl
+        self.zerr = zerr
+        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
+        self.dof = len(X)-len(self.freeparameters)  
+    
+    # ------------------ #
+    #   Cosmology        #
+    # ------------------ #
+
+    def int_cosmo(self, z, Omega_M=0.3):   
+        """
+        """
         return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
         
     def luminosity_distance(self):
-        
+        """
+        """
         if type(self.zcmb)==np.ndarray:
             integr = np.zeros_like(self.zcmb)
             for i in range(len(self.zcmb)):
@@ -153,77 +296,186 @@ class Hubble_fit():
     
         return (1+self.zhl)*(clight/H0)*integr
  
-    def distance_modulus_th(self):      
+    def distance_modulus_th(self):
+        """
+        """
         return 5.*np.log(self.luminosity_distance())/np.log(10.)-5.
         
+    # ------------------ #
+    #   Fit              #
+    # ------------------ #
+    def setup_guesses(self,**kwargs):
+        """ Defines the guesses, boundaries and fixed values
+        that will be passed to the given model.
+        For each variable `v` of the model (see freeparameters)
+        the following array will be defined and set to param_input:
+           * v_guess,
+           * v_boundaries,
+           * v_fixed.
+        Three arrays (self.paramguess, self.parambounds,self.paramfixed)
+        will be accessible that will point to the defined array.
+        Parameter
+        ---------
+        **kwargs the v_guess, v_boundaries and, v_fixed for as many
+        `v` (from the freeparameter list).
+        All the non-given `v` values will be filled either by pre-existing
+        values in the model or with: 0 for _guess, False for _fixed, and
+        [None,None] for _boundaries
+        Return
+        ------
+        Void, defines param_input (and consquently paramguess, parambounds and paramfixed)
+        """
+        def _test_it_(k,info):
+            param = k.split(info)[0]
+            if param not in self.freeparameters:
+                raise ValueError("Unknown parameter %s"%param)
 
+        self.param_input = {}
+        # -- what you hard coded
+        for name in self.freeparameters:
+            for info in ["_guess","_fixed","_boundaries"]:
+                if hasattr(self, name+info):
+                    self.param_input[name+info] = eval("self.%s"%(name+info))
+                    
+        # -- Then, whatever you gave
+        for k,v in kwargs.items():
+            if "_guess" in k:
+                _test_it_(k,"_guess")
+            elif "_fixed" in k:
+                _test_it_(k,"_fixed")
+            elif "_boundaries" in k:
+                _test_it_(k,"_boundaries")
+            else:
+                raise ValueError("I am not able to parse %s ; not _guess, _fixed nor _boundaries"%k)
+            self.param_input[k] = v
 
-class Hubble_fit_salt2(Hubble_fit):
-    
-    def __init__(self, Y, cov_y, zhl, zcmb, zerr):
-        self.salt2_par = Y
-        self .cov = cov_y
-        self.zcmb = zcmb
-        self.zhl = zhl
-        self.zerr = zerr
-        self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof = len(Y)-3        
-
-    def distance_modulus(self, alpha, beta, Mb):
-        return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
-
-    def chi2(self, alpha, beta, Mb, sig_int):
-
-
-        Cmu = np.zeros_like(self.cov[::3,::3])
-        for i, coef1 in enumerate([1., alpha, -beta]):
-            for j, coef2 in enumerate([1., alpha, -beta]):
-                Cmu += (coef1 * coef2) * self.cov[i::3,j::3]               
-        Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
-        C = inv(Cmu)
-        L = self.distance_modulus(alpha, beta, Mb) - self.distance_modulus_th()
-        self.residuals = L
-        self.var = np.diag(Cmu)
-        return P.dot(L,P.dot(C,L))
+        # -- Finally if no values have been set, let's do it
+        for name in self.freeparameters:
+            if name+"_guess" not in self.param_input.keys():
+                self.param_input[name+"_guess"] = 0
+            if name+"_fixed" not in self.param_input.keys():
+                self.param_input[name+"_fixed"] = False
+            if name+"_boundaries" not in self.param_input.keys():
+                self.param_input[name+"_boundaries"] = [None,None]
+            
+    def fit(self, fit_intrinsic=True,**kwargs):
+        """
+        How to use kwargs 
+        For each variable `v` of the model (see freeparameters)
+        the following array will be defined and set to param_input:
+           * v_guess,
+           * v_boundaries,
+           * v_fixed.
+        Three arrays (self.paramguess, self.parambounds,self.paramfixed)
+        will be accessible that will point to the defined array.
+        Parameter
+        ---------
+        **kwargs the v_guess, v_boundaries and, v_fixed for as many
+        `v` (from the freeparameter list).
+        All the non-given `v` values will be filled either by pre-existing
+        values in the model or with: 0 for _guess, False for _fixed, and
+        [None,None] for _boundaries
+        """
+        self._loopcount = 0
+        self.sig_int = 0.
+        self.setup_guesses(**kwargs)
         
-    def _compute_dispertion(self, sig_int):
-        sig = optimize.fmin(self._disp_function, sig_int)[0]
-        return sig
-             
-    def _disp_function(self,d):
-        return abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], d)/self.dof)-1.)
-               
-         
-    def fit_sigma_int(self):
-        
-        sig_int = 0.001
-        
-        Find_param = minuit.Minuit(self.chi2, alpha=0.15,beta=2.9, Mb=-19.1, sig_int=sig_int, fix_sig_int= True)
-        Find_param.migrad()
-        self.Params = Find_param.values
-        self.Params_Covariance = Find_param.covariance
-        
-
-        calls=0
-        if abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof))-1.)>0.1:
-            while abs((self.chi2(self.Params['alpha'], self.Params['beta'], self.Params['Mb'], sig_int)/(self.dof))-1.) > 0.001:
-   
-                if calls<100:
-                    print 'je cherche de la dispersion pour la %i eme fois'%(calls+1)
-                    sig_int = self._compute_dispertion(sig_int)                  
-                    Find_param = minuit.Minuit(self.chi2, alpha=self.Params['alpha'], beta=self.Params['beta'], Mb=self.Params['Mb'], sig_int = sig_int, fix_sig_int= True)
+        first_iter = self._fit_minuit_()
+        # - Intrinsic disposerion Fit?
+        if fit_intrinsic:
+            while (np.abs(self.chi2_per_dof - 1) > 0.001 and self._loopcount < 10):
+                self.sig_int =  self.fit_intrinsic(np.sqrt(np.mean(self.var))*2. / self.chi2_per_dof)
+                iter = self._fit_minuit_()
+                self._loopcount += 1
                 
-                    Find_param.migrad()
-                    self.Params = Find_param.values
-                    print self.Params
-                    calls+=1
-
-                else:
-                    print 'error : calls limit are exceeded'
-                    break
+        # - Final steps      
+        self._fit_readout_()
+        return 
+      
+    def get_chi2(self, params):
+        """
+        """
+        self.Cmu = np.zeros_like(self.cov[::len(params),::len(params)])
+        pcorr = np.concatenate([[1],params[1:]])
+        for i, coef1 in enumerate(pcorr):
+            for j, coef2 in enumerate(pcorr):
+                self.Cmu += (coef1 * coef2) * self.cov[i::len(params),j::len(params)]  
+                
+                
+        self.Cmu[np.diag_indices_from(self.Cmu)] += self.sig_int**2 + self.dmz**2 
+        self.C = inv(self.Cmu)
+        L = self.distance_modulus(params) - self.distance_modulus_th()
+        self.residuals = L
+        self.var = np.diag(self.Cmu)
+        return P.dot(L,P.dot(self.C,L))
         
-        self.wrms, self.wrms_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)
-        return Find_param, sig_int        
+    def distance_modulus(self, params):
+        """
+        (mb + alpha * v1 + beta * v2 .....) - Mb
+        """
+        return  np.sum(np.concatenate([[1],params[1:]]).T * self.variable, axis=1) - params[0]
+        
+        
+    def fit_intrinsic(self, intrinsic_guess=0.1):
+        """ Get the most optimal intrinsic dispersion given the current fitted standardization parameters. 
+        
+        The optimal intrinsic magnitude dispersion is the value that has to be added in quadrature to 
+        the magnitude errors such that the chi2/dof is 1.
+        Returns
+        -------
+        float (intrinsic magnitude dispersion)
+        """
+        def get_intrinsic_chi2dof(intrinsic):
+            self.sig_int = intrinsic
+            return np.abs(self.get_chi2(self.resultsfit) / self.dof -1)
+        
+        return optimize.fmin(get_intrinsic_chi2dof,
+                             intrinsic_guess, disp=0)[0]           
+    # ------------------ #
+    # Internal Fit Tools #
+    # ------------------ #
+    def _fit_minuit_(self,verbose=False, step=1):
+        """
+        """
+        self._setup_minuit_(step=step)
+        if verbose: print("STARTS MINUIT FIT")
+        self._migrad_output_ = self.minuit.migrad()
+        
+        if self._migrad_output_[0]["is_valid"] is False:
+            print("migrad is not valid")
+            self.fitOk = False
+        elif verbose:
+            self.fitOk = True
+            
+        self.resultsfit = np.asarray([self.minuit.values[k]
+                              for k in self.freeparameters])
+        self.chi2_per_dof = self.minuit.fval/self.dof
+                        
+            
+    def _setup_minuit_(self, step=1, print_level=0):
+        """
+        """
+        # == Minuit Keys == #
+        minuit_kwargs = {}
+        for param in self.freeparameters:
+            minuit_kwargs[param]           = self.param_input["%s_guess"%param]
+            minuit_kwargs["limit_"+param]  = self.param_input["%s_boundaries"%param]
+            minuit_kwargs["fix_"+param]    = self.param_input["%s_fixed"%param]
+
+        self.minuit = minuit.Minuit(self._minuit_chi2_,
+                             print_level=print_level,errordef=step,
+                             **minuit_kwargs)
+                        
+    def _fit_readout_(self):
+        """ Computes the main numbers """
+        
+        return comp_rms(self.residuals, self.dof, err=True, variance=self.var)   
+        
+        
+        
+        
+    """    
+      
         
 class Hubble_fit_sugar(Hubble_fit):
 
@@ -394,4 +646,4 @@ class Hubble_fit_sugar(Hubble_fit):
             
         self.wrms, self.wrms_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)        
         return Find_param, sig_int
-        
+   """     
