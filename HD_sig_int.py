@@ -5,15 +5,12 @@ Created on Fri Nov  3 12:20:25 2017
 @author: mondon
 """
 
-import cPickle
 import numpy as np
 import pylab as P
-import sugar
 from scipy import integrate
 from numpy.linalg import inv
 import iminuit as minuit
-
-from scipy import optimize,integrate
+from scipy import optimize
 
 
 
@@ -44,140 +41,6 @@ def make_method(obj):
     return decorate
 
 
-def read_sugar_salt2_par():
-    
-    SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
-    lds = sugar.load_data_sugar()
-    lds.load_salt2_data()
-    Filtre = np.array([True]*len(lds.X0))
-    mb = lds.mb
-    mb_err = lds.mb_err
-    x1 = lds.X1
-    x1_err = lds.X1_err
-    c = lds.C
-    c_err = lds.C_err
-    cov_mb_x1 = lds.X1_mb_cov
-    cov_mb_C = lds.C_mb_cov
-#    cov_mb_x1 = np.zeros(len(lds.C_mb_cov))
-#    cov_mb_C = np.zeros(len(lds.C_mb_cov))
-    cov_x1_C = lds.X1_C_cov  
-#    print cov_mb_x1
-    grey = np.zeros_like(mb)
-    q1 = np.zeros_like(mb)
-    q2 = np.zeros_like(mb)
-    q3 = np.zeros_like(mb)
-    av = np.zeros_like(mb)
-    cov_x = np.zeros((len(mb),5,5))
-    zcmb = lds.zcmb
-    zhl = lds.zhelio
-    zerr = lds.zerr
-    dico = cPickle.load(open(SUGAR_parameter_pkl))
-    
-    
-    for i in range(len(lds.sn_name)):
-        sn = lds.sn_name[i]
-        if sn in dico.keys():
-             grey[i] = dico[sn]['grey']
-             q1[i] = dico[sn]['q1']
-             q2[i] = dico[sn]['q2']
-             q3[i] = dico[sn]['q3']
-             av[i] = dico[sn]['Av']
-             cov_x[i] = dico[sn]['cov_q']
-        else:
-            Filtre[i] = False
-    
-    mb = mb[Filtre]
-    mb_err = mb_err[Filtre]
-
-    x1_err = x1_err[Filtre]
-    c_err = c_err[Filtre]
-    x1 = x1[Filtre]
-    c = c[Filtre]
-
-    cov_mb_x1 = cov_mb_x1[Filtre]
-    cov_mb_C = cov_mb_C[Filtre]
-    cov_x1_C = cov_x1_C[Filtre]
-    cov_y = np.zeros((len(mb)*3,len(mb)*3))
-    
-    for i in range (len(mb)):
-        cov_y[i*3,i*3] = mb_err[i]**2
-        cov_y[i*3+ 1,i*3+ 1] = x1_err[i]**2
-        
-        cov_y[i*3+ 2,i*3+ 2] = c_err[i]**2
-        cov_y[i*3+ 0,i*3+ 1] = cov_mb_x1[i]
-        cov_y[i*3+ 1,i*3+ 0] = cov_mb_x1[i]
-        cov_y[i*3+ 0,i*3+ 2] = cov_mb_C[i]
-        cov_y[i*3+ 2,i*3+ 0] = cov_mb_C[i]
-        cov_y[i*3+ 1,i*3+ 2] = cov_x1_C[i]      
-        cov_y[i*3+ 2,i*3+ 1] = cov_x1_C[i]
-    
-    
-    zcmb = zcmb[Filtre]
-    zhl = zhl[Filtre]
-    zerr = zerr[Filtre]
-    cov_x = cov_x[Filtre]
-    grey = grey[Filtre]
-    q1 = q1[Filtre]
-    q2 = q2[Filtre]
-    q3 = q3[Filtre]
-    av = av[Filtre]
-    
-    def int_cosmo(z, Omega_M=0.3):     
-        return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
-        
-    def luminosity_distance(zhl,zcmb):
-        
-
-        integr = np.zeros_like(zcmb)
-        for i in range(len(zcmb)):
-            integr[i] = integrate.quad(int_cosmo, 0, zcmb[i])[0]
-    
-        return (1+zhl)*(clight/H0)*integr
- 
-    def distance_modulus_th(zhl,zcmb):      
-        return 5.*np.log(luminosity_distance(zhl,zcmb))/np.log(10.)-5.                
-    grey = grey + distance_modulus_th(zhl,zcmb)               
-    X = np.array([grey,q1,q2,q3,av]).T
-    Y = np.array([mb,x1,c]).T    
-    
-    cov_mat = np.zeros([len(grey)*5, len(grey)*5])
-    cv = cov_x
-    for i in range (len(grey)):
-        cov_mat[i*5,i*5] = cv[i,0,0]
-        cov_mat[i*5 +1,i*5] = cv[i,1,0]
-        cov_mat[i*5 +2,i*5] = cv[i,2,0]
-        cov_mat[i*5 +3,i*5] = cv[i,3,0]
-        cov_mat[i*5 +4,i*5] = cv[i,4,0]
-        cov_mat[i*5,i*5 +1] = cv[i,0,1]
-        cov_mat[i*5 +1,i*5 +1] = cv[i,1,1]
-        cov_mat[i*5 +2,i*5 +1] = cv[i,2,1]
-        cov_mat[i*5 +3,i*5 +1] = cv[i,3,1]
-        cov_mat[i*5 +4,i*5 +1] = cv[i,4,1]
-        cov_mat[i*5 ,i*5 +2] = cv[i,0,2]
-        cov_mat[i*5 +1,i*5 +2] = cv[i,1,2]
-        cov_mat[i*5 +2,i*5 +2] = cv[i,2,2]
-        cov_mat[i*5 +3,i*5 +2] = cv[i,3,2]
-        cov_mat[i*5 +4,i*5 +2] = cv[i,4,2]
-        cov_mat[i*5,i*5 +3] = cv[i,0,3]
-        cov_mat[i*5 +1,i*5 +3] = cv[i,1,3]
-        cov_mat[i*5 +2,i*5 +3] = cv[i,2,3]
-        cov_mat[i*5 +3,i*5 +3] = cv[i,3,3]
-        cov_mat[i*5 +4,i*5 +3] = cv[i,4,3]
-        cov_mat[i*5,i*5 +4] = cv[i,0,4]
-        cov_mat[i*5 +1,i*5 +4] = cv[i,1,4]
-        cov_mat[i*5 +2,i*5 +4] = cv[i,2,4]
-        cov_mat[i*5 +3,i*5 +4] = cv[i,3,4]
-        cov_mat[i*5 +4,i*5 +4] = cv[i,4,4]
-    
-    cov_mat_grey = np.zeros([len(grey), len(grey)])
-
-    for i in range (len(grey)):
-        cov_mat_grey[i,i] = cv[i,0,0]
-       
-
-
-    
-    return X, Y, cov_x, cov_mat_grey, cov_mat,  zhl, zcmb, zerr
 
 def comp_rms(residuals, dof, err=True, variance=None):
     """
