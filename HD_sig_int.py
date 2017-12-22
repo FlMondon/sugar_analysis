@@ -97,6 +97,7 @@ def get_hubblefit(x, cov_x, zhl, zcmb, zerr, parameters=None):
             Warning if you have more than 5 parameters, add parameters in PARAM_NAME
     """
     n_corr =  np.shape(x)[1]-1
+    
     class hubble_fit_case(Hubble_fit):
         freeparameters = ["Mb"]+PARAM_NAME[:n_corr].tolist()
         
@@ -106,7 +107,9 @@ def get_hubblefit(x, cov_x, zhl, zcmb, zerr, parameters=None):
     h = hubble_fit_case(x, cov_x, zhl, zcmb, zerr)
     # Do we have fixed (set to 0) parameters
     for i,param in enumerate(h.freeparameters[1:]):
+        print 's'
         if i not in parameters:
+            print 'l'
             setattr(h,"%s_guess"%param,0)
             setattr(h,"%s_fixed"%param,True)
     return h

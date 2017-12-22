@@ -10,6 +10,8 @@ import sugar
 from scipy import integrate
 from astropy.table import Table
 import sncosmo
+from math import isnan
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 
 ###########
 #constants
@@ -18,7 +20,13 @@ import sncosmo
 clight = 299792.458
 H0 = 0.000070
 ###############
+# wavelength limits for salt2 model
+wl_min_sal = 3000
+wl_max_sal = 7000
 
+# wavelength limits for sugar model
+wl_min_sug = 3341.41521
+wl_max_sug = 8576.61898
 
 def read_sugar_salt2_parameters():
     """
@@ -209,33 +217,160 @@ def read_UBVRI():
     zerr = np.array(zerr)
     
     return salt_parm ,cov_salt, zhl, zcmb, zerr
+
+def wl_cut_salt2(fname, EBV, z):
+    # wavelength limits for salt2 model
+    wl_min_sal = 3000
+    wl_max_sal = 7000
     
+
+    filt = sncosmo.get_bandpass(fname)
+    wlen = filt.wave
+    tran = filt.trans
+    dt = 10000
+    spl = Spline1d(wlen, tran, k=1, ext = 1)
+
+    xs = np.linspace(min(wlen), max(wlen), dt)
+    dxs = ((max(wlen)-min(wlen))/(dt-1))
+    wlen_eff = np.sum((10**(-A_l(xs,EBV)/2.5))*spl(xs)*xs*dxs)/np.sum((10**(-A_l(xs,EBV)/2.5))*spl(xs)*dxs)
+    if wl_min_sal >= wlen_eff/(1+z) or wlen_eff/(1+z) >= wl_max_sal:
+        return ('False', wlen_eff/(1+z))
+    else:
+        return('True', wlen_eff/(1+z))
+
+def wl_cut_sugar(fname, z):		
+        filt = sncosmo.get_bandpass(fname)
+        wlen = filt.wave
+        tran = filt.trans
+        dt = 10000
+        wlen_shift = wlen/(1+z)
+        spl = Spline1d(wlen_shift, tran, k=1, ext = 1)
+        xs = np.linspace(min(wlen_shift), max(wlen_shift), dt)
+        dxs = ((max(wlen_shift)-min(wlen_shift))/(dt-1)) 
+        area_full = np.sum(spl(xs)*dxs) # full area under the filter
+
+        xs_cut = np.linspace(wl_min_sug, wl_max_sug, dt)
+        dxs_cut = ((wl_max_sug-wl_min_sug)/(dt-1))
+        area_cut = np.sum(spl(xs_cut)*dxs_cut)
+        r = 1.-area_cut/area_full # area under the filter outside the model
+
+        if r < 0.1:
+            return ('True',r)
+        else:
+            return ('False',r)
+
+
+
+
+
+def A_l(xx, EBV, Rv=3.1):
+    A_l = []
+    xx = np.array(xx)
+    x = 1./(xx/10**4.) # xx in AA
+    for i in x:
+        if i < 1.1:
+            y = i**1.61
+            a = 0.574*y
+            b = -0.527*y
+        elif 1.1 <= i <= 3.3:
+            y = i - 1.82
+            a = 1 + y*(0.17699 + y*(-0.50447 + y*(-0.02427+ y*(0.72085 + y*(0.01979 + y*(-0.77530 + 0.32999*y))))))
+            b =  y*(1.41338 + y*(2.28305 + y*(1.07233 +y*(-5.38434 + y*(-0.62251 + y*(5.30260 - 2.09002*y))))))
+        elif 3.3 < i < 5.9:
+            a = 1.752 - 0.316*i - 0.104/((i-4.67)*(i-4.67) + 0.341)
+            b = -3.09 + 1.825*i + 1.206/((i-4.62)*(i-4.62) + 0.263)
+        elif 5.9 <= i <= 8.:
+            Fa = -(i-5.9)*(i-5.9) * (0.04473 + 0.009779*(i-5.9))
+            a = 1.752 - 0.316*i - 0.104/((i-4.67)*(i-4.67) + 0.341) + Fa
+            Fb = (i-5.9)*(i-5.9) * (0.213 + 0.1207*(i-5.9))
+            b = -3.09 + 1.825*i + 1.206/((i-4.62)*(i-4.62) + 0.263) + Fb
+        A = (a*Rv + b)*EBV
+        A_l.append(A)
+    A_l = np.array(A_l)
+    return A_l
+
+
+            
 def mag_to_flux(mag,band):
-    vega = sncosmo.get_magsystem('vega')
-    flux = vega.band_mag_to_flux(mag, band)    
+    vega = sncosmo.get_magsystem('vega_snf')
+    flux = vega.band_mag_to_flux(mag, band)
+
     return flux
     
-def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf']):
+def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2'):
     """
     """
+    # wavelength limits for salt2 model
+    wl_min_sal = 3000
+    wl_max_sal = 7000
+    
+    # wavelength limits for sugar model
+    wl_min_sug = 3341.41521
+    wl_max_sug = 8576.61898
+    vega = sncosmo.get_magsystem('vega_snf')
     time = []
     band = []
     flux = []
     fluxerr = []
     zp = []
     zpsys = []
+    h = 10**-9
+    zhl = meta[sn_name]['host.zhelio']
+    zcmb = meta[sn_name]['host.zcmb']
+    mwebv = meta[sn_name]['target.mwebv']
     sn_data = meta[sn_name]['spectra']
     for t in sn_data.keys():
+
         for f in filters:
-            time.append(sn_data[t]['obs.mjd'])
-            band.append(f)
-            flux.append(mag_to_flux(sn_data[t]['mag.'+f],f))
-            flux.append(mag_to_flux(sn_data[t]['mag.'+f+'err'],f))
-            zp.append(0.)
-            zpsys.append('vega')
+            if isnan(sn_data[t]['mag.'+f]) == False:
+
+                time.append(sn_data[t]['obs.mjd'])
+                band.append(f)
+        
+                flux.append(mag_to_flux(sn_data[t]['mag.'+f],f))
+                fluxerr.append(((np.abs(mag_to_flux(sn_data[t]['mag.'+f]+h,f)-mag_to_flux(sn_data[t]['mag.'+f] ,f)) / h))*  sn_data[t]['mag.'+f+'.err'])
+                zp.append(2.5*np.log10(vega.zpbandflux(f)))              
+                zpsys.append('vega_snf')
             
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
-    return data
+    
+    dic = {}
+    for x in data:
+        if x[1] in dic.keys():
+            dic[x[1]] += 1
+        else:
+            dic[x[1]] = 1
+            
+    f_in = {}	
+    f_out = {}
+    for i in dic.keys():
+        if model == 'salt2':
+            res = wl_cut_salt2(i, mwebv, zhl) 
+            if res[0] == 'True':
+                f_in[i] = res[1]
+            else:
+                f_out[i] = res[1]
+                print 'We excluded passband %s (%d points) because restframewavelength = %7.3f does not belong to the interval [%d,%d]' % (i,dic[i],res[1],wl_min_sal,wl_max_sal)
+        elif model == 'sugar':
+            res = wl_cut_sugar(i, zhl)
+            if res[0] == 'True':
+                f_in[i] = res[1]
+            else:
+                f_out[i] = res[1]
+                print 'We excluded passband %s (%d points) because it does not belong to the interval [%d,%d]' % (i,dic[i],wl_min_sug,wl_max_sug)
+        else:
+            print 'ERROR: model name has to be salt2 or sugar'
+
+    mask = []
+    for row in data:
+        if row[1] in f_in.keys():
+            mask.append(True)
+        else:
+            mask.append(False)
+    mask = np.array(mask)
+
+    data_cut = sncosmo.select_data(data, mask)
+    return data_cut, zhl, zcmb, mwebv
     
     
     
