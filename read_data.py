@@ -12,7 +12,7 @@ from astropy.table import Table
 import sncosmo
 from math import isnan
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-
+import sys
 ###########
 #constants
 ###########
@@ -158,10 +158,7 @@ def read_sugar_salt2_parameters():
 
     for i in range (len(grey)):
         cov_mat_grey[i,i] = cv[i,0,0]
-       
 
-
-    
     return sug_parm, salt_parm, cov_salt, cov_mat_grey, cov_mat,  zhl, zcmb, zerr
     
 def read_UBVRI():
@@ -297,7 +294,7 @@ def mag_to_flux(mag,band):
 
     return flux
     
-def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2'):
+def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2', errorscale=True):
     """
     """
     # wavelength limits for salt2 model
@@ -315,6 +312,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2'):
     zp = []
     zpsys = []
     h = 10**-9
+    errorscale_factor = meta[sn_name]['target.errorscale']
     zhl = meta[sn_name]['host.zhelio']
     zcmb = meta[sn_name]['host.zcmb']
     mwebv = meta[sn_name]['target.mwebv']
@@ -322,15 +320,40 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2'):
     for t in sn_data.keys():
 
         for f in filters:
-            if isnan(sn_data[t]['mag.'+f]) == False:
+            for spectra_name in meta[sn_name]['spectra'].keys():
+                
+                if f == 'USNf'or f == 'BSNf':
+                    try:
+                        quality_flag = meta[sn_name]['spectra'][spectra_name]['procB.Quality']
+                    except:
+                        quality_flag = 1
+                        
+                elif f == 'VSNf'or f == 'RSNf' or f == 'ISNf':
+                    try:
+                        quality_flag = meta[sn_name]['spectra'][spectra_name]['procR.Quality']
+                    except:
+                        quality_flag = 1
+                else:
+                    print >> sys.stderr, \
+                        'filter not recognise' 
+                    return
+                    
+#            if isnan(sn_data[t]['mag.'+f]) == False:
+                if quality_flag == 1 and not isnan(sn_data[t]['mag.'+f]):
+                    time.append(sn_data[t]['obs.mjd'])
+                    band.append(f)
+            
+                    flux.append(mag_to_flux(sn_data[t]['mag.'+f],f))
+                    zp.append(2.5*np.log10(vega.zpbandflux(f)))              
+                    zpsys.append('vega_snf')
+                    
+                    if errorscale:
+                        err_mag = sn_data[t]['mag.'+f+'.err']
+                    else:  
+                        err_mag = sn_data[t]['mag.'+f+'.err']/errorscale_factor
+      
+                    fluxerr.append(((np.abs(mag_to_flux(sn_data[t]['mag.'+f]+h,f)-mag_to_flux(sn_data[t]['mag.'+f] ,f)) / h))* err_mag)
 
-                time.append(sn_data[t]['obs.mjd'])
-                band.append(f)
-        
-                flux.append(mag_to_flux(sn_data[t]['mag.'+f],f))
-                fluxerr.append(((np.abs(mag_to_flux(sn_data[t]['mag.'+f]+h,f)-mag_to_flux(sn_data[t]['mag.'+f] ,f)) / h))*  sn_data[t]['mag.'+f+'.err'])
-                zp.append(2.5*np.log10(vega.zpbandflux(f)))              
-                zpsys.append('vega_snf')
             
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
     

@@ -53,7 +53,6 @@ def load_spectral_magsys_fits2(relpath, name=None, version=None):
     for i in range(len(fit.data)):
          wl[i] = fit.data[i][0]
          flux[i] = fit.data[i][1]
-    print flux
     refspectrum = sncosmo.spectrum.Spectrum(wl, flux,
                            unit=(u.erg / u.s / u.cm**2 / u.AA), wave_unit=u.AA)
     return sncosmo.magsystems.SpectralMagSystem(refspectrum, name=name)
@@ -63,6 +62,7 @@ def mag_sys_SNF():
     """
     define magnitude systeme for snf
     """
+    
     sncosmo.registry.register_loader(sncosmo.MagSystem, 'vega_snf_0', load_spectral_magsys_fits2,
                              args=['../sugar_analysis_data/Vega.fits'],
                              meta={'description': 'use vega spectrum that come from snf data'})        

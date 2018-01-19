@@ -17,6 +17,7 @@ from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 import read_data
 import numpy as np
 import copy
+import cPickle
 import read_data as RD
 #from decimal import Decimal
 
@@ -29,42 +30,43 @@ t_max_sug = 42
 wl_min_sal = 3000.
 wl_max_sal = 7000.
 
-def fit_salt2(meta):
+def fit_salt2(filters=['BSNf','VSNf','RSNf'],errorscale=True):
 
 #    outfile = open('../sugar_analysis_data/results/res_salt2_SNF.txt', 'w')
 #    outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c  tmax dtmax x0 dx0')
 
-    list_SN = ['SNF20080323-009']
-   
+    list_SN = ['SNF20080717-000']
+    meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
     
     
     fitfail=[]   
 
 #    for sn_name in meta.keys():
+
     for sn_name in list_SN:
+        if meta[sn_name]['idr.subset'] != 'bad':
 #        if 'lc-SDSS' == filename[:7] or 'lc-sn'==filename[:5]:
 #        if 'lc-SDSS' == filename[:7]:   
         
         
-        print sn_name
-        data, zhl, zcmb, mwebv = RD.read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'])
-        source = sncosmo.get_source('salt2', version='2.4')
-        source.EBV_snfit = mwebv    
-        source.z_snfit = zhl
-        source.Rv_snfit = 3.1
-
-        dust = sncosmo.CCM89Dust()
-        model = sncosmo.Model(source=source, effects=[dust], effect_names=['mw'], effect_frames=['obs'])
-#        model = sncosmo.Model(source=source)
-
-        model.set(mwebv=mwebv)
-        model.set(z=zhl)
-              
-#        try:     
-        #initial iteration x1 fix
-        model.set(x1=0.) #with 0.01 the  fit work for all SDSS and nearby
-
-        try:    
+            print sn_name
+            data, zhl, zcmb, mwebv = RD.read_meta_SNF(meta,sn_name,filters=filters,errorscale=errorscale)
+            source = sncosmo.get_source('salt2', version='2.4')
+            source.EBV_snfit = mwebv    
+            source.z_snfit = zhl
+            source.Rv_snfit = 3.1
+    
+            dust = sncosmo.CCM89Dust()
+            model = sncosmo.Model(source=source, effects=[dust], effect_names=['mw'], effect_frames=['obs'])
+    #        model = sncosmo.Model(source=source)
+    
+            model.set(mwebv=mwebv)
+            model.set(z=zhl)
+                  
+    #        try:     
+            #initial iteration x1 fix
+            model.set(x1=1.105)
+    
             print 'initialisation'
             res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False, apply_ZPERR=False)
             print 'first iteration'
@@ -125,16 +127,16 @@ def fit_salt2(meta):
 #        
 #
 #        print res, '\nNumber of iterations: ', m
-            sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
-            plt.show()
-
+#            sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+#            plt.show()
+#
 #            outfile.write('\n')        
 #            outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0']))          
 
 #
-        except:
-            fitfail.append(sn_name)
-            print 'Error: fit fail for: ',sn_name          
+#            except:
+#                fitfail.append(sn_name)
+#                print 'Error: fit fail for: ',sn_name          
     
             
     print fitfail       
@@ -171,9 +173,8 @@ def fit_sugar():
             plt.show()
 
             #outfile.write('%s \n' %(sn_name)) 
-            #outfile.write('%s \n' %(res)) 
-        
-    #outfile.close()    
+            #outfile.write('%s \n' %(res))
+    outfile.close()    
 
 
     
