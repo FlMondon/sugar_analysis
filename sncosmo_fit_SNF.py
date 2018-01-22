@@ -14,7 +14,6 @@ from matplotlib import rc, rcParams
 import matplotlib.gridspec as gridspec
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator
-import read_data
 import numpy as np
 import copy
 import cPickle
@@ -32,19 +31,19 @@ wl_max_sal = 7000.
 
 def fit_salt2(filters=['BSNf','VSNf','RSNf'],errorscale=True):
 
-#    outfile = open('../sugar_analysis_data/results/res_salt2_SNF.txt', 'w')
-#    outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c  tmax dtmax x0 dx0')
+    outfile = open('../sugar_analysis_data/results/res_salt2_SNF.txt', 'w')
+    outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c x0 dx0 tmax dtmax ')
 
-    list_SN = ['SNF20080717-000']
+    list_SN = ['SNF20080323-009']
     meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
     
     
     fitfail=[]   
 
-#    for sn_name in meta.keys():
+    for sn_name in meta.keys():
 
-    for sn_name in list_SN:
-        if meta[sn_name]['idr.subset'] != 'bad':
+#    for sn_name in list_SN:
+        if meta[sn_name]['idr.subset'] != 'bad' and meta[sn_name]['idr.subset'] != 'auxiliary':
 #        if 'lc-SDSS' == filename[:7] or 'lc-sn'==filename[:5]:
 #        if 'lc-SDSS' == filename[:7]:   
         
@@ -63,85 +62,85 @@ def fit_salt2(filters=['BSNf','VSNf','RSNf'],errorscale=True):
             model.set(mwebv=mwebv)
             model.set(z=zhl)
                   
-    #        try:     
-            #initial iteration x1 fix
-            model.set(x1=1.105)
-    
-            print 'initialisation'
-            res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False, apply_ZPERR=False)
-            print 'first iteration'
-            chi2 = res.chisq
-            print chi2
-            chi2p = chi2*2
-            m=0
-
-            while chi2 < chi2p:
-
-
-                if m > 0:
-                    resp = res
-                    fitted_modelp = fitted_model
-                m += 1
-                t_peak = fitted_model.parameters[1]
-                #print t_peak,fitted_model.parameters[4]
-    
-                t1 = t_peak + t_min*(1 + model.get('z'))
-                t2 = t_peak + t_max*(1 + model.get('z'))
-                            
-                A=[]
-                data_new = copy.deepcopy(data)
-                for i in range(len(data_new)):                    
-                    if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                        A.append(i)
-                A=np.array(A)
-                for i in range(len(A)):
-                    #print  'We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2)
-                    data_new.remove_row(A[i])
-                    A-=1   
-               
-                res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0', 'x0', 'x1', 'c'], modelcov = True, apply_ZPERR=False) 
-                chi2p = chi2
-    
+            try:     
+                #initial iteration x1 fix
+                model.set(x1=0.3)
+        
+                print 'initialisation'
+                res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False, apply_ZPERR=False)
+                print 'first iteration'
                 chi2 = res.chisq
-                print chi2p, chi2
-               
-
-            
-                
-            #final results
-            res = resp
-            fitted_model = fitted_modelp
-            print (res.chisq)
-            
-            #Calculation of mb
-            mb = mB_determination(res)
-            print mb
-
-    #                
+                print chi2
+                chi2p = chi2*2
+                m=0
     
+                while chi2 < chi2p:
+    
+    
+                    if m > 0:
+                        resp = res
+                        fitted_modelp = fitted_model
+                    m += 1
+                    t_peak = fitted_model.parameters[1]
+                    #print t_peak,fitted_model.parameters[4]
+        
+                    t1 = t_peak + t_min*(1 + model.get('z'))
+                    t2 = t_peak + t_max*(1 + model.get('z'))
+                                
+                    A=[]
+                    data_new = copy.deepcopy(data)
+                    for i in range(len(data_new)):                    
+                        if data_new[i][0] <= t1 or data_new[i][0] >= t2:
+                            A.append(i)
+                    A=np.array(A)
+                    for i in range(len(A)):
+                        #print  'We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2)
+                        data_new.remove_row(A[i])
+                        A-=1   
+                   
+                    res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0', 'x0', 'x1', 'c'], modelcov = True, apply_ZPERR=False) 
+                    chi2p = chi2
+        
+                    chi2 = res.chisq
+                    print chi2p, chi2
+                   
+    
+                
+                    
+                #final results
+                res = resp
+                fitted_model = fitted_modelp
+                print (res.chisq)
+                
+                #Calculation of mb
+                mb = mB_determination(res)
+                print mb
+    
+        #                
+        
+        #        
+                #Calculation of mb uncertainty and covariance between mb and other parameters
+                dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 = mb_uncertainty(res)
+        #        print dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 
+        #        
     #        
-            #Calculation of mb uncertainty and covariance between mb and other parameters
-            dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 = mb_uncertainty(res)
-    #        print dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 
-    #        
-#        
-#
-#        print res, '\nNumber of iterations: ', m
-#            sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
-#            plt.show()
-#
-#            outfile.write('\n')        
-#            outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0']))          
+    #
+    #        print res, '\nNumber of iterations: ', m
+    #            sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+    #            plt.show()
+    #
+                outfile.write('\n')        
+                outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0']))          
 
 #
-#            except:
-#                fitfail.append(sn_name)
-#                print 'Error: fit fail for: ',sn_name          
+            except:
+                fitfail.append(sn_name)
+                print 'Error: fit fail for: ',sn_name          
     
             
     print fitfail       
-#    outfile.close()
-    return res
+    outfile.close()
+#    return res
 
 #    
     

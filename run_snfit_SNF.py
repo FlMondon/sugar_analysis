@@ -28,7 +28,7 @@ def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True):
 #    sn_list = ['SNF20080323-009','SNF20080510-005']
     for sn_name in meta.keys():
 #    for sn_name in sn_list:
-        if meta[sn_name]['idr.subset'] != 'bad':
+        if meta[sn_name]['idr.subset'] != 'bad' and meta[sn_name]['idr.subset'] != 'auxiliary':
             errorscale_factor = meta[sn_name]['target.errorscale']
             redshift = meta[sn_name]['host.zhelio']
             mwebv = meta[sn_name]['target.mwebv']
