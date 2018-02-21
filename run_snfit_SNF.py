@@ -11,7 +11,7 @@ import os
 import sys
 import subprocess
 
-def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True):
+def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True, width=20):
 
     '''
     creat snfit file for each filter (like the file format input in snfit 2.2.2) 
@@ -21,13 +21,13 @@ def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True):
     outdir = '../sugar_analysis_data/snfit_file_SNF'
     sn_dico = {}
     if errorscale:
-        results = open( '../sugar_analysis_data/results/results_snfit.txt','w')
+        results = open( '../sugar_analysis_data/results/results_snfit_'+str(width)+'.txt','w')
     else:       
         results = open( '../sugar_analysis_data/results/results_snfit_without_errorscale.txt','w')
     
-#    sn_list = ['SNF20080323-009','SNF20080510-005']
-    for sn_name in meta.keys():
-#    for sn_name in sn_list:
+    sn_list = ['SNF20080323-009']
+#    for sn_name in meta.keys():
+    for sn_name in sn_list:
         if meta[sn_name]['idr.subset'] != 'bad' and meta[sn_name]['idr.subset'] != 'auxiliary':
             errorscale_factor = meta[sn_name]['target.errorscale']
             redshift = meta[sn_name]['host.zhelio']
@@ -40,12 +40,34 @@ def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True):
             sn_dico[sn_name] = {}
             
             for f in filters:    
-                filename = '%s/maglc2fit_%s.dat' % (outdir, f)
+
+                if f == 'USNf':
+                     filename = '%s/maglc2fit_fU_'% (outdir)+str(width)+'.dat'
+                if f == 'BSNf':
+                    filename = '%s/maglc2fit_fB_'% (outdir)+str(width)+'.dat' 
+                if f == 'VSNf':
+                    filename = '%s/maglc2fit_fV_'% (outdir)+str(width)+'.dat'
+                if f == 'RSNf':
+                    filename = '%s/maglc2fit_fR_'% (outdir)+str(width)+'.dat'
+
+#                filename = '%s/maglc2fit_%s.dat' % (outdir, f)
                 
                 
                 with open(filename, 'w') as file_name:
-                    file_name.write('@BAND %s\n' % f)
-                    file_name.write('@INSTRUMENT SNIFS\n')
+
+
+                    if f == 'USNf':
+                         file_name.write('@BAND fU_'+str(width)+'\n')
+                    if f == 'BSNf':
+                        file_name.write('@BAND fB_'+str(width)+'\n')
+                    if f == 'VSNf':
+                        file_name.write('@BAND fV_'+str(width)+'\n')
+                    if f == 'RSNf':
+                        file_name.write('@BAND fR_'+str(width)+'\n')
+                        
+#                    file_name.write('@BAND %s\n' % f)
+                    
+                    file_name.write('@INSTRUMENT Florian\n')
                     file_name.write('@MAGSYS VEGA\n')
                     file_name.write('# Date :\n')
                     file_name.write('# Mag :\n')
@@ -87,7 +109,17 @@ def run_snfit_SNF(filters=['BSNf','VSNf','RSNf'], errorscale=True):
                                     file_name.write('%f %f %f\n' % (mjd, mag, err_mag))
             cmd = 'snfit '
             for f in filters:
-                cmd += '%s/maglc2fit_%s.dat ' % (outdir, f)    
+                
+                if f == 'USNf':
+                    cmd += '%s/maglc2fit_fU_'% (outdir)+str(width)+'.dat ' 
+                if f == 'BSNf':
+                    cmd += '%s/maglc2fit_fB_'% (outdir)+str(width)+'.dat ' 
+                if f == 'VSNf':
+                    cmd += '%s/maglc2fit_fV_'% (outdir)+str(width)+'.dat ' 
+                if f == 'RSNf':
+                    cmd += '%s/maglc2fit_fR_'% (outdir)+str(width)+'.dat ' 
+
+#                cmd += '%s/maglc2fit_%s.dat ' % (outdir, f)    
     
             cmd += '-o '+outdir+'/results_salt2.dat'
             try:
