@@ -44,7 +44,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
         else:
              raise ValueError('ERROR: model name has to be salt2 or sugar')
             
-    list_SN = ['SNF20080323-009']
+    list_SN = ['SNF20080323-009','SNF20071021-000']
 #    list_SN = ['SNF20080717-000']
     meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
     
@@ -306,10 +306,13 @@ def mb_uncertainty(res):
 
 if __name__=="__main__":
     
+    width = 5
+    model_used = 'salt2'
     try:
-        Build_SNF.register_SNf_bands()
-        Build_SNF.mag_sys_SNF()
+        Build_SNF.register_SNf_bands_width(width=width)
+        Build_SNF.mag_sys_SNF_width(width=width)
+#    Build_SNF.register_SUGAR()
     except:
         print 'Filters and mag sys already registred' 
         
-    Light_curve_fit()
+    Light_curve_fit(model_used=model_used,width=width,write_results=True)

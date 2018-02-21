@@ -293,8 +293,8 @@ def A_l(xx, EBV, Rv=3.1):
 
 
             
-def mag_to_flux(mag,band):
-    vega = sncosmo.get_magsystem('vega_snf')
+def mag_to_flux(mag,band,width):
+    vega = sncosmo.get_magsystem('vega_snf_'+str(width))
     flux = vega.band_mag_to_flux(mag, band)
 
     return flux
@@ -356,7 +356,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
     # wavelength limits for sugar model
     wl_min_sug = 3341.41521
     wl_max_sug = 8576.61898
-    vega = sncosmo.get_magsystem('vega_snf')
+    vega = sncosmo.get_magsystem('vega_snf_'+str(width))
     time = []
     band = []
     flux = []
@@ -395,15 +395,20 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
                 time.append(sn_data[t]['obs.mjd'])
                 
                 if f == 'USNf':
-                    band.append('fU_'+str(width))
+                    fn = 'fU_'+str(width)
+                    band.append(fn)
                 if f == 'BSNf':
-                    band.append('fB_'+str(width))
+                    fn = 'fB_'+str(width)
+                    band.append(fn)
                 if f == 'VSNf':
-                    band.append('fV_'+str(width))
+                    fn = 'fV_'+str(width)
+                    band.append(fn)
                 if f == 'RSNf':
-                    band.append('fR_'+str(width))
+                    fn = 'fR_'+str(width)
+                    band.append(fn)
                 if f == 'ISNf':
-                    band.append('fI_'+str(width)) 
+                    fn = 'fI_'+str(width)
+                    band.append(fn) 
 #                if f == 'BSNf':
 #                    band.append('fB')
 #                if f == 'VSNf':
@@ -412,15 +417,17 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
 #                    band.append('fR')                   
 #                band.append(f)
                 
-                flux.append(mag_to_flux(sn_data[t]['mag.'+f],f))
-                zp.append(2.5*np.log10(vega.zpbandflux(f)))  
+                flux.append(mag_to_flux(sn_data[t]['mag.'+f],fn,width))
+                zp.append(2.5*np.log10(vega.zpbandflux(fn)))
+
+
 #                print '~~~~~~~~~~~~~~~~~~~'
 #                print 2.5*np.log10(vega.zpbandflux(f))
 #                print get_zp(f)
 #                print '~~~~~~~~~~~~~~~~~~~'
 #                zp.append(get_zp(f))
                 
-                zpsys.append('vega_snf')
+                zpsys.append('vega_snf_'+str(width))
                 if errorscale:
 
                     err_mag = sn_data[t]['mag.'+f+'.err']
@@ -429,7 +436,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
                     err_mag = sn_data[t]['mag.'+f+'.err']/errorscale_factor
 
 #                fluxerr.append(((np.abs(mag_to_flux(sn_data[t]['mag.'+f]+h,f)-mag_to_flux(sn_data[t]['mag.'+f] ,f)) / h))*  err_mag)
-                fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],f) / 1.0857362047581294)
+                fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],fn,width) / 1.0857362047581294)
 #                snfit_test.write(str(sn_data[t]['obs.mjd'])+' '+str(f)+' '+str(mag_to_flux(sn_data[t]['mag.'+f],f))+' '+str(err_mag * mag_to_flux(sn_data[t]['mag.'+f],f) / 1.0857362047581294)+' '+str(2.5*np.log10(vega.zpbandflux(f)))+' '+'Vega'+'\n')
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
 

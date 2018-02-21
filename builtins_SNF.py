@@ -9,8 +9,9 @@ import sncosmo
 import astropy.units as u
 import numpy as np
 import pylab as P
-import pyfits
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
+from scipy.interpolate import RectBivariateSpline as Spline2d
+from sncosmo.models import _SOURCES
+
 CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27        # [erg s]
 
@@ -133,430 +134,16 @@ def register_SNf_bands():
     sncosmo.registry.register(band_V)
     band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR')    
     sncosmo.registry.register(band_R)
-
-    band_file_U = 'fU_0.1.dat'
-    band_file_B = 'fB_0.1.dat'
-    band_file_V = 'fV_0.1.dat'
-    band_file_R = 'fR_0.1.dat'
-    band_file_I = 'fI_0.1.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_0.1')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_0.1')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_0.1')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_0.1')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_0.1')    
-    sncosmo.registry.register(band_I)  
-    
-    band_file_U = 'fU_1.dat'
-    band_file_B = 'fB_1.dat'
-    band_file_V = 'fV_1.dat'
-    band_file_R = 'fR_1.dat'
-    band_file_I = 'fI_1.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_1')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_1')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_1')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_1')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_1')    
-    sncosmo.registry.register(band_I)  
-    
-    band_file_U = 'fU_1.5.dat'
-    band_file_B = 'fB_1.5.dat'
-    band_file_V = 'fV_1.5.dat'
-    band_file_R = 'fR_1.5.dat'
-    band_file_I = 'fI_1.5.dat'
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_1.5')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_1.5')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_1.5')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_1.5')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_1.5')    
-    sncosmo.registry.register(band_I)
-    
-    band_file_U = 'fU_5.dat'
-    band_file_B = 'fB_5.dat'
-    band_file_V = 'fV_5.dat'
-    band_file_R = 'fR_5.dat'
-    band_file_I = 'fI_5.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_5')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_5')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_5')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_5')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_5')    
-    sncosmo.registry.register(band_I)                
-
-    band_file_U = 'fU_5.5.dat'
-    band_file_B = 'fB_5.5.dat'
-    band_file_V = 'fV_5.5.dat'
-    band_file_R = 'fR_5.5.dat'
-    band_file_I = 'fI_5.5.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_5.5')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_5.5')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_5.5')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_5.5')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_5.5')    
-    sncosmo.registry.register(band_I) 
-
-    band_file_U = 'fU_2.5.dat'
-    band_file_B = 'fB_2.5.dat'
-    band_file_V = 'fV_2.5.dat'
-    band_file_R = 'fR_2.5.dat'
-    band_file_I = 'fI_2.5.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_2.5')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_2.5')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_2.5')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_2.5')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_2.5')    
-    sncosmo.registry.register(band_I)
-    
-    band_file_U = 'fU_20.dat'
-    band_file_B = 'fB_20.dat'
-    band_file_V = 'fV_20.dat'
-    band_file_R = 'fR_20.dat'
-    band_file_I = 'fI_20.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_20')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_20')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_20')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_20')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_I,transmission_I,wave_unit=u.AA,name='fI_20')    
-    sncosmo.registry.register(band_I)        
  
-    band_file_U = 'fU_2.dat'
-    band_file_B = 'fB_2.dat'
-    band_file_V = 'fV_2.dat'
-    band_file_R = 'fR_2.dat'
-    band_file_I = 'fI_2.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_2')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_2')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_2')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_2')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_I,transmission_I,wave_unit=u.AA,name='fI_2')    
-    sncosmo.registry.register(band_I) 
     
-    band_file_U = 'fU_100.dat'
-    band_file_B = 'fB_100.dat'
-    band_file_V = 'fV_100.dat'
-    band_file_R = 'fR_100.dat'
-    band_file_I = 'fI_100.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
 
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_100')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_100')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_100')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_100')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_100')    
-    sncosmo.registry.register(band_I)  
-
-    band_file_U = 'fU_10.dat'
-    band_file_B = 'fB_10.dat'
-    band_file_V = 'fV_10.dat'
-    band_file_R = 'fR_10.dat'
-    band_file_I = 'fI_10.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_10')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_10')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_10')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_10')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_10')    
-    sncosmo.registry.register(band_I)  
-
-    band_file_U = 'fU_3.dat'
-    band_file_B = 'fB_3.dat'
-    band_file_V = 'fV_3.dat'
-    band_file_R = 'fR_3.dat'
-    band_file_I = 'fI_3.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_3')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_3')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_3')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_3')    
-    sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_3')    
-    sncosmo.registry.register(band_I)  
+def register_SNf_bands_width(width=20):
     
-    band_file_U = 'fU_500.dat'
-    band_file_B = 'fB_500.dat'
-    band_file_V = 'fV_500.dat'
-    band_file_R = 'fR_500.dat'
-    band_file_I = 'fI_500.dat'
+    band_file_U = 'fU_'+str(width)+'.dat'
+    band_file_B = 'fB_'+str(width)+'.dat'
+    band_file_V = 'fV_'+str(width)+'.dat'
+    band_file_R = 'fR_'+str(width)+'.dat'
+    band_file_I = 'fI_'+str(width)+'.dat'
        
         
     filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
@@ -579,55 +166,17 @@ def register_SNf_bands():
     wl_I = filt2[:,0]
     transmission_I = filt2[:,1]
             
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_500')    
+    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_'+str(width))    
     sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_500')    
+    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_'+str(width))    
     sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_500')    
+    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_'+str(width))    
     sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_500')    
+    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_'+str(width))    
     sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_500')    
-    sncosmo.registry.register(band_I)
-
-    band_file_U = 'fU_40.dat'
-    band_file_B = 'fB_40.dat'
-    band_file_V = 'fV_40.dat'
-    band_file_R = 'fR_40.dat'
-    band_file_I = 'fI_40.dat'
-       
-        
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
-    wl_I = filt2[:,0]
-    transmission_I = filt2[:,1]
+    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_'+str(width))    
+    sncosmo.registry.register(band_I)  
             
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_40')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB_40')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV_40')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_40')    
-    sncosmo.registry.register(band_R)     
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_40')    
-    sncosmo.registry.register(band_I)    
-        
 def load_spectral_magsys_fits2(relpath, name=None, version=None):
 #    fits = pyfits.open(relpath)
 #    fit = fits[1]
@@ -673,73 +222,37 @@ def mag_sys_SNF():
     'fU': ('vega_snf_0', 9.787),
 	'fB': ('vega_snf_0', 9.791),
 	'fV': ('vega_snf_0', 9.353),
-	'fR': ('vega_snf_0', 9.011),
-    'fU_0.1': ('vega_snf_0', 9.787),
-	'fB_0.1': ('vega_snf_0', 9.791),
-	'fV_0.1': ('vega_snf_0', 9.353),
-	'fR_0.1': ('vega_snf_0', 9.011),
-    'fI_0.1': ('vega_snf_0', 8.768),
-    'fU_1': ('vega_snf_0', 9.787),
-	'fB_1': ('vega_snf_0', 9.791),
-	'fV_1': ('vega_snf_0', 9.353),
-	'fR_1': ('vega_snf_0', 9.011),
-    'fI_1': ('vega_snf_0', 8.768),
-    'fU_1.5': ('vega_snf_0', 9.787),
-    	'fB_1.5': ('vega_snf_0', 9.791),
-	'fV_1.5': ('vega_snf_0', 9.353),
-	'fR_1.5': ('vega_snf_0', 9.011),
-    	'fI_1.5': ('vega_snf_0', 8.768),
-	'fU_2': ('vega_snf_0', 9.787),
-	'fB_2': ('vega_snf_0', 9.791),
-	'fV_2': ('vega_snf_0', 9.353),
-	'fR_2': ('vega_snf_0', 9.011),
-	'fI_2': ('vega_snf_0', 8.768),
-	'fU_3': ('vega_snf_0', 9.787),
-	'fB_3': ('vega_snf_0', 9.791),
-	'fV_3': ('vega_snf_0', 9.353),
-	'fR_3': ('vega_snf_0', 9.011),
-	'fI_3': ('vega_snf_0', 8.768),
-	'fU_2.5': ('vega_snf_0', 9.787),
-	'fB_2.5': ('vega_snf_0', 9.791),
-	'fV_2.5': ('vega_snf_0', 9.353),
-	'fR_2.5': ('vega_snf_0', 9.011),
-	'fI_2.5': ('vega_snf_0', 8.768),  
-    'fU_5': ('vega_snf_0', 9.787),
-	'fB_5': ('vega_snf_0', 9.791),
-	'fV_5': ('vega_snf_0', 9.353),
-	'fR_5': ('vega_snf_0', 9.011),
-    'fI_5': ('vega_snf_0', 8.768),
-	'fU_5.5': ('vega_snf_0', 9.787),
-	'fB_5.5': ('vega_snf_0', 9.791),
-	'fV_5.5': ('vega_snf_0', 9.353),
-	'fR_5.5': ('vega_snf_0', 9.011),
-	'fI_5.5': ('vega_snf_0', 8.768),    
-    'fU_20': ('vega_snf_0', 9.787),
-	'fB_20': ('vega_snf_0', 9.791),
-	'fV_20': ('vega_snf_0', 9.353),
-	'fR_20': ('vega_snf_0', 9.011),
-    'fI_20': ('vega_snf_0', 8.768),
-    'fU_10': ('vega_snf_0', 9.787),
-	'fB_10': ('vega_snf_0', 9.791),
-	'fV_10': ('vega_snf_0', 9.353),
-	'fR_10': ('vega_snf_0', 9.011),
-    'fI_10': ('vega_snf_0', 8.768),
-    'fU_100': ('vega_snf_0', 9.787),
-	'fB_100': ('vega_snf_0', 9.791),
-	'fV_100': ('vega_snf_0', 9.353),
-	'fR_100': ('vega_snf_0', 9.011),
-    'fI_100': ('vega_snf_0', 8.768),
-    'fU_500': ('vega_snf_0', 9.787),
-	'fB_500': ('vega_snf_0', 9.791),
-	'fV_500': ('vega_snf_0', 9.353),
-	'fR_500': ('vega_snf_0', 9.011),
-    'fI_500': ('vega_snf_0', 8.768),
-    'fU_40': ('vega_snf_0', 9.787),
-	'fB_40': ('vega_snf_0', 9.791),
-	'fV_40': ('vega_snf_0', 9.353),
-	'fR_40': ('vega_snf_0', 9.011),
-    'fI_40': ('vega_snf_0', 8.768),}
+	'fR': ('vega_snf_0', 9.011)}
+
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf') 
+
+
+def mag_sys_SNF_width(width=20):
+    """
+    define magnitude systeme for snf
+    """
+    
+#    sncosmo.registry.register_loader(sncosmo.MagSystem, 'vega_snf_0', load_spectral_magsys_fits2,
+#                             args=['../sugar_analysis_data/Vega.fits'],
+#                             meta={'description': 'use vega spectrum that come from snf data'}) 
+#    bands_snf ={'USNF': ('vega_snf_0', 0.),
+#	'BSNF': ('vega_snf_0', 0.),
+#	'VSNF': ('vega_snf_0', 0.),
+#	'RSNF': ('vega_snf_0', 0.),
+#	'ISNF': ('vega_snf_0', 0)}
+    
+    sncosmo.registry.register_loader(sncosmo.MagSystem, 'vega_snf_0_'+str(width), load_spectral_magsys_fits2,
+                             args=['../sugar_analysis_data/data/MagSys/bd_17d4708_stisnic_002.ascii'],
+                             meta={'description': 'use bd_17d4708 spectrum that come from snfit'})        
+
+    bands_snf ={'fU_'+str(width): ('vega_snf_0_'+str(width), 9.787),
+	'fB_'+str(width): ('vega_snf_0_'+str(width), 9.791),
+	'fV_'+str(width): ('vega_snf_0_'+str(width), 9.353),
+	'fR_'+str(width): ('vega_snf_0_'+str(width), 9.011),
+    'fI_'+str(width): ('vega_snf_0_'+str(width), 8.768)}
+
+    sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf_'+str(width)) 
+
  
 def plot_SNf_filters(wl, transmission_U, transmission_V, transmission_B, transmission_R, transmission_I):
     P.plot(wl, transmission_U)
@@ -750,4 +263,76 @@ def plot_SNf_filters(wl, transmission_U, transmission_V, transmission_B, transmi
     P.ylim(0,2)
     P.show()
 
-    
+# =============================================================================
+# Sources
+
+class SUGARSource(sncosmo.Source):
+
+    _param_names = ['q1', 'q2', 'q3', 'A', 'Mgr']
+    param_names_latex = ['q_1', 'q_2', 'q_3', 'A', 'M_g']
+    _SCALE_FACTOR = 1
+
+
+    def __init__(self, modeldir=None,
+                 m0file='sugar_template_0.dat',
+                 m1file='sugar_template_1.dat',
+		 m2file='sugar_template_2.dat',
+		 m3file='sugar_template_3.dat',
+		 m4file='sugar_template_4.dat',
+                 name=None, version=None):
+        self.name = name
+        self.version = version
+        self._model = {}
+        self._parameters = np.array([1., 1., 1., 1., 40.])
+
+        print modeldir 	
+        phase, wave, M0, M1, M2, M3 , M4, F = np.genfromtxt(modeldir) 
+        model_ascii = {'M0': M0, 'M1': M1, 'M2': M2, 'M3': M3, 'M4': M4}
+        
+
+        # model components are interpolated to 2nd order
+        for key in ['M0', 'M1', 'M2', 'M3', 'M4']:
+            values = model_ascii[key]
+            values *= self._SCALE_FACTOR
+            self._model[key] = Spline2d(phase, wave, values, kx=2, ky=2)
+
+            # The "native" phases and wavelengths of the model are those
+            # of the first model component.
+            if key == 'M0':
+                self._phase = phase
+                self._wave = wave
+
+
+    def _flux(self, phase, wave):
+        m0 = self._model['M0'](phase, wave)
+        m1 = self._model['M1'](phase, wave)
+        m2 = self._model['M2'](phase, wave)
+        m3 = self._model['M3'](phase, wave)
+        m4 = self._model['M4'](phase, wave)
+	return (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
+	#return (10. ** (-0.4 * (m0 + self._parameters[0] * m1  + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))/ 10**self._parameters[4]
+	#return (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4]))/f)
+
+        #Flux_nu=10**(-0.4*(self.Y_new_binning+ABmag0))
+        #f = self.SUGAR_Wavelength**2 / 299792458. * 1.e-10
+        #self.Flux=Flux_nu/f
+
+
+
+from sncosmo.builtins import DATADIR
+
+# Sugar model
+def load_sugarmodel(relpath, name=None, version=None):
+#    abspath = DATADIR.abspath(relpath, isdir=True)
+    return SUGARSource(modeldir=relpath, name=name, version=version)
+
+def register_SUGAR():
+    website = 'http://no'
+    PF16ref = ('PF16', 'PF et al. 2016 '
+              '<http://arxiv.org/>')
+    for topdir, ver, ref in [('SUGAR_model', '1.0', PF16ref)]:
+        meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
+                'url': website, 'reference': ref}
+        _SOURCES.register_loader('sugar', load_sugarmodel, args=(['../sugar_analysis_data/SUGAR_model_v1.asci']), version=ver, meta=meta)
+
+   
