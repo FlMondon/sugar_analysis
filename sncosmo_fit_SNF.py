@@ -306,7 +306,7 @@ def mb_uncertainty(res):
 
 if __name__=="__main__":
     
-    width = 5
+    width = 20
     model_used = 'salt2'
     try:
         Build_SNF.register_SNf_bands_width(width=width)
