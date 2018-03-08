@@ -8,6 +8,7 @@ Created on Mon Feb  5 14:41:13 2018
 import numpy as N 
 from scipy import stats
 import os , sys 
+from matplotlib import pyplot as plt
 r_name = '../sugar_analysis_data/using_saltmine/data/Instruments/Florian/'
 
 
@@ -82,19 +83,24 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
 ########
 ##Main##
 ########
-if __name__=='__main__':
-   
-   filter_used(500)
-   filter_used(100)
-   filter_used(40)
-   filter_used(20)
-   filter_used(10)
-   filter_used(5)
-   filter_used(5.5)
-   filter_used(1.5)
-   filter_used(1)
-   filter_used(2)
-   filter_used(2.5)
-   filter_used(3)
-   filter_used(0.1)
-   
+#if __name__=='__main__':
+#   
+#   filter_used(500)
+#   filter_used(100)
+#   filter_used(40)
+#   filter_used(20)
+#   filter_used(10)
+#   filter_used(5)
+#   filter_used(5.5)
+#   filter_used(1.5)
+#   filter_used(1)
+#   filter_used(2)
+#   filter_used(2.5)
+#   filter_used(3)
+#   filter_used(0.1)
+wl = N.arange(2000,10000,0.1)
+wlblue = 5200
+wlred = 6289
+fV = filter_trans(wl, wlred, wlblue,5)
+plt.plot(wl,fV)
+plt.savefig('../sugar_analysis_data/results/filter_5.eps')

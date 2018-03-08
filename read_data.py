@@ -367,6 +367,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
     errorscale_factor = meta[sn_name]['target.errorscale']
     zhl = meta[sn_name]['host.zhelio']
     zcmb = meta[sn_name]['host.zcmb']
+    daymax = meta[sn_name]['salt2.DayMax']
     mwebv = meta[sn_name]['target.mwebv']
     sn_data = meta[sn_name]['spectra']
     for t in sn_data.keys():
@@ -479,7 +480,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
     mask = np.array(mask)
 
     data_cut = sncosmo.select_data(data, mask)
-    return data_cut, zhl, mwebv
+    return data_cut, zhl, mwebv, daymax
     
     
 def mag_to_flux_hand(mag,band):

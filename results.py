@@ -10,13 +10,14 @@ from matplotlib import rc, rcParams
 import matplotlib.gridspec as gridspec
 import cPickle
 import numpy as np
+import builtins_SNF as Build_SNF
 SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
 
 class results_snfit():
     def __init__(self, width):
         self.width = width
         
-    def read_snfit_results(self, snfit_res_path='../sugar_analysis_data/results/results_snfit_1A.txt'):
+    def read_snfit_results(self, snfit_res_path='../sugar_analysis_data/results/results_snfit.txt'):
         """
         read snfit results for SNF and return salt parameters in list
         """
@@ -214,7 +215,7 @@ class results_snfit():
         for i in range (len(self.sn_name)):
             for j in range (len(self.meta_sn_name_list)):
                 if self.sn_name[i] == self.meta_sn_name_list[j]:
-                    if np.abs(self.x1[i] - self.meta_x1[j]) < 0.001:
+                    if np.abs(self.mb[i] - self.meta_mb[j]) < 0.0001:
                         self.diff_x0.append(self.x0[i] - self.meta_x0[j])
                         self.diff_x0_err.append(self.x0_err[i] - self.meta_x0_err[j])
                         self.diff_x1.append(self.x1[i] - self.meta_x1[j])
@@ -231,21 +232,12 @@ class results_snfit():
                     else:
                         print self.x1[i] - self.meta_x1[j],  self.sn_name[i],self.meta_sn_name_list[j],  self.x1[i], self.meta_x1[j]
 
-        rcParams['font.size'] = 16.
-        font = {'family': 'normal', 'size': 16}
-        rc('axes', linewidth=1.5)
-        rc("text", usetex=True)
-        rc('font', family='serif')
-        rc('font', serif='Times')
-        rc('legend', fontsize=25)
-        rc('xtick.major', size=5, width=1.5)
-        rc('ytick.major', size=5, width=1.5)
-        rc('xtick.minor', size=3, width=1)
-        rc('ytick.minor', size=3, width=1)
+
         fig = plt.figure(figsize=(8.,8.))       
                 
         gs = gridspec.GridSpec(2, 1) #subplots ratio
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
+        f.subplots_adjust(hspace = 0.5)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
@@ -261,6 +253,7 @@ class results_snfit():
         
         gs = gridspec.GridSpec(2, 1) #subplots ratio
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
+        f.subplots_adjust(hspace = 0.5)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
@@ -276,6 +269,7 @@ class results_snfit():
         
         gs = gridspec.GridSpec(2, 1) #subplots ratio
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
+        f.subplots_adjust(hspace = 0.5)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
@@ -291,6 +285,7 @@ class results_snfit():
 
         gs = gridspec.GridSpec(2, 1) #subplots ratio
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
+        f.subplots_adjust(hspace = 0.5)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
@@ -630,7 +625,7 @@ class results_snfit():
         """
 
         dico = cPickle.load(open(SUGAR_parameter_pkl))
-        self.read_sncosmo()
+        self.read_sncosmo(path='../sugar_analysis_data/results/res_salt2_SNF_'+str(self.width)+'_nomodelcov.txt')
         self.read_meta()
         self.read_snfit_results()
         Filtre = np.array([True]*len(self.sncosmo_sn_name))

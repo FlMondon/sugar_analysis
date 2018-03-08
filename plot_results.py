@@ -16,7 +16,7 @@ class results_snfit():
         """
         read snfit results for SNF and return salt parameters in list
         """
-        snfit_res_path = '/users/divers/lsst/mondon/science/sugar_analysis_data/results/results_snfit.txt'
+        snfit_res_path = '../sugar_analysis_data/results/results_snfit.txt'
         snfit_res = open (snfit_res_path)
         
         self.sn_name = []
@@ -208,6 +208,7 @@ class results_snfit():
 
         
         gs = gridspec.GridSpec(2, 1) #subplots ratio
+        
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
@@ -222,10 +223,12 @@ class results_snfit():
         
         gs = gridspec.GridSpec(2, 1) #subplots ratio
         f, (ax0_1, ax0_2) = plt.subplots(2, sharex=True)
+        f.subplots_adjust(hspace = 2)
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
         ax0_1.hist(self.diff_x1,25,label='X1')
+        
         ax0_2.hist(self.diff_x1_err,25,label='X1 error')
         ax0_1.legend()
         ax0_2.legend()

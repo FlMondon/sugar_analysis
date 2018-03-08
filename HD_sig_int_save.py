@@ -8,7 +8,7 @@ Created on Fri Nov  3 12:20:25 2017
 import cPickle
 import numpy as np
 import pylab as P
-import sugar
+#import sugar
 from scipy import integrate
 from numpy.linalg import inv
 import iminuit as minuit
