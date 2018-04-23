@@ -11,7 +11,15 @@ import matplotlib.gridspec as gridspec
 import cPickle
 import numpy as np
 import builtins_SNF as Build_SNF
+from scipy import integrate
+
 SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+
+CLIGHT = 2.99792458e18         # [A/s]
+HPLANCK = 6.62606896e-27        # [erg s]
+
+clight = 299792.458
+H0 = 0.000070
 
 class results_snfit():
     def __init__(self, width):
@@ -132,6 +140,7 @@ class results_snfit():
         self.meta_cov_mb_c = []  
         self.meta_zhl = []
         self.meta_zhl_err = []
+        self.meta_idr = []
         for meta_sn_name in meta.keys(): 
             
             if meta[meta_sn_name]['idr.subset'] != 'bad' and meta[meta_sn_name]['idr.subset'] != 'auxiliary':
@@ -153,8 +162,9 @@ class results_snfit():
                 self.meta_cov_x1_c.append(meta[meta_sn_name]['salt2.CovColorX1'])
                 self.meta_cov_mb_x1.append(meta[meta_sn_name]['salt2.CovRestFrameMag_0_BX1'])
                 self.meta_cov_mb_c.append(meta[meta_sn_name]['salt2.CovColorRestFrameMag_0_B'])
+                self.meta_idr.append(meta[meta_sn_name]['idr.subset'])
         
-        
+        self.meta_idr = np.array(self.meta_idr)
         self.meta_zcmb = np.array(self.meta_zcmb)
         self.meta_zhl = np.array(self.meta_zhl)
         self.meta_zhl_err = np.array(self.meta_zhl_err)
@@ -241,8 +251,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_x0,25,label='X0')
-        ax0_2.hist(self.diff_x0_err,25,label='X0 error')
+        ax0_1.hist(self.diff_x0,25,label='$\Delta$ X0')
+        ax0_2.hist(self.diff_x0_err,25,label='$\Delta$ X0 error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -257,8 +267,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_x1,25,label='X1')
-        ax0_2.hist(self.diff_x1_err,25,label='X1 error')
+        ax0_1.hist(self.diff_x1,25,label='$\Delta$ X1')
+        ax0_2.hist(self.diff_x1_err,25,label='$\Delta$ X1 error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -273,8 +283,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_c,25,label='Color')
-        ax0_2.hist(self.diff_c_err,25,label='Color error')
+        ax0_1.hist(self.diff_c,25,label='$\Delta$ Color')
+        ax0_2.hist(self.diff_c_err,25,label='$\Delta$ Color error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -289,8 +299,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_mb,50,label='mb')
-        ax0_2.hist(self.diff_mb_err,50,label='mb error')
+        ax0_1.hist(self.diff_mb,50,label='$\Delta$ mb')
+        ax0_2.hist(self.diff_mb_err,50,label='$\Delta$ mb error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -363,8 +373,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_x0_sncosmo,50,label='x0_'+str(self.width))
-        ax0_2.hist(self.diff_x0_err_sncosmo,50,label='x0 error')
+        ax0_1.hist(self.diff_x0_sncosmo,50,label='$\Delta$ x0_'+str(self.width))
+        ax0_2.hist(self.diff_x0_err_sncosmo,50,label='$\Delta$ x0 error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -379,8 +389,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_x1_sncosmo,50,label='X1_'+str(self.width))
-        ax0_2.hist(self.diff_x1_err_sncosmo,50,label='X1 error')
+        ax0_1.hist(self.diff_x1_sncosmo,50,label='$\Delta$ X1_'+str(self.width))
+        ax0_2.hist(self.diff_x1_err_sncosmo,50,label='$\Delta$ X1 error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -395,8 +405,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_c_sncosmo,50,label='Color_'+str(self.width))
-        ax0_2.hist(self.diff_c_err_sncosmo,50,label='Color error')
+        ax0_1.hist(self.diff_c_sncosmo,50,label='$\Delta$ Color_'+str(self.width))
+        ax0_2.hist(self.diff_c_err_sncosmo,50,label='$\Delta$ Color error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -411,8 +421,8 @@ class results_snfit():
         ax0_1 = plt.subplot(gs[0, 0])
         ax0_2 = plt.subplot(gs[1, 0])
         
-        ax0_1.hist(self.diff_mb_sncosmo,50,label='mb_'+str(self.width))
-        ax0_2.hist(self.diff_mb_err_sncosmo,50,label='mb error')
+        ax0_1.hist(self.diff_mb_sncosmo,50,label='$\Delta$ mb_'+str(self.width))
+        ax0_2.hist(self.diff_mb_err_sncosmo,50,label='$\Delta$ mb error')
         ax0_1.legend()
         ax0_2.legend()
         ax0_1.set_ylabel('N')
@@ -422,7 +432,7 @@ class results_snfit():
         plt.savefig(pdffile, bbox_inches='tight')
         plt.show()
 
-        plt.hist(self.diff_chi2,50,label='chi2_'+str(self.width))
+        plt.hist(self.diff_chi2,50,label='$\Delta$ chi2_'+str(self.width))
         pdffile = '../sugar_analysis_data/results/chi2_'+str(self.width)+'.pdf'
         plt.legend()
         plt.savefig(pdffile, bbox_inches='tight')
@@ -451,39 +461,39 @@ class results_snfit():
         sig_hist = np.std(diff_mb_sncosmo)
         print mean_hist, sig_hist
 
-#        rcParams['font.size'] = 16.
-#        font = {'family': 'normal', 'size': 16}
-#        rc('axes', linewidth=1.5)
-#        rc("text", usetex=True)
-#        rc('font', family='serif')
-#        rc('font', serif='Times')
-#        rc('legend', fontsize=25)
-#        rc('xtick.major', size=5, width=1.5)
-#        rc('ytick.major', size=5, width=1.5)
-#        rc('xtick.minor', size=3, width=1)
-#        rc('ytick.minor', size=3, width=1)
-#        fig = plt.figure(figsize=(8.,8.))
-#        plt.text(0.0004, 30, '\mu = %f \n'%(mean_hist)+' \sigma = %f'%(sig_hist), fontweight = 'bold', fontsize = 20)
-        plt.hist(diff_mb_sncosmo,40,label='diff mb th1A '+str(self.width)+' sncosmo')
-#        pdffile = '../sugar_analysis_data/results/diff_mb_th1A_'+str(self.width)+'_sncosmo.pdf'
+        rcParams['font.size'] = 16.
+        font = {'family': 'normal', 'size': 16}
+        rc('axes', linewidth=1.5)
+        rc("text", usetex=True)
+        rc('font', family='serif')
+        rc('font', serif='Times')
+        rc('legend', fontsize=25)
+        rc('xtick.major', size=5, width=1.5)
+        rc('ytick.major', size=5, width=1.5)
+        rc('xtick.minor', size=3, width=1)
+        rc('ytick.minor', size=3, width=1)
+        fig = plt.figure(figsize=(8.,8.))
+        plt.hist(diff_mb_sncosmo,40,label='SNCOSMO', range = (-0.02,0.015))
+        pdffile = '../sugar_analysis_data/results/diff_mb_th1A_'+str(self.width)+'_sncosmo.pdf'
 
-##        plt.hist(diff_mb_sncosmo,40,label='diff mb th 5A 1A sncosmo')
-##        pdffile = '../sugar_analysis_data/results/diff_mb_th_5A_1A_sncosmo.pdf' 
+#        plt.hist(diff_mb_sncosmo,40,label='SNCOSMO',range = (-0.002,0.0015))
+        plt.text(-0.018, 80, '\mu = %f \n'%(mean_hist)+' \sigma = %f'%(sig_hist), fontweight = 'bold', fontsize = 20)
 
-#        plt.ticklabel_format(axis='x', style='scientific', scilimits=(-1, 2))
-#        plt.legend()
-#        plt.savefig(pdffile, bbox_inches='tight')
+        plt.ticklabel_format(axis='x', style='scientific', scilimits=(-1, 2))
+        plt.legend()
+#        pdffile = '../sugar_analysis_data/results/diff_mb_th_5A_1A_sncosmo.pdf' 
+        plt.savefig(pdffile, bbox_inches='tight')
         plt.show() 
         
     def diff_snfit_dL(self):
         diff_mb = [] 
         outlayers = ['SN2012cu','SN2009hi','SNF20061022-014','SNNGC7589']
-#        self.read_snfit_results()
-#        snfit_sn_name_5A = self.sn_name
-#        snfit_mb_5A = self.mb
-        self.read_sncosmo()
-        snfit_sn_name_5A = self.sncosmo_sn_name
-        snfit_mb_5A = self.sncosmo_mb
+        self.read_snfit_results()
+        snfit_sn_name_5A = self.sn_name
+        snfit_mb_5A = self.mb
+#        self.read_sncosmo()
+#        snfit_sn_name_5A = self.sncosmo_sn_name
+#        snfit_mb_5A = self.sncosmo_mb
         
         self.read_snfit_results(snfit_res_path='../sugar_analysis_data/results/results_snfit_'+str(self.width)+'.txt')
 #        self.read_snfit_results(snfit_res_path='../sugar_analysis_data/results/results_snfit_1A.txt')
@@ -500,29 +510,30 @@ class results_snfit():
         sig_hist = np.std(diff_mb)
         print mean_hist, sig_hist
 
-#        rcParams['font.size'] = 16.
-#        font = {'family': 'normal', 'size': 16}
-#        rc('axes', linewidth=1.5)
-#        rc("text", usetex=True)
-#        rc('font', family='serif')
-#        rc('font', serif='Times')
-#        rc('legend', fontsize=25)
-#        rc('xtick.major', size=5, width=1.5)
-#        rc('ytick.major', size=5, width=1.5)
-#        rc('xtick.minor', size=3, width=1)
-#        rc('ytick.minor', size=3, width=1)
-#        fig = plt.figure(figsize=(8.,8.))
-#        plt.text(-0.009, 12, '\mu = %f \n'%(mean_hist)+' \sigma = %f'%(sig_hist), fontweight = 'bold', fontsize = 20)
-        plt.hist(diff_mb,40,label='diff mb th1A '+str(self.width)+' snfit')
-#        pdffile = '../sugar_analysis_data/results/diff_mb_th1A_'+str(self.width)+'_snfit.pdf'
+        rcParams['font.size'] = 16.
+        font = {'family': 'normal', 'size': 16}
+        rc('axes', linewidth=1.5)
+        rc("text", usetex=True)
+        rc('font', family='serif')
+        rc('font', serif='Times')
+        rc('legend', fontsize=25)
+        rc('xtick.major', size=5, width=1.5)
+        rc('ytick.major', size=5, width=1.5)
+        rc('xtick.minor', size=3, width=1)
+        rc('ytick.minor', size=3, width=1)
+        fig = plt.figure(figsize=(8.,8.))
+        plt.hist(diff_mb,60,label='SNFIT',range = (-0.02,0.015))
+        pdffile = '../sugar_analysis_data/results/diff_mb_th1A_'+str(self.width)+'_snfit.pdf'
         
-##        plt.hist(diff_mb,40,label='diff mb th 5A 1A snfit')
-##        pdffile = '../sugar_analysis_data/results/diff_mb_th_5A_1A_snfit.pdf'   
-        
-#        plt.ticklabel_format(axis='x', style='scientific', scilimits=(-1, 2))
-#        plt.legend()
-#        plt.savefig(pdffile, bbox_inches='tight')
-#        plt.show() 
+#        plt.hist(diff_mb,40, range = (-0.002,0.0015),label='SNFIT')
+        plt.text(-0.018, 25, '\mu = %f \n'%(mean_hist)+' \sigma = %f'%(sig_hist), fontweight = 'bold', fontsize = 20)
+
+#        pdffile = '../sugar_analysis_data/results/diff_mb_th_5A_1A_snfit.pdf'   
+#        plt.xlim(-0.002,0.0015)
+        plt.ticklabel_format(axis='x', style='scientific', scilimits=(-1, 2))
+        plt.legend()
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.show() 
 
     def plot_mean(self):
         rcParams['font.size'] = 16.
@@ -548,7 +559,7 @@ class results_snfit():
         plt.errorbar(x,y_fit,yerr=y_fit_errors,fmt='o',label='Snfit 5A')
         plt.errorbar(x,y_cosmo,yerr=y_cosmo_errors,fmt='o',label='Sncosmo 5A')
         plt.errorbar(x_1A_fit, y_1A_fit, yerr=y_1A_fit_err, fmt='^', label='Snfit 1A')
-        plt.plot([-5, 50], [0,0])
+        plt.plot([-5, 50], [0,0],label='Sncosmo 1A')
         plt.xlim(-5,50)
         plt.xlabel('width')
         plt.ylabel('mean')
@@ -617,6 +628,7 @@ class results_snfit():
             
         self.salt_parm = np.array([self.mb,self.x1,self.c]).T
 #        print len(self.salt_parm), len(self.cov_y), len(self.z), len(self.zcmb)
+#        return self.salt_parm, self.cov_y, self.z, self.meta_zcmb, self.meta_zhl_err, self.sn_name, self.meta_idr
         return self.salt_parm, self.cov_y, self.z, self.zcmb, self.z_err
 
     def HD_input_sncosmo_data(self):
@@ -678,3 +690,325 @@ class results_snfit():
         self.salt_parm = np.array([self.sncosmo_mb,self.sncosmo_x1,self.sncosmo_c]).T
         print len(self.salt_parm), len(self.sncosmo_cov_y), len(self.sncosmo_z), len(self.zcmb)
         return self.salt_parm, self.sncosmo_cov_y, self.sncosmo_z, self.zcmb, self.z_err
+
+
+class Sugar_photometry_plot():
+
+  
+        
+    def read_sugar_phot(self, path='../sugar_analysis_data/results/res_sugar_SNF.txt'):
+        self.sug_phot_res = np.loadtxt(path ,dtype='str')
+        self.sug_phot_sn_name = np.array(self.sug_phot_res[:,0],str)
+        self.sug_phot_z = np.array(self.sug_phot_res[:,2],float)
+        self.sug_phot_Mgr = np.array(self.sug_phot_res[:,4],float)
+        self.sug_phot_Mgr_err = np.array(self.sug_phot_res[:,5],float)
+        self.sug_phot_q1 = np.array(self.sug_phot_res[:,6],float)
+        self.sug_phot_q1_err = np.array(self.sug_phot_res[:,7],float)
+        self.sug_phot_q2 = np.array(self.sug_phot_res[:,8],float)
+        self.sug_phot_q2_err = np.array(self.sug_phot_res[:,9],float)
+        self.sug_phot_q3 = np.array(self.sug_phot_res[:,10],float)
+        self.sug_phot_q3_err = np.array(self.sug_phot_res[:,11],float)
+        self.sug_phot_A = np.array(self.sug_phot_res[:,12],float)
+        self.sug_phot_A_err = np.array(self.sug_phot_res[:,13],float)
+        self.sug_phot_t0 = np.array(self.sug_phot_res[:,24],float)
+        self.sug_phot_t0_err = np.array(self.sug_phot_res[:,25],float)
+#        self.sug_phot_chi2 = np.array(self.sug_phot_res[:,26],float)
+        self.cov_mgrey_q1 = np.array(self.sug_phot_res[:,14],float)
+        self.cov_mgrey_q2 = np.array(self.sug_phot_res[:,15],float)
+        self.cov_mgrey_q3 = np.array(self.sug_phot_res[:,16],float)
+        self.cov_mgrey_A =  np.array(self.sug_phot_res[:,17],float)
+        self.cov_q1_q2 =  np.array(self.sug_phot_res[:,18],float)
+        self.cov_q1_q3 = np.array(self.sug_phot_res[:,19],float)
+        self.cov_q1_A = np.array(self.sug_phot_res[:,20],float)
+        self.cov_q2_q3 = np.array(self.sug_phot_res[:,21],float)
+        self.cov_q2_A = np.array(self.sug_phot_res[:,22],float)
+        self.cov_q3_A = np.array(self.sug_phot_res[:,23],float)
+        
+    def read_sugar_spectro(self, path='../sugar_model/sugar_parameters.pkl'):
+
+        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
+        self.meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
+        self.dico = cPickle.load(open(SUGAR_parameter_pkl)) 
+        self.sug_spec_sn_name = []
+        self.sug_spec_Mgr = []
+        self.sug_spec_q1 =  []
+        self.sug_spec_q2 =  []
+        self.sug_spec_q3 =  []
+        self.sug_spec_A =  []
+        self.sug_spec_t0 =  []
+        self.sug_spec_cov_q =  []
+        
+        
+        for sn_name in self.dico.keys():
+            self.sug_spec_sn_name.append(sn_name)
+            self.sug_spec_Mgr.append(self.dico[sn_name]['grey']+ self.distance_modulus_th(self.meta[sn_name]['host.zhelio'],self.meta[sn_name]['host.zcmb']))
+            self.sug_spec_q1.append(self.dico[sn_name]['q1'])
+            self.sug_spec_q2.append(self.dico[sn_name]['q2'])
+            self.sug_spec_q3.append(self.dico[sn_name]['q3'])
+            self.sug_spec_A.append(self.dico[sn_name]['Av'])
+            self.sug_spec_cov_q.append(self.dico[sn_name]['cov_q']) 
+    
+    def errors_list(self):
+        self.read_sugar_spectro()
+        self.sug_spec_Mgr_err = []
+        self.sug_spec_q1_err =  []
+        self.sug_spec_q2_err =  []
+        self.sug_spec_q3_err =  []
+        self.sug_spec_A_err =  []
+
+        for i in range(len(self.sug_spec_sn_name)):
+            self.sug_spec_Mgr_err.append(self.sug_spec_cov_q[i][0,0])
+            self.sug_spec_q1_err.append(self.sug_spec_cov_q[i][1,1])
+            self.sug_spec_q2_err.append(self.sug_spec_cov_q[i][2,2])
+            self.sug_spec_q3_err.append(self.sug_spec_cov_q[i][3,3])
+            self.sug_spec_A_err.append(self.sug_spec_cov_q[i][4,4])
+        
+        
+    def int_cosmo(self, z, Omega_M=0.3):     
+        return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
+        
+    def luminosity_distance(self, zhl,zcmb):           
+        integr = integrate.quad(self.int_cosmo, 0, zcmb)[0]
+    
+        return (1+zhl)*(clight/H0)*integr
+     
+    def distance_modulus_th(self, zhl,zcmb):      
+        return 5.*np.log(self.luminosity_distance(zhl,zcmb))/np.log(10.)-5. 
+      
+    def plot_phot_spec(self):
+        self.read_sugar_phot()
+        self.read_sugar_spectro()
+        self.errors_list()
+        SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+        dico = cPickle.load(open(SUGAR_parameter_pkl))
+        self.diff_Mgr = []
+        self.diff_q1 = [] 
+        self.diff_q2 = [] 
+        self.diff_q3 = [] 
+        self.diff_A = [] 
+        self.scatter_spec_Mgr = []
+        self.scatter_spec_q1 = [] 
+        self.scatter_spec_q2 = [] 
+        self.scatter_spec_q3 = [] 
+        self.scatter_spec_A = []
+        self.scatter_phot_Mgr = []
+        self.scatter_phot_q1 = [] 
+        self.scatter_phot_q2 = [] 
+        self.scatter_phot_q3 = [] 
+        self.scatter_phot_A = [] 
+        self.scatter_spec_Mgr_err = []
+        self.scatter_spec_q1_err = [] 
+        self.scatter_spec_q2_err = [] 
+        self.scatter_spec_q3_err = [] 
+        self.scatter_spec_A_err = []
+        self.scatter_phot_Mgr_err = []
+        self.scatter_phot_q1_err = [] 
+        self.scatter_phot_q2_err = [] 
+        self.scatter_phot_q3_err = [] 
+        self.scatter_phot_A_err = [] 
+        
+        for i in range(len(self.sug_spec_sn_name)):
+            for j in range(len(self.sug_phot_sn_name)):
+                if self.sug_spec_sn_name[i] == self.sug_phot_sn_name[j] and self.sug_spec_sn_name[i] in dico.keys():
+                    self.diff_q1.append(self.sug_spec_q1[i]-self.sug_phot_q1[j])
+                    self.diff_q2.append(self.sug_spec_q2[i]-self.sug_phot_q2[j])
+                    self.diff_q3.append(self.sug_spec_q3[i]-self.sug_phot_q3[j])
+                    self.diff_A.append(self.sug_spec_A[i]-self.sug_phot_A[j])
+                    self.diff_Mgr.append(self.sug_spec_Mgr[i]-self.sug_phot_Mgr[j])
+                    self.scatter_spec_Mgr.append(self.sug_spec_Mgr[i])
+                    self.scatter_spec_q1.append(self.sug_spec_q1[i]) 
+                    self.scatter_spec_q2.append(self.sug_spec_q2[i]) 
+                    self.scatter_spec_q3.append(self.sug_spec_q3[i]) 
+                    self.scatter_spec_A.append(self.sug_spec_A[i]) 
+                    self.scatter_phot_Mgr.append(self.sug_phot_Mgr[j])
+                    self.scatter_phot_q1.append(self.sug_phot_q1[j]) 
+                    self.scatter_phot_q2.append(self.sug_phot_q2[j]) 
+                    self.scatter_phot_q3.append(self.sug_phot_q3[j]) 
+                    self.scatter_phot_A.append(self.sug_phot_A[j]) 
+                    self.scatter_spec_Mgr_err.append(self.sug_spec_Mgr_err[i])
+                    self.scatter_spec_q1_err.append(self.sug_spec_q1_err[i]) 
+                    self.scatter_spec_q2_err.append(self.sug_spec_q2_err[i]) 
+                    self.scatter_spec_q3_err.append(self.sug_spec_q3_err[i]) 
+                    self.scatter_spec_A_err.append(self.sug_spec_A_err[i]) 
+                    self.scatter_phot_Mgr_err.append(self.sug_phot_Mgr_err[j])
+                    self.scatter_phot_q1_err.append(self.sug_phot_q1_err[j]) 
+                    self.scatter_phot_q2_err.append(self.sug_phot_q2_err[j]) 
+                    self.scatter_phot_q3_err.append(self.sug_phot_q3_err[j]) 
+                    self.scatter_phot_A_err.append(self.sug_phot_A_err[j])
+                    
+                    if abs(self.sug_spec_Mgr[i]-self.sug_phot_Mgr[j]) >= 0.2:
+                        print self.sug_spec_sn_name[i]
+        print len(self.scatter_phot_Mgr)
+        for sn_name in  dico.keys():
+            if sn_name not in self.sug_phot_sn_name:
+                print sn_name
+       
+        #plot setup
+        rcParams['font.size'] = 16.
+        font = {'family': 'normal', 'size': 16}
+        rc('axes', linewidth=1.5)
+        rc("text", usetex=True)
+        rc('font', family='serif')
+        rc('font', serif='Times')
+        rc('legend', fontsize=25)
+        rc('xtick.major', size=5, width=1.5)
+        rc('ytick.major', size=5, width=1.5)
+        rc('xtick.minor', size=3, width=1)
+        rc('ytick.minor', size=3, width=1)
+        
+        #plot q1 hist & scatter    
+        plt.hist(self.diff_q1,50,label='$\Delta$ q1')
+        pdffile = '../sugar_analysis_data/results/diff_q1.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')        
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+        plt.errorbar(self.scatter_spec_q1,self.scatter_phot_q1,xerr=self.scatter_spec_q1_err,yerr=self.scatter_phot_q1_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.ylabel('phot',fontsize=25)
+        plt.xlabel('spec',fontsize=25)
+        plt.figtext(0.2, 0.8, 'q1', fontsize=25)
+        pdffile = '../sugar_analysis_data/results/scatter_q1.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+        #plot q2 hist & scatter
+        plt.hist(self.diff_q2,50,label='$\Delta$ q2')
+        pdffile = '../sugar_analysis_data/results/diff_q2.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.legend()
+        plt.show()
+        plt.close()
+ 
+        plt.errorbar(self.scatter_spec_q2,self.scatter_phot_q2,xerr=self.scatter_spec_q2_err,yerr=self.scatter_phot_q2_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.ylabel('phot',fontsize=25)
+        plt.xlabel('spec',fontsize=25)
+        plt.figtext(0.2, 0.8, 'q2', fontsize=25)
+        pdffile = '../sugar_analysis_data/results/scatter_q2.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+        #plot q3 hist & scatter
+        plt.hist(self.diff_q3,50,label='$\Delta$ q3')
+        pdffile = '../sugar_analysis_data/results/diff_q3.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.legend()
+        plt.show()
+        plt.close()
+
+        plt.errorbar(self.scatter_spec_q3,self.scatter_phot_q3,xerr=self.scatter_spec_q3_err,yerr=self.scatter_phot_q3_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.ylabel('phot',fontsize=25)
+        plt.xlabel('spec',fontsize=25)
+        plt.figtext(0.2, 0.8, 'q3', fontsize=25)
+        pdffile = '../sugar_analysis_data/results/scatter_q3.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+        #plot A hist & scatter
+        plt.hist(self.diff_A,50,label='$\Delta$ A')
+        pdffile = '../sugar_analysis_data/results/diff_A.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.legend()
+        plt.show()
+        plt.close()
+
+        plt.errorbar(self.scatter_spec_A,self.scatter_phot_A,xerr=self.scatter_spec_A_err,yerr=self.scatter_phot_A_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.ylabel('phot',fontsize=25)
+        plt.xlabel('spec',fontsize=25)
+        plt.figtext(0.2, 0.8, 'A', fontsize=25)
+        pdffile = '../sugar_analysis_data/results/scatter_A.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+        #plot Mgr hist & scatter
+        plt.hist(self.diff_Mgr,50,label='$\Delta$ Mgr')
+        pdffile = '../sugar_analysis_data/results/diff_Mgr.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.legend()
+        plt.show()
+        plt.close()    
+        
+        plt.errorbar(self.scatter_spec_Mgr,self.scatter_phot_Mgr,xerr=self.scatter_spec_Mgr_err,yerr=self.scatter_phot_Mgr_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.ylabel('phot',fontsize=25)
+        plt.xlabel('spec',fontsize=25)
+        plt.figtext(0.2, 0.8, 'Mgr', fontsize=25)
+        pdffile = '../sugar_analysis_data/results/scatter_Mgr.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.legend()
+        plt.show()
+        plt.close()
+        
+    def HD_input_sugar(self):
+        SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+        dico = cPickle.load(open(SUGAR_parameter_pkl))     
+        meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
+        self.read_sugar_phot()       
+        self.HD_Mgr = []
+        self.HD_q1 = [] 
+        self.HD_q2 = [] 
+        self.HD_q3 = [] 
+        self.HD_A = []           
+        self.zhl = []
+        self.zcmb = []
+        self.zerr = []
+        self.HD_cov = np.zeros([(len(dico.keys())-2)*5, (len(dico.keys())-2)*5])
+        self.HD_cov_Mgr = np.zeros([len(dico.keys())-2, len(dico.keys())-2])
+        j = 0
+        print len(self.sug_phot_sn_name)
+        for i in range(len(self.sug_phot_sn_name)):  
+            if self.sug_phot_sn_name[i] in dico.keys() and self.sug_phot_sn_name[i] not in ['SNF20070331-025','SNF20080905-005']:
+                
+                self.HD_Mgr.append(self.sug_phot_Mgr[i])
+                self.HD_q1.append(self.sug_phot_q1[i]) 
+                self.HD_q2.append(self.sug_phot_q2[i]) 
+                self.HD_q3.append(self.sug_phot_q3[i]) 
+                self.HD_A.append(self.sug_phot_A[i])
+                
+                self.HD_cov[j*5,j*5] = self.sug_phot_Mgr_err[i]**2
+                self.HD_cov[j*5 +1,j*5] = self.cov_mgrey_q1[i]
+                self.HD_cov[j*5 +2,j*5] = self.cov_mgrey_q2[i]
+                self.HD_cov[j*5 +3,j*5] = self.cov_mgrey_q3[i]
+                self.HD_cov[j*5 +4,j*5] = self.cov_mgrey_A[i]
+                self.HD_cov[j*5,j*5 +1] = self.cov_mgrey_q1[i]
+                self.HD_cov[j*5 +1,j*5 +1] = self.sug_phot_q1_err[i]**2
+                self.HD_cov[j*5 +2,j*5 +1] = self.cov_q1_q2[i]
+                self.HD_cov[j*5 +3,j*5 +1] = self.cov_q1_q3[i]
+                self.HD_cov[j*5 +4,j*5 +1] = self.cov_q1_A[i]
+                self.HD_cov[j*5 ,j*5 +2] = self.cov_mgrey_q2[i]
+                self.HD_cov[j*5 +1,j*5 +2] =  self.cov_q1_q2[i]
+                self.HD_cov[j*5 +2,j*5 +2] = self.sug_phot_q2_err[i]**2
+                self.HD_cov[j*5 +3,j*5 +2] = self.cov_q2_q3[i]
+                self.HD_cov[j*5 +4,j*5 +2] = self.cov_q2_A[i]
+                self.HD_cov[j*5,j*5 +3] = self.cov_mgrey_q3[i]
+                self.HD_cov[j*5 +1,j*5 +3] = self.cov_q1_q3[i]
+                self.HD_cov[j*5 +2,j*5 +3] = self.cov_q2_q3[i]
+                self.HD_cov[j*5 +3,j*5 +3] = self.sug_phot_q3_err[i]**2
+                self.HD_cov[j*5 +4,j*5 +3] = self.cov_q3_A[i]
+                self.HD_cov[j*5,j*5 +4] = self.cov_mgrey_A[i]
+                self.HD_cov[j*5 +1,j*5 +4] = self.cov_q1_A[i]
+                self.HD_cov[j*5 +2,j*5 +4] = self.cov_q2_A[i]
+                self.HD_cov[j*5 +3,j*5 +4] = self.cov_q3_A[i]
+                self.HD_cov[j*5 +4,j*5 +4] = self.sug_phot_A_err[i]**2    
+                
+                self.HD_cov_Mgr[j,j] = self.sug_phot_Mgr_err[i]**2
+#                print self.HD_cov_Mgr[j,j]
+                self.zhl.append(meta[self.sug_phot_sn_name[i]]['host.zhelio'])
+                self.zcmb.append(meta[self.sug_phot_sn_name[i]]['host.zcmb'])
+                self.zerr.append(meta[self.sug_phot_sn_name[i]]['host.zhelio.err'])
+                j +=1
+        
+        print len (self.zhl)
+        print len (self.HD_Mgr)
+
+        self.sug_param = np.array([np.array(self.HD_Mgr), np.array(self.HD_q1), np.array(self.HD_q2), np.array(self.HD_q3), np.array(self.HD_A)]).T
+        self.zhl = np.array(self.zhl)
+        self.zcmb = np.array(self.zcmb)
+        self.zerr = np.array(self.zerr)

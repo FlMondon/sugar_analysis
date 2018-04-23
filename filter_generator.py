@@ -9,7 +9,7 @@ import numpy as N
 from scipy import stats
 import os , sys 
 from matplotlib import pyplot as plt
-r_name = '../sugar_analysis_data/using_saltmine/data/Instruments/Florian/'
+r_name = '../sugar_analysis_data/data/Instruments/Florian/'
 
 
 
@@ -36,11 +36,19 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
 
     for filter_name in filters:
 
+#         if filter_name == 'USNf':
+#            wlblue = 3300
+#            wlred = 4102
+#            fU = filter_trans(wl, wlred, wlblue,width)
+#            fileU = open(r_name+'fU_'+str(width)+'.dat','w')
+#            for j in range(len(wl)):
+#                fileU.write("%.3f %.3f \n"%(wl[j],fU[j]))
+#            fileU.close()
          if filter_name == 'USNf':
-            wlblue = 3300
+            wlblue = 3390
             wlred = 4102
             fU = filter_trans(wl, wlred, wlblue,width)
-            fileU = open(r_name+'fU_'+str(width)+'.dat','w')
+            fileU = open(r_name+'new_fU_'+str(width)+'.dat','w')
             for j in range(len(wl)):
                 fileU.write("%.3f %.3f \n"%(wl[j],fU[j]))
             fileU.close()
@@ -68,11 +76,19 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
             for j in range(len(wl)):
                 fileR.write("%.3f %.3f \n"%(wl[j],fR[j]))
             fileR.close()
+#         elif filter_name == 'ISNf':
+#            wlblue = 7607
+#            wlred = 9200
+#            fI = filter_trans(wl, wlred, wlblue,width)  
+#            fileI = open(r_name+'fI_'+str(width)+'.dat','w')
+#            for j in range(len(wl)):
+#                fileI.write("%.3f %.3f \n"%(wl[j],fI[j]))   
+#            fileI.close()
          elif filter_name == 'ISNf':
             wlblue = 7607
-            wlred = 9200
+            wlred = 8530
             fI = filter_trans(wl, wlred, wlblue,width)  
-            fileI = open(r_name+'fI_'+str(width)+'.dat','w')
+            fileI = open(r_name+'new_fI_'+str(width)+'.dat','w')
             for j in range(len(wl)):
                 fileI.write("%.3f %.3f \n"%(wl[j],fI[j]))   
             fileI.close()
@@ -83,13 +99,13 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
 ########
 ##Main##
 ########
-#if __name__=='__main__':
+if __name__=='__main__':
 #   
 #   filter_used(500)
 #   filter_used(100)
 #   filter_used(40)
 #   filter_used(20)
-#   filter_used(10)
+   filter_used(10)
 #   filter_used(5)
 #   filter_used(5.5)
 #   filter_used(1.5)
@@ -97,10 +113,10 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
 #   filter_used(2)
 #   filter_used(2.5)
 #   filter_used(3)
-#   filter_used(0.1)
-wl = N.arange(2000,10000,0.1)
-wlblue = 5200
-wlred = 6289
-fV = filter_trans(wl, wlred, wlblue,5)
-plt.plot(wl,fV)
-plt.savefig('../sugar_analysis_data/results/filter_5.eps')
+##   filter_used(0.1)
+#wl = N.arange(4500,7000,0.1)
+#wlblue = 5200
+#wlred = 6289
+#fV = filter_trans(wl, wlred, wlblue,40)
+#plt.plot(wl,fV)
+#plt.savefig('../sugar_analysis_data/results/filter_40.eps')

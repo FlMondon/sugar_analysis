@@ -345,7 +345,7 @@ def get_zp(band):
 
         return 2.5*log10(I2)    
         
-def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',errorscale=True, width=20):
+def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',errorscale=True, width=10):
     """
     """
     snfit_test = open('snfit_test.txt','w')
@@ -438,6 +438,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
 
 #                fluxerr.append(((np.abs(mag_to_flux(sn_data[t]['mag.'+f]+h,f)-mag_to_flux(sn_data[t]['mag.'+f] ,f)) / h))*  err_mag)
                 fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],fn,width) / 1.0857362047581294)
+#                print fluxerr
 #                snfit_test.write(str(sn_data[t]['obs.mjd'])+' '+str(f)+' '+str(mag_to_flux(sn_data[t]['mag.'+f],f))+' '+str(err_mag * mag_to_flux(sn_data[t]['mag.'+f],f) / 1.0857362047581294)+' '+str(2.5*np.log10(vega.zpbandflux(f)))+' '+'Vega'+'\n')
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
 

@@ -13,7 +13,7 @@ from scipy import integrate
 from numpy.linalg import inv
 import iminuit as minuit
 from scipy import optimize,integrate
-
+import copy
 
 
 
@@ -150,7 +150,7 @@ class Hubble_fit():
         self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
         self.dof_salt2 = len(Y)-3        
         self.qi = qi
-        
+        print self.cov_sugar
         if self.qi == False:
             self.dof_sugar = len(X) - 1
         else:
@@ -231,18 +231,20 @@ class Hubble_fit():
         
 
         if self.qi == False:
-            self.build_cov_mat_sugar()
-            Cmu =  self.cov_mat_sugar
+#            self.build_cov_mat_sugar()
+#            self.cov_mat_sugar = self.cov_sugar
+            Cmu =  copy.deepcopy(self.cov_sugar)
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
             
             L = self.distance_modulus_sugar_grey(cst) - self.distance_modulus()
 
         else:
-            self.build_cov_mat_sugar()
-            Cmu = np.zeros_like(self.cov_mat_sugar[::5,::5])
+#            self.build_cov_mat_sugar()
+#            self.cov_mat_sugar = self.cov_sugar
+            Cmu = np.zeros_like(self.cov_sugar[::5,::5])
             for i, coef1 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
                 for j, coef2 in enumerate([1., -alpha1,-alpha2,-alpha3, -beta]):
-                    Cmu += (coef1 * coef2) * self.cov_mat_sugar[i::5,j::5]
+                    Cmu += (coef1 * coef2) * self.cov_sugar[i::5,j::5]
             Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
             L = self.distance_modulus_sugar_corr(cst, alpha1, alpha2, alpha3, beta) - self.distance_modulus()
             
@@ -376,7 +378,7 @@ class Hubble_fit():
                         print 'error : calls limit are exceeded'
                         break
             
-        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof, err=True, variance=self.var)        
+        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof_sugar, err=True, variance=self.var)        
         return Find_param, sig_int
         
 

@@ -12,9 +12,10 @@ import pylab as P
 from scipy.interpolate import SmoothBivariateSpline as Spline2d
 from sncosmo.models import _SOURCES
 
+from matplotlib import pyplot as plt
 CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27        # [erg s]
-p2 = '../sugar_analysis_data/'
+p2 = '../sugar_model/'
 def register_SNf_bands():
     
 #    wl = np.arange(3000,9500,0.1)
@@ -137,14 +138,15 @@ def register_SNf_bands():
  
     
 
-def register_SNf_bands_width(width=20):
+def register_SNf_bands_width(width=10):
     
     band_file_U = 'fU_'+str(width)+'.dat'
     band_file_B = 'fB_'+str(width)+'.dat'
     band_file_V = 'fV_'+str(width)+'.dat'
     band_file_R = 'fR_'+str(width)+'.dat'
     band_file_I = 'fI_'+str(width)+'.dat'
-       
+    band_file_new_U = 'new_fU_'+str(width)+'.dat'
+    band_file_new_I = 'new_fI_'+str(width)+'.dat'
         
     filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
     wl_U = filt2[:,0]
@@ -165,6 +167,14 @@ def register_SNf_bands_width(width=20):
     filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
     wl_I = filt2[:,0]
     transmission_I = filt2[:,1]
+
+    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_new_U)
+    wl_new_U = filt2[:,0]
+    transmission_new_U = filt2[:,1]
+
+    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/Florian/'+ band_file_new_I)
+    wl_new_I = filt2[:,0]
+    transmission_new_I = filt2[:,1]
             
     band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU_'+str(width))    
     sncosmo.registry.register(band_U)
@@ -174,9 +184,13 @@ def register_SNf_bands_width(width=20):
     sncosmo.registry.register(band_V)
     band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR_'+str(width))    
     sncosmo.registry.register(band_R)    
-    band_I = sncosmo.Bandpass(wl_R,transmission_I,wave_unit=u.AA,name='fI_'+str(width))    
+    band_I = sncosmo.Bandpass(wl_I,transmission_I,wave_unit=u.AA,name='fI_'+str(width))    
     sncosmo.registry.register(band_I)  
-            
+    band_new_U = sncosmo.Bandpass(wl_new_U,transmission_new_U, wave_unit=u.AA,name='new_fU_'+str(width))    
+    sncosmo.registry.register(band_new_U) 
+    band_new_I = sncosmo.Bandpass(wl_new_I,transmission_new_I, wave_unit=u.AA,name='new_fI_'+str(width))    
+    sncosmo.registry.register(band_new_I)
+    
 def load_spectral_magsys_fits2(relpath, name=None, version=None):
 #    fits = pyfits.open(relpath)
 #    fit = fits[1]
@@ -227,7 +241,7 @@ def mag_sys_SNF():
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf') 
 
 
-def mag_sys_SNF_width(width=20):
+def mag_sys_SNF_width(width=10):
     """
     define magnitude systeme for snf
     """
@@ -246,6 +260,8 @@ def mag_sys_SNF_width(width=20):
                              meta={'description': 'use bd_17d4708 spectrum that come from snfit'})        
 
     bands_snf ={'fU_'+str(width): ('vega_snf_0_'+str(width), 9.787),
+    'new_fU_'+str(width): ('vega_snf_0_'+str(width), 9.807),
+    'new_fI_'+str(width): ('vega_snf_0_'+str(width),8.786 ),
 	'fB_'+str(width): ('vega_snf_0_'+str(width), 9.791),
 	'fV_'+str(width): ('vega_snf_0_'+str(width), 9.353),
 	'fR_'+str(width): ('vega_snf_0_'+str(width), 9.011),
@@ -274,7 +290,7 @@ def plot_SNf_filters(wl, transmission_U, transmission_V, transmission_B, transmi
 class SUGARSource(sncosmo.Source):
     _param_names = ['q1', 'q2', 'q3', 'A', 'Mgr']
     param_names_latex = ['q_1', 'q_2', 'q_3', 'A', 'M_g']
-    _SCALE_FACTOR = 1
+    _SCALE_FACTOR = 1.
 
 
     def __init__(self, modeldir=None,
@@ -285,26 +301,13 @@ class SUGARSource(sncosmo.Source):
                  m4file='sugar_template_4.dat', 
                  name=None, version=None):
 
-        from sncosmo.salt2utils import BicubicInterpolator
+        
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([1., 1., 1., 1., 40.])
+        self._parameters = np.array([1., 1., 1., 0., 37.])
         
-#        model_ascii = np.genfromtxt(modeldir) 
-##        print model_ascii[:,1], model_ascii[:,0]
-#        # model components are interpolated to 2nd order
-#        for i in range(5):
-#            key = 'M'+str(i)
-#            values = model_ascii[:,i+2]
-#            values *= self._SCALE_FACTOR
-#            self._model[key] = Spline2d(model_ascii[:,0], model_ascii[:,1], values, kx=3, ky=3)
-#
-#            # The "native" phases and wavelengths of the model are those
-#            # of the first model component.
-#            if key == 'M0':
-#                self._phase = model_ascii[:,0]
-#                self._wave = model_ascii[:,1]
+
 
 
 
@@ -316,26 +319,77 @@ class SUGARSource(sncosmo.Source):
             
             values *= self._SCALE_FACTOR
             # self._model[key] = Spline2d(phase, wave, values, kx=2, ky=2)
-            self._model[key] = BicubicInterpolator(phase, wave, values)
+            self._model[key] = values
 
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
             if key == 'M0':
-                self._phase = phase
+#                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
+#                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.,  53., 57., 57.1, 57.2, 63., 67.])
+                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
+                                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48., 48.5,  53., 57., 57.1, 57.2])
+                                
                 self._wave = wave
-                
+
+#    def _model_flux(self):
+#        m0 = self._model['M0']
+#        m1 = self._model['M1']
+#        m2 = self._model['M2']
+#        m3 = self._model['M3']
+#        m4 = self._model['M4']
+#        mod_flux = np.zeros([len(m0[:, 0])+6,len(m0[0])])
+##        print mod_flux
+#        for j in range(len(m0[0])):
+#            
+#            for i in range(len(m0[:, 0])):
+#                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) / (self._wave[j] ** 2 / 299792458. * 1.e-10))
+##                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) * (self._wave[j]  / (CLIGHT*HPLANCK)))
+#        
+#            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.75
+#            mod_flux[len(m0[:, 0])+2,j] = mod_flux[len(m0[:, 0]),j]*0.25           
+#            mod_flux[len(m0[:, 0])+3,j] = mod_flux[len(m0[:, 0]),j]*0.23
+#            mod_flux[len(m0[:, 0])+4,j] = mod_flux[len(m0[:, 0]),j]*0.22
+##        print (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (self._wave ** 2 / 299792458. * 1.e-10))
+#
+#        return mod_flux
+##                    
+    def _model_flux(self):
+        m0 = self._model['M0']
+        m1 = self._model['M1']
+        m2 = self._model['M2']
+        m3 = self._model['M3']
+        m4 = self._model['M4']
+        mod_flux = np.zeros([len(m0[:, 0])+5,len(m0[0])])
+#        print mod_flux
+        for j in range(len(m0[0])):
+            
+            for i in range(len(m0[:, 0])):
+                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) / (self._wave[j] ** 2 / 299792458. * 1.e-10))
+#                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) * (self._wave[j]  / (CLIGHT*HPLANCK)))
+            
+            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.98
+            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.75
+            mod_flux[len(m0[:, 0])+2,j] = mod_flux[len(m0[:, 0]),j]*0.25           
+            mod_flux[len(m0[:, 0])+3,j] = mod_flux[len(m0[:, 0]),j]*0.23
+            mod_flux[len(m0[:, 0])+4,j] = mod_flux[len(m0[:, 0]),j]*0.22
+        print (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (self._wave ** 2 / 299792458. * 1.e-10))
+
+        return mod_flux
                 
     def _flux(self, phase, wave):
-        m0 = self._model['M0'](phase, wave)
-        m1 = self._model['M1'](phase, wave)
-        m2 = self._model['M2'](phase, wave)
-        m3 = self._model['M3'](phase, wave)
-        m4 = self._model['M4'](phase, wave)
-        return (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
 
 
 
+        flux_inter = sncosmo.salt2utils.BicubicInterpolator(self._phase, self._wave, self._model_flux())
 
+        
+        return flux_inter(phase,wave)
+
+
+
+    def bandflux_rcov(self, band, phase):
+        return np.zeros(phase.shape, dtype=np.float64)
+    
 from sncosmo.builtins import DATADIR
 
 # Sugar model
@@ -372,6 +426,6 @@ def register_SUGAR():
     for topdir, ver, ref in [('SUGAR_model', '1.0', PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-        _SOURCES.register_loader('sugar', load_sugarmodel, args=(['../sugar_analysis_data/SUGAR_model_v1.asci']), version=ver, meta=meta)
+        _SOURCES.register_loader('sugar', load_sugarmodel, args=(['../sugar_model/SUGAR_model_v1.asci']), version=ver, meta=meta)
 
    

@@ -18,19 +18,18 @@ import numpy as np
 import copy
 import cPickle
 import read_data as RD
-import pyfits
 #from decimal import Decimal
 
 t_min = -15
 t_max = 45
 
 t_min_sug = -12
-t_max_sug = 42
+t_max_sug = 48
 
 wl_min_sal = 3000.
 wl_max_sal = 7000.
 
-def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='salt2', modelcov=True, width=20, write_results=False):
+def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='salt2', modelcov=True, width=10, write_results=False):
     
     if write_results :
         if model_used=='salt2':
@@ -40,22 +39,25 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                 outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'_nomodelcov.txt', 'w')
             outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c x0 dx0 tmax dtmax chi2')
         elif model_used == 'sugar':
-            outfile = open('../sugar_analysis_data/results/res_sugar_SNF.txt', 'w')
+            outfile = open('../sugar_analysis_data/results/res_sugar_SNF_test.txt', 'w')
             outfile.write('#name zcmb zhel dz mgrey dmgrey q1 dq1 q2 dq2 q3 dq3 A dA cov_mgrey_q1 cov_mgrey_q2 cov_mgrey_q3 cov_mgrey_A cov_q1_q2 cov_q1_q3 cov_q1_A cov_q2_q3 cov_q2_A cov_q3_A tmax dtmax chi2')
         else:
              raise ValueError('ERROR: model name has to be salt2 or sugar')
             
-#    list_SN = ['SN2007kk']
-    list_SN = ['SNF20080717-000','SNF20080323-009']
+    list_SN = ['SNF20070531-011','SNF20080516-022','SNF20080612-003']
+#    list_SN = ['SN2008ec','SNF20080522-011','PTF11qzq']
+
+#    list_SN = ['SN2008ec']
+#    list_SN = ['SNF20080510-001','SN2005ir','SNF20080919-000','SNF20080522-011', 'SNF20070417-002','SNF20070424-003','SNF20080610-000','SN2007nq','SN2008ec']
     meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
     
     
     fitfail=[]   
 
-    for sn_name in meta.keys():
+#    for sn_name in meta.keys():
 
-#    for sn_name in list_SN:
-        if meta[sn_name]['idr.subset'] != 'bad' and meta[sn_name]['idr.subset'] != 'auxiliary':
+    for sn_name in list_SN :
+        if meta[sn_name]['idr.subset'] != 'bad' and meta[sn_name]['idr.subset'] != 'auxiliary' and sn_name != 'SN2011by' and sn_name != 'SNNGC4424' and sn_name != 'SN2012fr' :
   
         
         
@@ -77,119 +79,162 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
             model.set(mwebv=mwebv)
             model.set(z=zhl)
                   
-#            try:     
-                #initial iteration x1 fix
-
-    
-            print 'initialisation'
-            
-            
-            if model_used =='salt2':      
-                if sn_name == 'SNF20080717-000':
-                    model.set(x1=3.)
-                else:
-                    model.set(x1=0.3)
-                
-                res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False)
-            elif model_used == 'sugar':
-                model.set(q1=1.0)
-                model.set(q2=1.0)
-                model.set(q3=1.0)
-#                model.set(t0=5.44077975e+04)
-                res, fitted_model = sncosmo.fit_lc(data, model, ['t0','A','Mgr'], modelcov = False, bounds={'t0':(daymax-3,daymax+3)},phase_range=(-12,42))
-            else:
-                raise ValueError('ERROR: model name has to be salt2 or sugar')
-                
-            print 'first iteration'
-            chi2 = res.chisq
-            print chi2
-            chi2p = chi2*2
-            m=0
+            try:     
+                    #initial iteration x1 fix
         
-            while chi2 < chi2p:
-
-
-                if m > 0:
-                    resp = res
-                    fitted_modelp = fitted_model
-                m += 1
-                t_peak = fitted_model.parameters[1]
-                #print t_peak,fitted_model.parameters[4]
-    
-                t1 = t_peak + t_min*(1 + model.get('z'))
-                t2 = t_peak + t_max*(1 + model.get('z'))
-                            
-                A=[]
-                data_new = copy.deepcopy(data)
-                for i in range(len(data_new)):                    
-                    if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                        A.append(i)
-                A=np.array(A)
-                for i in range(len(A)):
-                    #print  'We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2)
-                    data_new.remove_row(A[i])
-                    A-=1   
-
-                if model_used =='salt2':          
-                    res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0', 'x0', 'x1', 'c'], modelcov = modelcov)
+            
+                print 'initialisation'
+                
+                
+                if model_used =='salt2':      
+                    if sn_name == 'SNF20080717-000':
+                        model.set(x1=3.)
+                    else:
+                        model.set(x1=0.3)
+                    
+                    res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False)
                 elif model_used == 'sugar':
-                    print "WARNING: Sugar don't have model covariance for the moment"
-                    modelcov = False
-                    res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0','q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov, bounds={'t0':(daymax-3,daymax+3)},guess_t0=True,phase_range=(-12,42))
-#                    print res
+
+                    if  sn_name in ['SNF20070727-016']:   
+                        model.set(q1=0.5)
+                        model.set(q2=0.5)
+                        model.set(q3=0.5)     
+                    else: 
+                        model.set(q1=0.01)
+                        model.set(q2=0.0)
+                        model.set(q3=0.0)     
+                    model.set(t0=daymax)
+#                    print daymax
+                    res, fitted_model = sncosmo.fit_lc(data, model, ['A','Mgr'], modelcov = False)
+    #                    print res.chisq
+    #                    model.set(q1=res.parameters[2])
+    #                    model.set(q2=res.parameters[3])
+    #                    model.set(q3=res.parameters[4])
+    #                model.set(A=res.parameters[5])
+    #                model.set(Mgr=res.parameters[6])
+    #                res, fitted_model = sncosmo.fit_lc(data, model, ['q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = False)
+    #                    res, fitted_model = sncosmo.fit_lc(data, model, ['t0', 'A', 'Mgr'], modelcov  = False,phase_range=(-12,42))
                 else:
-                    raise ValueError('ERROR: model name has to be salt2 or sugar')                   
- 
-                chi2p = chi2
-            
+                    raise ValueError('ERROR: model name has to be salt2 or sugar')
+                    
+                print 'first iteration'
                 chi2 = res.chisq
-                print chi2p, chi2
-               
-
+                print chi2
+                chi2p = chi2*2
+                m=0
             
+                while chi2 < chi2p and m < 10:
+        
+        
+                    if m > 0:
+                        resp = res
+                        fitted_modelp = fitted_model
+                    m += 1
+                    t_peak = fitted_model.parameters[1]
+                    #print t_peak,fitted_model.parameters[4]
+        
+                    t1 = t_peak + t_min*(1 + model.get('z'))
+                    t2 = t_peak + t_max*(1 + model.get('z'))
+                                
+                    A=[]
+                    data_new = copy.deepcopy(data)
+                    for i in range(len(data_new)):                    
+                        if data_new[i][0] <= t1 or data_new[i][0] >= t2:
+                            A.append(i)
+                    A=np.array(A)
+                    for i in range(len(A)):
+                        #print  'We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2)
+                        data_new.remove_row(A[i])
+                        A-=1   
+        
+                    if model_used =='salt2':          
+                        res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0', 'x0', 'x1', 'c'], modelcov = modelcov)
+                    elif model_used == 'sugar':
+                        print "WARNING: Sugar don't have model covariance for the moment"
+                        modelcov = False
+                        model.set(q1=res.parameters[2])
+                        model.set(q2=res.parameters[3])
+                        model.set(q3=res.parameters[4])
+                        model.set(A=res.parameters[5])
+                        model.set(Mgr=res.parameters[6])
+#                        print res.parameters[6]
+                        model.set(t0=res.parameters[1])                        
+                        res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0','q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov)
+                        print res.parameters[1]
+#                        if sn_name in ['SNF20070531-011','SNF20080516-022','SNF20080612-003']:
+#                            m = 10
+#                            resp = res
+#                            fitted_modelp = fitted_model
+    #                    sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+                        
+    #                        print res.chisq
+        #                    print res
+    
+                    else:
+                        raise ValueError('ERROR: model name has to be salt2 or sugar')                   
+    #                    print m, chi2p, chi2
+                    chi2p = chi2
                 
-            #final results
-            res = resp
-            fitted_model = fitted_modelp
-            print (res.chisq)
-#            print res
-            
-            #Calculation of mb
-            
-            if model_used =='salt2':          
-                mb = mB_determination(res)
-                print mb
-                #Calculation of mb uncertainty and covariance between mb and other parameters
-                dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 = mb_uncertainty(res)
-            elif model_used == 'sugar':
-                print 'For the moment no mb for sugar use Mgrey'
-                sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
-#                plt.savefig('../sugar_analysis_data/results/lc.eps')
-                plt.show()
-            else:
-                raise ValueError('ERROR: model name has to be salt2 or sugar')      
+                    chi2 = res.chisq
+                    if m == 1 and chi2p <= chi2:
+                        raise ValueError('ERROR: at the first iteration chi2p have to be inferior to chi2')
+    
+                    print chi2p, chi2
+                    
+        
                 
-            if write_results :
-                outfile.write('\n')        
+                    
+                #final results
+                res = resp
+                fitted_model = fitted_modelp
+                print (res.chisq)
+    #                print res
+                
+                #Calculation of mb
+                
                 if model_used =='salt2':          
-                    outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0'], chi2))          
+                    mb = mB_determination(res)
+                    print mb
+                    #Calculation of mb uncertainty and covariance between mb and other parameters
+                    dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 = mb_uncertainty(res)
                 elif model_used == 'sugar':
-                    raise ValueError('Not possible to write sugar results for the moment')   
-#                    outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0'], chi2))
-                                                                                                                        #name zcmb  mgrey dmgrey q1 dq1 q2 dq2 q3 dq3 A dA cov_mgrey_q1 cov_mgrey_q2 cov_mgrey_q3 cov_mgrey_A cov_q1_q2 cov_q1_q3 cov_q1_A cov_q2_q3 cov_q2_A cov_q3_A tmax dtmax chi2
+                    print 'For the moment no mb for sugar use Mgrey'
+    #                    sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+        #                plt.savefig('../sugar_analysis_data/results/'+sn_name+'_sugar_fit.pdf')
+        #                plt.show()
+        
+                    cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A = sugar_covariance(res)
                 else:
                     raise ValueError('ERROR: model name has to be salt2 or sugar')      
-    ##
-#            except:
-#                fitfail.append(sn_name)
-#                print 'Error: fit fail for: ',sn_name          
-##    
+                    
+                if write_results :
+                    outfile.write('\n')        
+                    if model_used =='salt2':          
+                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0'], chi2))          
+                    elif model_used == 'sugar':  
+                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, chi2))
+    #                    outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f %f %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, res.parameters[1], res.errors['t0'], chi2))
+    
+    #                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f 999 999 999 999 999 999 999 999 999 999 %f %f %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], res.parameters[1], 0, chi2))
+                    else:
+                        raise ValueError('ERROR: model name has to be salt2 or sugar')      
+    #
+            except:
+                fitfail.append(sn_name)
+                print 'Error: fit fail for: ',sn_name          
+    
             
     print fitfail
-    
+    print len(fitfail)
+    SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+    dico = cPickle.load(open(SUGAR_parameter_pkl)) 
+    for sn_fail in fitfail:
+        if sn_fail in dico.keys():
+            print sn_fail
+        
     if write_results :           
         outfile.close()
-    return res
+    return res , data_new, model , data
 
 def mB_determination(res):
     """
@@ -221,8 +266,8 @@ def mB_determination(res):
 
   
     #interpolation of the spectrum flux
-    template_0 = np.genfromtxt('../sncosmo_jla/salt2-4/salt2_template_0.dat')    
-    template_1 = np.genfromtxt('../sncosmo_jla/salt2-4/salt2_template_1.dat')
+    template_0 = np.genfromtxt('../sncosmo_jla/jla_data/salt2-4/salt2_template_0.dat')    
+    template_1 = np.genfromtxt('../sncosmo_jla/jla_data/salt2-4/salt2_template_1.dat')
 #    salt2source=sncosmo.SALT2Source('/users/divers/lsst/mondon/hubblefit/sncosmo_jla/salt2-4')
     
     wlM0 = []
@@ -280,7 +325,34 @@ def color_law_salt2(wl):
                 cl.append(-(cst*l[i]+l[i]**2*a+l[i]**3*b+l[i]**4*c+l[i]**5*d)) 
         return np.array(cl)
 
-           
+def sugar_covariance(res):
+    '''
+    '''
+    
+#    cov_mgrey_q1 = res.covariance[5,1]
+#    cov_mgrey_q2 = res.covariance[5,2]
+#    cov_mgrey_q3 = res.covariance[5,3]
+#    cov_mgrey_A = res.covariance[5,4]
+#    cov_q1_q2 = res.covariance[1,2]
+#    cov_q1_q3 = res.covariance[1,3]
+#    cov_q1_A = res.covariance[1,4]
+#    cov_q2_q3 = res.covariance[2,3]
+#    cov_q2_A = res.covariance[2,4]
+#    cov_q3_A = res.covariance[3,4]  
+    
+    cov_mgrey_q1 = res.covariance[4,0]
+    cov_mgrey_q2 = res.covariance[4,1]
+    cov_mgrey_q3 = res.covariance[4,2]
+    cov_mgrey_A = res.covariance[4,3]
+    cov_q1_q2 = res.covariance[0,1]
+    cov_q1_q3 = res.covariance[0,2]
+    cov_q1_A = res.covariance[0,3]
+    cov_q2_q3 = res.covariance[1,2]
+    cov_q2_A = res.covariance[1,3]
+    cov_q3_A = res.covariance[2,3]      
+    
+    return cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A
+
 def mb_uncertainty(res):
     """
     determine mb uncertainty
@@ -319,11 +391,11 @@ def mb_uncertainty(res):
 
 if __name__=="__main__":
     
-    width = 5
-#    model_used = 'sugar'
-    model_used = 'salt2'
-    write_results = True
-    modelcov = False
+    width = 10
+    model_used = 'sugar'
+#    model_used = 'salt2'
+    write_results = False
+    modelcov = True
     try:
         Build_SNF.register_SNf_bands_width(width=width)
         Build_SNF.mag_sys_SNF_width(width=width)
@@ -331,4 +403,4 @@ if __name__=="__main__":
     except:
         print 'Filters and mag sys already registred' 
     
-    Light_curve_fit(model_used=model_used,width=width, write_results=write_results, modelcov=modelcov)
+    res, data_new, model,data = Light_curve_fit(model_used=model_used,width=width, write_results=write_results, modelcov=modelcov)
