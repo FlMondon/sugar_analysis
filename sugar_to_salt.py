@@ -168,8 +168,8 @@ class sugar_spectrum():
 #                print self.flux
     
     def sugar_dep_salt(self):
-        '''
-        '''
+        """
+        """
         x0 = []
         x0_err = []
         x1 = [] 
@@ -189,7 +189,7 @@ class sugar_spectrum():
                  x0.append(-2.5*np.log10(res['parameters'][2]))
                  x1.append(res['parameters'][3])
                  color.append(res['parameters'][4])
-                 x0_err.append(res['errors']['x0']*-2.5*np.log10(res['parameters'][2])/ 1.0857362047581294)
+                 x0_err.append(res['errors']['x0']*-2.5/(np.log(10)*res['parameters'][2]))
                  x1_err.append(res['errors']['x1'])
                  color_err.append(res['errors']['c'])
             self.dic_sts['x0_'+str(p)] = x0
@@ -273,8 +273,8 @@ class sugar_spectrum():
         plt.savefig(pdffile, bbox_inches='tight')  
         plt.close()
     def read_salt2(self):
-        '''
-        '''
+        """
+        """
         SCALE_FACTOR = 1e-12
         model = {}
         
@@ -299,8 +299,8 @@ class sugar_spectrum():
 
             
     def spectrum_sugar_salt(self):
-        '''
-        '''
+        """
+        """
         dt = 1000
         
         xs = np.linspace(float(wl_min_sug), float(wl_max_sug), dt)
@@ -330,4 +330,46 @@ class sugar_spectrum():
                 plt.savefig(pdffile, bbox_inches='tight')  
                 plt.show()
             self._parameters = np.array([0., 0., 0., 0., 0.])
+        
+    def multi_var_par(self):
+        """
+        """
+        binning = 10    
+        q1 = np.linspace(-6, 6, binning)    
+        q2 = np.linspace(-3, 3, binning)
+        q3 = np.linspace(-1, 1, binning)
+        av = np.linspace(-0.2, 1, binning)
+        grey = np.linspace(30, 40, binning)
+        q1, q2, q3, av, grey = np.meshgrid(q1, q2, q3, av, grey)
+        self.m_dic_sts = {}
+        x0 = np.zeros_like(q1)
+        x1 = np.zeros_like(q1)
+        c = np.zeros_like(q1)
+        
+        for i in range(binning):
+            print i
+            for j in range(binning):
+            		for k in range(binning):
+            			for l in range(binning):
+            				for m in range(binning):
+            					self._parameters = np.array([q1[i,j,k,l,m],           
+            											   q2[i,j,k,l,m], 
+            											   q3[i,j,k,l,m], 
+            											   av[i,j,k,l,m], 
+            											   grey[i,j,k,l,m]])
+            
+            					res = self.fit_lc(show_lc=False)
+            					x0[i,j,k,l,m] = -2.5*np.log10(res['parameters'][2])
+            					x1[i,j,k,l,m] = res['parameters'][3]
+            					c[i,j,k,l,m] = res['parameters'][4]        
+                                
+        self.m_dic_sts['x0'] = x0
+        self.m_dic_sts['x1'] = x1
+        self.m_dic_sts['c'] = c
+        dic_file = open('../sugar_analysis_data/results/m_sug_to_salt.pkl','w')
+        pkl.dump(self.m_dic_sts,dic_file)
+    
+    def spectrum_sugar_saltv2(self):
+        """
+        """
         

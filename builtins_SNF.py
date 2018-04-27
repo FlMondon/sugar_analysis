@@ -319,72 +319,56 @@ class SUGARSource(sncosmo.Source):
             
             values *= self._SCALE_FACTOR
             # self._model[key] = Spline2d(phase, wave, values, kx=2, ky=2)
-            self._model[key] = values
-
+#            self._model[key] = values
+            self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values)
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
             if key == 'M0':
-#                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
-#                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.,  53., 57., 57.1, 57.2, 63., 67.])
                 self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
-                                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48., 48.5,  53., 57., 57.1, 57.2])
+                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.])
+#                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
+#                                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48., 54., 65.])
                                 
                 self._wave = wave
 
+                 
 #    def _model_flux(self):
 #        m0 = self._model['M0']
 #        m1 = self._model['M1']
 #        m2 = self._model['M2']
 #        m3 = self._model['M3']
 #        m4 = self._model['M4']
-#        mod_flux = np.zeros([len(m0[:, 0])+6,len(m0[0])])
+#        mod_flux = np.zeros([len(m0[:, 0])+2,len(m0[0])])
 ##        print mod_flux
 #        for j in range(len(m0[0])):
 #            
 #            for i in range(len(m0[:, 0])):
 #                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) / (self._wave[j] ** 2 / 299792458. * 1.e-10))
 ##                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) * (self._wave[j]  / (CLIGHT*HPLANCK)))
-#        
-#            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.75
-#            mod_flux[len(m0[:, 0])+2,j] = mod_flux[len(m0[:, 0]),j]*0.25           
-#            mod_flux[len(m0[:, 0])+3,j] = mod_flux[len(m0[:, 0]),j]*0.23
-#            mod_flux[len(m0[:, 0])+4,j] = mod_flux[len(m0[:, 0]),j]*0.22
+#            
+#
+#            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.90
+#            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.80
 ##        print (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (self._wave ** 2 / 299792458. * 1.e-10))
 #
 #        return mod_flux
-##                    
-    def _model_flux(self):
-        m0 = self._model['M0']
-        m1 = self._model['M1']
-        m2 = self._model['M2']
-        m3 = self._model['M3']
-        m4 = self._model['M4']
-        mod_flux = np.zeros([len(m0[:, 0])+5,len(m0[0])])
-#        print mod_flux
-        for j in range(len(m0[0])):
-            
-            for i in range(len(m0[:, 0])):
-                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) / (self._wave[j] ** 2 / 299792458. * 1.e-10))
-#                mod_flux[i,j] = (10. ** (-0.4 * (m0[i,j] + self._parameters[0] * m1[i,j] + self._parameters[1] * m2[i,j] + self._parameters[2] * m3[i,j] + self._parameters[3] * m4[i,j] + self._parameters[4] + 48.59)) * (self._wave[j]  / (CLIGHT*HPLANCK)))
-            
-            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.98
-            mod_flux[len(m0[:, 0])+1,j] = mod_flux[len(m0[:, 0]),j]*0.75
-            mod_flux[len(m0[:, 0])+2,j] = mod_flux[len(m0[:, 0]),j]*0.25           
-            mod_flux[len(m0[:, 0])+3,j] = mod_flux[len(m0[:, 0]),j]*0.23
-            mod_flux[len(m0[:, 0])+4,j] = mod_flux[len(m0[:, 0]),j]*0.22
-        print (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (self._wave ** 2 / 299792458. * 1.e-10))
+#                
+#    def _flux(self, phase, wave):
+#
+#
+#
+#        flux_inter = sncosmo.salt2utils.BicubicInterpolator(self._phase, self._wave, self._model_flux())
+#
+#        
+#        return flux_inter(phase,wave)
 
-        return mod_flux
-                
     def _flux(self, phase, wave):
-
-
-
-        flux_inter = sncosmo.salt2utils.BicubicInterpolator(self._phase, self._wave, self._model_flux())
-
-        
-        return flux_inter(phase,wave)
-
+        m0 = self._model['M0'](phase, wave)
+        m1 = self._model['M1'](phase, wave)
+        m2 = self._model['M2'](phase, wave)
+        m3 = self._model['M3'](phase, wave)
+        m4 = self._model['M4'](phase, wave)
+        return (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
 
 
     def bandflux_rcov(self, band, phase):

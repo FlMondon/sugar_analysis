@@ -711,8 +711,9 @@ class Sugar_photometry_plot():
         self.sug_phot_A = np.array(self.sug_phot_res[:,12],float)
         self.sug_phot_A_err = np.array(self.sug_phot_res[:,13],float)
         self.sug_phot_t0 = np.array(self.sug_phot_res[:,24],float)
+#        print self.sug_phot_t0[0]
         self.sug_phot_t0_err = np.array(self.sug_phot_res[:,25],float)
-#        self.sug_phot_chi2 = np.array(self.sug_phot_res[:,26],float)
+        self.sug_phot_chi2 = np.array(self.sug_phot_res[:,26],float)
         self.cov_mgrey_q1 = np.array(self.sug_phot_res[:,14],float)
         self.cov_mgrey_q2 = np.array(self.sug_phot_res[:,15],float)
         self.cov_mgrey_q3 = np.array(self.sug_phot_res[:,16],float)
@@ -746,6 +747,7 @@ class Sugar_photometry_plot():
             self.sug_spec_q2.append(self.dico[sn_name]['q2'])
             self.sug_spec_q3.append(self.dico[sn_name]['q3'])
             self.sug_spec_A.append(self.dico[sn_name]['Av'])
+            self.sug_spec_t0.append(self.meta[sn_name]['salt2.DayMax'])
             self.sug_spec_cov_q.append(self.dico[sn_name]['cov_q']) 
     
     def errors_list(self):
@@ -786,11 +788,13 @@ class Sugar_photometry_plot():
         self.diff_q2 = [] 
         self.diff_q3 = [] 
         self.diff_A = [] 
+        self.diff_t0 = [] 
         self.scatter_spec_Mgr = []
         self.scatter_spec_q1 = [] 
         self.scatter_spec_q2 = [] 
         self.scatter_spec_q3 = [] 
         self.scatter_spec_A = []
+        self.scatter_spec_t0 = []
         self.scatter_phot_Mgr = []
         self.scatter_phot_q1 = [] 
         self.scatter_phot_q2 = [] 
@@ -806,6 +810,8 @@ class Sugar_photometry_plot():
         self.scatter_phot_q2_err = [] 
         self.scatter_phot_q3_err = [] 
         self.scatter_phot_A_err = [] 
+        self.scatter_phot_t0 = []
+        
         
         for i in range(len(self.sug_spec_sn_name)):
             for j in range(len(self.sug_phot_sn_name)):
@@ -815,6 +821,9 @@ class Sugar_photometry_plot():
                     self.diff_q3.append(self.sug_spec_q3[i]-self.sug_phot_q3[j])
                     self.diff_A.append(self.sug_spec_A[i]-self.sug_phot_A[j])
                     self.diff_Mgr.append(self.sug_spec_Mgr[i]-self.sug_phot_Mgr[j])
+#                    if self.sug_spec_q2[i]-self.sug_phot_q2[j] > 1.:
+                    self.diff_t0.append(self.sug_spec_t0[i]-self.sug_phot_t0[j])
+                    self.scatter_spec_t0.append(self.sug_spec_t0[i])
                     self.scatter_spec_Mgr.append(self.sug_spec_Mgr[i])
                     self.scatter_spec_q1.append(self.sug_spec_q1[i]) 
                     self.scatter_spec_q2.append(self.sug_spec_q2[i]) 
@@ -825,11 +834,13 @@ class Sugar_photometry_plot():
                     self.scatter_phot_q2.append(self.sug_phot_q2[j]) 
                     self.scatter_phot_q3.append(self.sug_phot_q3[j]) 
                     self.scatter_phot_A.append(self.sug_phot_A[j]) 
+                    self.scatter_phot_t0.append(self.sug_phot_t0[j])
                     self.scatter_spec_Mgr_err.append(self.sug_spec_Mgr_err[i])
                     self.scatter_spec_q1_err.append(self.sug_spec_q1_err[i]) 
                     self.scatter_spec_q2_err.append(self.sug_spec_q2_err[i]) 
                     self.scatter_spec_q3_err.append(self.sug_spec_q3_err[i]) 
                     self.scatter_spec_A_err.append(self.sug_spec_A_err[i]) 
+                    
                     self.scatter_phot_Mgr_err.append(self.sug_phot_Mgr_err[j])
                     self.scatter_phot_q1_err.append(self.sug_phot_q1_err[j]) 
                     self.scatter_phot_q2_err.append(self.sug_phot_q2_err[j]) 
@@ -945,6 +956,15 @@ class Sugar_photometry_plot():
         plt.legend()
         plt.show()
         plt.close()
+        
+        #plot t0 scatter
+        plt.hist(self.diff_t0,50,label='$\Delta$ t0')
+#        pdffile = '../sugar_analysis_data/results/diff_t0.pdf'
+#        plt.savefig(pdffile, bbox_inches='tight')
+        plt.legend()
+        plt.show()
+        plt.close()
+        plt.scatter(self.scatter_spec_t0, self.scatter_phot_t0, c='r', marker='.')
         
     def HD_input_sugar(self):
         SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'

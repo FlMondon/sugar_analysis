@@ -39,13 +39,13 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                 outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'_nomodelcov.txt', 'w')
             outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c x0 dx0 tmax dtmax chi2')
         elif model_used == 'sugar':
-            outfile = open('../sugar_analysis_data/results/res_sugar_SNF_test.txt', 'w')
+            outfile = open('../sugar_analysis_data/results/res_sugar_SNF.txt', 'w')
             outfile.write('#name zcmb zhel dz mgrey dmgrey q1 dq1 q2 dq2 q3 dq3 A dA cov_mgrey_q1 cov_mgrey_q2 cov_mgrey_q3 cov_mgrey_A cov_q1_q2 cov_q1_q3 cov_q1_A cov_q2_q3 cov_q2_A cov_q3_A tmax dtmax chi2')
         else:
              raise ValueError('ERROR: model name has to be salt2 or sugar')
             
-    list_SN = ['SNF20070531-011','SNF20080516-022','SNF20080612-003']
-#    list_SN = ['SN2008ec','SNF20080522-011','PTF11qzq']
+#    list_SN = ['SNF20070531-011']
+    list_SN = ['SN2008ec','SNF20080522-011','PTF11qzq']
 
 #    list_SN = ['SN2008ec']
 #    list_SN = ['SNF20080510-001','SN2005ir','SNF20080919-000','SNF20080522-011', 'SNF20070417-002','SNF20070424-003','SNF20080610-000','SN2007nq','SN2008ec']
@@ -94,17 +94,13 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                     
                     res, fitted_model = sncosmo.fit_lc(data, model, ['t0','x0', 'c'], modelcov = False)
                 elif model_used == 'sugar':
+    
 
-                    if  sn_name in ['SNF20070727-016']:   
-                        model.set(q1=0.5)
-                        model.set(q2=0.5)
-                        model.set(q3=0.5)     
-                    else: 
-                        model.set(q1=0.01)
-                        model.set(q2=0.0)
-                        model.set(q3=0.0)     
+                    model.set(q1=0.0)
+                    model.set(q2=0.0)
+                    model.set(q3=0.0)     
                     model.set(t0=daymax)
-#                    print daymax
+    #                    print daymax
                     res, fitted_model = sncosmo.fit_lc(data, model, ['A','Mgr'], modelcov = False)
     #                    print res.chisq
     #                    model.set(q1=res.parameters[2])
@@ -157,15 +153,12 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                         model.set(q3=res.parameters[4])
                         model.set(A=res.parameters[5])
                         model.set(Mgr=res.parameters[6])
-#                        print res.parameters[6]
+    #                        print res.parameters[6]
                         model.set(t0=res.parameters[1])                        
                         res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0','q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov)
                         print res.parameters[1]
-#                        if sn_name in ['SNF20070531-011','SNF20080516-022','SNF20080612-003']:
-#                            m = 10
-#                            resp = res
-#                            fitted_modelp = fitted_model
-    #                    sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+    
+#                        sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
                         
     #                        print res.chisq
         #                    print res
@@ -199,9 +192,9 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                     dmbfit, cov_mb_c, cov_mb_x1, cov_x1_c, cov_mb_x0 = mb_uncertainty(res)
                 elif model_used == 'sugar':
                     print 'For the moment no mb for sugar use Mgrey'
-    #                    sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
-        #                plt.savefig('../sugar_analysis_data/results/'+sn_name+'_sugar_fit.pdf')
-        #                plt.show()
+#                    sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
+#                    plt.savefig('../sugar_analysis_data/results/'+sn_name+'_sugar_fit.pdf')
+#                    plt.show()
         
                     cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A = sugar_covariance(res)
                 else:
@@ -212,13 +205,13 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],errorscale=True, model_used='
                     if model_used =='salt2':          
                         outfile.write('%s 999 %f 999 %f %f %f %f %f %f %e %e %e %f %f %f %f %f' %(sn_name, res.parameters[0], mb, dmbfit, res.parameters[3], res.errors['x1'], res.parameters[4], res.errors['c'], cov_mb_x1, cov_mb_c, cov_x1_c, res.parameters[2], res.errors['x0'], res.parameters[1], res.errors['t0'], chi2))          
                     elif model_used == 'sugar':  
-                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, chi2))
-    #                    outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f %f %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, res.parameters[1], res.errors['t0'], chi2))
+#                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, chi2))
+                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f %e %e %e %e %e %e %e %e %e %e %f %f %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A, res.parameters[1], res.errors['t0'], chi2))
     
     #                        outfile.write('%s 999 %f 999 %f %f %f %f %f %f %f %f %f %f 999 999 999 999 999 999 999 999 999 999 %f %f %f' %(sn_name, res.parameters[0], res.parameters[6], res.errors['Mgr'], res.parameters[2], res.errors['q1'], res.parameters[3], res.errors['q2'], res.parameters[4], res.errors['q3'],res.parameters[5], res.errors['A'], res.parameters[1], 0, chi2))
                     else:
                         raise ValueError('ERROR: model name has to be salt2 or sugar')      
-    #
+#
             except:
                 fitfail.append(sn_name)
                 print 'Error: fit fail for: ',sn_name          
