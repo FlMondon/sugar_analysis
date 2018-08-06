@@ -6,7 +6,7 @@ Created on Wed Nov 22 17:50:29 2017
 """
 import cPickle
 import numpy as np
-#import sugar
+import sugar
 from scipy import integrate
 from astropy.table import Table
 import sncosmo
@@ -36,7 +36,7 @@ wl_max_sug = 8576.61898
 def read_sugar_salt2_parameters():
     """
     """
-    SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+    SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
     lds = sugar.load_data_sugar()
     lds.load_salt2_data()
     Filtre = np.array([True]*len(lds.X0))

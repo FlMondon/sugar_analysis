@@ -8,8 +8,10 @@ Created on Wed Jan 24 21:56:02 2018
 
 import numpy as np
 from math import log, log10
+from matplotlib import pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import pyfits
+from matplotlib import rc, rcParams
 
 CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27       # [erg s]
@@ -164,9 +166,48 @@ class Spectrum():
         print self.m
         print self.flux
         
-    
-    
-    
+    def plot(self):
+        """
+        """
+        self.read_spectrum()
+        
+        
+        rcParams['font.size'] = 6.
+        font = {'family': 'normal', 'size': 5}
+        rc('axes', linewidth=1.5)
+        rc("text", usetex=True)
+        rc('font', family='serif')
+        rc('font', serif='Times')
+        rc('legend', fontsize=15)
+        rc('xtick.major', size=5, width=1.5)
+        rc('ytick.major', size=5, width=1.5)
+        rc('xtick.minor', size=3, width=1)
+        rc('ytick.minor', size=3, width=1) 
+        
+        filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/SNIFS/'+ 'BSNf_4102-5100.dat')
+        wlen = filt2[:,0]
+        tran = filt2[:,1]
+        self.splB = Spline1d(wlen, tran, k=1,ext = 1)        
+        plt.plot(self.x,self.y/ np.max(self.y)*0.8,label='Spectrum')
+#        self.flux('BSNf')
+        plt.plot(self.x, self.splB(self.x),color='b' ,label='BSNF')
+#        self.flux('VSNf')
+        filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/SNIFS/'+ 'VSNf_5200-6289.dat')
+        wlen = filt2[:,0]
+        tran = filt2[:,1]
+        self.splB = Spline1d(wlen, tran, k=1,ext = 1)  
+        plt.plot(self.x, self.splB(self.x), color='g' ,label='VSNF')
+#        self.flux('RSNf')
+        filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/SNIFS/'+ 'RSNf_6289-7607.dat')
+        wlen = filt2[:,0]
+        tran = filt2[:,1]
+        self.splB = Spline1d(wlen, tran, k=1,ext = 1)  
+        plt.plot(self.x, self.splB(self.x), color='r' , label='RSNF')
+        plt.xlabel('Wavelength A')
+        plt.legend()
+        pdffile = '../sugar_analysis_data/results/example_spec.pdf'
+        plt.savefig(pdffile, bbox_inches='tight',dpi=200)
+        plt.show()
         
         
         

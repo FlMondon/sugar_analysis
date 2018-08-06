@@ -22,7 +22,7 @@ clight = 299792.458
 H0 = 0.000070
 
 class results_snfit():
-    def __init__(self, width):
+    def __init__(self, width=10):
         self.width = width
         
     def read_snfit_results(self, snfit_res_path='../sugar_analysis_data/results/results_snfit.txt'):
@@ -631,28 +631,32 @@ class results_snfit():
 #        return self.salt_parm, self.cov_y, self.z, self.meta_zcmb, self.meta_zhl_err, self.sn_name, self.meta_idr
         return self.salt_parm, self.cov_y, self.z, self.zcmb, self.z_err
 
-    def HD_input_sncosmo_data(self):
+    def HD_input_sncosmo_data(self, sn_list):
         """
         Sample snfit results in HD input
         """
 
         dico = cPickle.load(open(SUGAR_parameter_pkl))
-        self.read_sncosmo(path='../sugar_analysis_data/results/res_salt2_SNF_'+str(self.width)+'_nomodelcov.txt')
+        self.read_sncosmo(path='../sugar_analysis_data/results/res_salt2_SNF_5_nomodelcov.txt')
         self.read_meta()
         self.read_snfit_results()
         Filtre = np.array([True]*len(self.sncosmo_sn_name))
         self.zcmb = []
         self.z_err = []
-        for j in range(len(self.sncosmo_sn_name)):
-            if self.sncosmo_sn_name[j] in dico.keys():
-
-                for i in range (len(self.meta_sn_name_list)):
-                    if self.sncosmo_sn_name[j] == self.meta_sn_name_list[i]:
-                        
-                        self.z_err.append(self.meta_zhl_err[i])
-                        self.zcmb.append(self.meta_zcmb[i])
-                        if np.abs(self.sncosmo_x1[j] - self.x1[i]) > 0.01:
-                            print 'problem with %s include in sample but big difference between sncosmo and snfit'%(self.sncosmo_sn_name[j])
+        for j, sn_name in enumerate(self.sncosmo_sn_name):
+#            if self.sncosmo_sn_name[j] in dico.keys():
+#
+#                for i in range (len(self.meta_sn_name_list)):
+#                    if self.sncosmo_sn_name[j] == self.meta_sn_name_list[i]:
+#                        
+#                        self.z_err.append(self.meta_zhl_err[i])
+#                        self.zcmb.append(self.meta_zcmb[i])
+#                        if np.abs(self.sncosmo_x1[j] - self.x1[i]) > 0.01:
+#           i                 print 'problem with %s include in sample but big difference between sncosmo and snfit'%(self.sncosmo_sn_name[j])
+#            else:
+#                 Filtre[j] = False
+            if sn_name in sn_list:
+                Filtre[j] = True
             else:
                 Filtre[j] = False
 
@@ -710,10 +714,10 @@ class Sugar_photometry_plot():
         self.sug_phot_q3_err = np.array(self.sug_phot_res[:,11],float)
         self.sug_phot_A = np.array(self.sug_phot_res[:,12],float)
         self.sug_phot_A_err = np.array(self.sug_phot_res[:,13],float)
-        self.sug_phot_t0 = np.array(self.sug_phot_res[:,24],float)
+#        self.sug_phot_t0 = np.array(self.sug_phot_res[:,24],float)
 #        print self.sug_phot_t0[0]
-        self.sug_phot_t0_err = np.array(self.sug_phot_res[:,25],float)
-        self.sug_phot_chi2 = np.array(self.sug_phot_res[:,26],float)
+#        self.sug_phot_t0_err = np.array(self.sug_phot_res[:,25],float)
+#        self.sug_phot_chi2 = np.array(self.sug_phot_res[:,26],float)
         self.cov_mgrey_q1 = np.array(self.sug_phot_res[:,14],float)
         self.cov_mgrey_q2 = np.array(self.sug_phot_res[:,15],float)
         self.cov_mgrey_q3 = np.array(self.sug_phot_res[:,16],float)
@@ -725,9 +729,36 @@ class Sugar_photometry_plot():
         self.cov_q2_A = np.array(self.sug_phot_res[:,22],float)
         self.cov_q3_A = np.array(self.sug_phot_res[:,23],float)
         
+    def read_sugar_phot_t0_fix(self, path='../sugar_analysis_data/results/res_sugar_SNF_t0_fix.txt'):       
+        self.sug_phot_res_t0_fix = np.loadtxt(path ,dtype='str')
+        self.sug_phot_q2_t0_fix = np.array(self.sug_phot_res[:,8],float)
+        self.sug_phot_sn_name_t0_fix = np.array(self.sug_phot_res_t0_fix[:,0],str)
+        self.sug_phot_chi2_t0_fix = np.array(self.sug_phot_res_t0_fix[:,24],float)
+    
+    def plot_chi2_t0_fix(self):
+        '''
+        '''
+        self.read_sugar_phot_t0_fix()
+        self.read_sugar_phot()
+        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
+        dico = cPickle.load(open(SUGAR_parameter_pkl))
+        self.diff_chi2_t0_fix = []
+        for i in range(len(self.sug_phot_sn_name_t0_fix)):
+            for j in range(len(self.sug_phot_sn_name)):
+                if self.sug_phot_sn_name_t0_fix[i] == self.sug_phot_sn_name[j] and self.sug_phot_sn_name_t0_fix[i] in dico.keys():
+                    self.diff_chi2_t0_fix.append(self.sug_phot_chi2_t0_fix[i]-self.sug_phot_chi2[j])
+        plt.hist(self.diff_chi2_t0_fix,50,label='$\Delta$ chi2')
+        pdffile = '../sugar_analysis_data/results/diff_chi2_t0_fix.pdf'
+        plt.legend()
+        plt.savefig(pdffile, bbox_inches='tight')        
+        plt.legend()
+        plt.show()
+        plt.close()
+                
+                
     def read_sugar_spectro(self, path='../sugar_model/sugar_parameters.pkl'):
 
-        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
+        SUGAR_parameter_pkl = path
         self.meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
         self.dico = cPickle.load(open(SUGAR_parameter_pkl)) 
         self.sug_spec_sn_name = []
@@ -781,8 +812,9 @@ class Sugar_photometry_plot():
         self.read_sugar_phot()
         self.read_sugar_spectro()
         self.errors_list()
-        SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
         dico = cPickle.load(open(SUGAR_parameter_pkl))
+        x_list = np.linspace(-10,10,5)
         self.diff_Mgr = []
         self.diff_q1 = [] 
         self.diff_q2 = [] 
@@ -811,17 +843,21 @@ class Sugar_photometry_plot():
         self.scatter_phot_q3_err = [] 
         self.scatter_phot_A_err = [] 
         self.scatter_phot_t0 = []
+
         
         
         for i in range(len(self.sug_spec_sn_name)):
             for j in range(len(self.sug_phot_sn_name)):
                 if self.sug_spec_sn_name[i] == self.sug_phot_sn_name[j] and self.sug_spec_sn_name[i] in dico.keys():
+#                    if self.sug_spec_sn_name[i] == 'SN2008ec':
+#                        print self.sug_spec_q2[i], self.sug_phot_q2[j]
                     self.diff_q1.append(self.sug_spec_q1[i]-self.sug_phot_q1[j])
                     self.diff_q2.append(self.sug_spec_q2[i]-self.sug_phot_q2[j])
                     self.diff_q3.append(self.sug_spec_q3[i]-self.sug_phot_q3[j])
                     self.diff_A.append(self.sug_spec_A[i]-self.sug_phot_A[j])
                     self.diff_Mgr.append(self.sug_spec_Mgr[i]-self.sug_phot_Mgr[j])
-#                    if self.sug_spec_q2[i]-self.sug_phot_q2[j] > 1.:
+                    if self.sug_spec_q2[i]-self.sug_phot_q2[j] > 1.:
+                        print self.sug_spec_sn_name[i]
                     self.diff_t0.append(self.sug_spec_t0[i]-self.sug_phot_t0[j])
                     self.scatter_spec_t0.append(self.sug_spec_t0[i])
                     self.scatter_spec_Mgr.append(self.sug_spec_Mgr[i])
@@ -840,7 +876,7 @@ class Sugar_photometry_plot():
                     self.scatter_spec_q2_err.append(self.sug_spec_q2_err[i]) 
                     self.scatter_spec_q3_err.append(self.sug_spec_q3_err[i]) 
                     self.scatter_spec_A_err.append(self.sug_spec_A_err[i]) 
-                    
+
                     self.scatter_phot_Mgr_err.append(self.sug_phot_Mgr_err[j])
                     self.scatter_phot_q1_err.append(self.sug_phot_q1_err[j]) 
                     self.scatter_phot_q2_err.append(self.sug_phot_q2_err[j]) 
@@ -894,6 +930,9 @@ class Sugar_photometry_plot():
         plt.close()
  
         plt.errorbar(self.scatter_spec_q2,self.scatter_phot_q2,xerr=self.scatter_spec_q2_err,yerr=self.scatter_phot_q2_err, color='red', fmt='.', mfc='red', zorder=1)
+        plt.plot(x_list,x_list)
+        plt.xlim(-10,10)
+        plt.ylim(-10,10)
         plt.ylabel('phot',fontsize=25)
         plt.xlabel('spec',fontsize=25)
         plt.figtext(0.2, 0.8, 'q2', fontsize=25)
@@ -959,18 +998,32 @@ class Sugar_photometry_plot():
         
         #plot t0 scatter
         plt.hist(self.diff_t0,50,label='$\Delta$ t0')
-#        pdffile = '../sugar_analysis_data/results/diff_t0.pdf'
-#        plt.savefig(pdffile, bbox_inches='tight')
+        pdffile = '../sugar_analysis_data/results/diff_t0.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
         plt.legend()
         plt.show()
         plt.close()
         plt.scatter(self.scatter_spec_t0, self.scatter_phot_t0, c='r', marker='.')
+        pdffile = '../sugar_analysis_data/results/scatter_t0.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.show()
+        plt.close()
         
-    def HD_input_sugar(self):
-        SUGAR_parameter_pkl = '../sugar/sugar/data_output/data_output/sugar_parameters.pkl'
+        #t0_q2
+        plt.scatter(self.diff_q2, self.diff_t0, c='r', marker='.')
+        print np.corrcoef(self.diff_q2,self.diff_t0)
+        pdffile = '../sugar_analysis_data/results/diff_t0vsq2.pdf'
+        plt.ylabel('$\Delta$ t0',fontsize=25)
+        plt.xlabel('$\Delta$ q2',fontsize=25)
+        plt.savefig(pdffile, bbox_inches='tight')
+        plt.show()
+        plt.close()
+        
+    def HD_input_sugar(self, path= '../sugar_analysis_data/results/res_sugar_SNF.txt'):
+        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
         dico = cPickle.load(open(SUGAR_parameter_pkl))     
         meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
-        self.read_sugar_phot()       
+        self.read_sugar_phot(path=path)       
         self.HD_Mgr = []
         self.HD_q1 = [] 
         self.HD_q2 = [] 
@@ -979,12 +1032,14 @@ class Sugar_photometry_plot():
         self.zhl = []
         self.zcmb = []
         self.zerr = []
-        self.HD_cov = np.zeros([(len(dico.keys())-2)*5, (len(dico.keys())-2)*5])
-        self.HD_cov_Mgr = np.zeros([len(dico.keys())-2, len(dico.keys())-2])
+#        self.HD_cov = np.zeros([(len(dico.keys())-2)*5, (len(dico.keys())-2)*5])
+        self.HD_cov = np.zeros([len(self.sug_phot_sn_name)*5, (len(self.sug_phot_sn_name)*5)])
+#        self.HD_cov_Mgr = np.zeros([len(dico.keys())-2, len(dico.keys())-2])
+        self.HD_cov_Mgr = np.zeros([len(self.sug_phot_sn_name), len(self.sug_phot_sn_name)])
         j = 0
         print len(self.sug_phot_sn_name)
         for i in range(len(self.sug_phot_sn_name)):  
-            if self.sug_phot_sn_name[i] in dico.keys() and self.sug_phot_sn_name[i] not in ['SNF20070331-025','SNF20080905-005']:
+#            if self.sug_phot_sn_name[i] in dico.keys() and self.sug_phot_sn_name[i] not in ['SNF20070331-025','SNF20080905-005']:
                 
                 self.HD_Mgr.append(self.sug_phot_Mgr[i])
                 self.HD_q1.append(self.sug_phot_q1[i]) 
@@ -1032,3 +1087,23 @@ class Sugar_photometry_plot():
         self.zhl = np.array(self.zhl)
         self.zcmb = np.array(self.zcmb)
         self.zerr = np.array(self.zerr)
+        
+    def plot_errors(self):
+        """
+        """
+        self.read_sugar_phot( path='../sugar_analysis_data/results/res_sugar_SNF_t0_fix.txt')
+        SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
+        dico = cPickle.load(open(SUGAR_parameter_pkl))       
+        mask = []
+        for i in range(len(self.sug_phot_sn_name)):
+           if self.sug_phot_sn_name[i] in dico.keys(): 
+               mask.append(True)
+           else:
+               mask.append(False)
+        mask = np.array(mask)
+        self.phot_Mgr_err = self.sug_phot_Mgr_err[mask]
+        self.phot_q1_err = self.sug_phot_q1_err[mask]
+        self.phot_q2_err = self.sug_phot_q2_err[mask]
+        self.phot_q3_err = self.sug_phot_q3_err[mask]
+        self.phot_A_err = self.sug_phot_A_err[mask]
+        plt.hist(self.phot_q2_err,50,label='q2 err')

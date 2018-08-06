@@ -8,11 +8,13 @@ Created on Fri Nov  3 12:20:25 2017
 import cPickle
 import numpy as np
 import pylab as P
-#import sugar
+import sugar
+from matplotlib import rc, rcParams
 from scipy import integrate
 from numpy.linalg import inv
 import iminuit as minuit
 from scipy import optimize,integrate
+from matplotlib import pyplot as plt
 import copy
 
 
@@ -179,7 +181,10 @@ class Hubble_fit():
 
     def distance_modulus_sugar_corr(self, cst, alpha1, alpha2, alpha3, beta):      
         return self.sugar_par[:,0] - cst - alpha1*self.sugar_par[:,1] - alpha2*self.sugar_par[:,2] - alpha3*self.sugar_par[:,3] - beta*self.sugar_par[:,4]
-        
+    
+    def distance_modulus_sugar_corr_uncertainty(self, alpha1, alpha2, alpha3, beta, dMgr, dq1, dq2, dq3, dA):
+        return np.sqrt(dMgr**2 + (alpha1*dq1)**2 + (alpha2*dq2)**2 + (alpha3*dq3)**2 + (beta*dA)**2)
+    
     def distance_modulus_salt2(self, alpha, beta, Mb):
         return self.salt2_par[:,0] - Mb + alpha*self.salt2_par[:,1] - beta*self.salt2_par[:,2] 
     
@@ -260,8 +265,9 @@ class Hubble_fit():
         Cmu = np.zeros_like(self.cov_salt2[::3,::3])
         for i, coef1 in enumerate([1., alpha, -beta]):
             for j, coef2 in enumerate([1., alpha, -beta]):
-                Cmu += (coef1 * coef2) * self.cov_salt2[i::3,j::3]               
+                Cmu += (coef1 * coef2) * self.cov_salt2[i::3,j::3]
         Cmu[np.diag_indices_from(Cmu)] += sig_int**2 + self.dmz**2 
+        
         C = inv(Cmu)
         
         L = self.distance_modulus_salt2(alpha, beta, Mb) - self.distance_modulus()
@@ -382,5 +388,70 @@ class Hubble_fit():
         return Find_param, sig_int
         
 
+    def sig_fix_sugar(self, sig_int):
+        if self.qi:
+            Find_param = minuit.Minuit(self.chi2_sugar, cst=0.01 ,alpha1=0.001, alpha2=0.001, alpha3=0.001, beta=0.001, sig_int=sig_int, fix_sig_int= True)
+        else:
+            Find_param = minuit.Minuit(self.chi2_sugar, cst=0.01,alpha1=0., alpha2=0., alpha3=0., beta=0.,sig_int=sig_int, fix_sig_int= True, fix_alpha1=True, fix_alpha2=True, fix_alpha3=True, fix_beta=True)
+        print sig_int
+        Find_param.migrad()
+        self.Params = Find_param.values
+        self.Params_Covariance = Find_param.covariance       
+        self.wrms_sugar, self.wrms_sugar_err = comp_rms(self.residuals, self.dof_sugar, err=True, variance=self.var)   
+        return Find_param
     
-    
+    def plot_sig_wc_sugar(self):
+        list_sig = np.linspace(0.09, 0.30, 30)
+        res_wrms = []
+        res_wrms_err = []
+        res_chi2 = []
+        for j in range(len(list_sig)):
+            res = self.sig_fix_sugar(list_sig[j])
+            res_wrms.append(self.wrms_sugar)
+            res_wrms_err.append(self.wrms_sugar_err)
+            res_chi2.append(res.fval/self.dof_sugar)
+        
+        p1 = plt.errorbar(list_sig, res_wrms, yerr=res_wrms_err, fmt='.')
+        plt.xlabel( 'Sig int')
+        plt.ylabel('wrms')
+        ax2 = plt.gca().twinx()
+        p2 = ax2.scatter(list_sig, res_chi2, color='red', marker='.')
+        ax2.set_ylabel('chi2')
+        if self.qi:
+            pdffile = '../sugar_analysis_data/results/wrms_sig.pdf'
+        else:
+            pdffile = '../sugar_analysis_data/results/wrms_sig_Mgr.pdf'    
+        plt.savefig(pdffile, bbox_inches='tight')  
+        plt.show()
+
+    def plot_HD(self,zcmb,dMgr ,dq1, dq2, dq3, dA):
+        #plot setup
+        rcParams['font.size'] = 16.
+        font = {'family': 'normal', 'size': 16}
+        rc('axes', linewidth=1.5)
+        rc("text", usetex=True)
+        rc('font', family='serif')
+        rc('font', serif='Times')
+        rc('legend', fontsize=25)
+        rc('xtick.major', size=5, width=1.5)
+        rc('ytick.major', size=5, width=1.5)
+        rc('xtick.minor', size=3, width=1)
+        rc('ytick.minor', size=3, width=1)
+        
+        mu = self.distance_modulus_sugar_corr(self.Params['cst'], self.Params['alpha1'], self.Params['alpha2'], self.Params['alpha3'], self.Params['beta'])
+        dmu = self.distance_modulus_sugar_corr_uncertainty(self.Params['alpha1'], self.Params['alpha2'], self.Params['alpha3'], self.Params['beta'],dMgr ,dq1, dq2, dq3, dA)
+        plt.errorbar(zcmb, mu, yerr=dmu, fmt='.')
+        z = np.linspace(0.,0.12,200)
+        self.zcmb = z
+        zhl = self.zhl
+        self.zhl = z
+        plt.plot(z, self.distance_modulus(), color='r')
+        plt.xlim(0.01,0.12)
+        plt.ylim(32,40)
+        plt.xlabel('z')
+        plt.ylabel('$\mu = M_{gr} - cst - \sum_{i=1}^{3}  a_{i}q_{i} - b A_{v} $')
+        self.zcmb = zcmb
+        self.zhl = zhl
+        pdffile = '../sugar_analysis_data/results/HD_sug.pdf'
+        plt.savefig(pdffile, bbox_inches='tight')
+         

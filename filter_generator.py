@@ -85,8 +85,8 @@ def filter_used(width, filters=['USNf','BSNf','VSNf','RSNf','ISNf']):
 #                fileI.write("%.3f %.3f \n"%(wl[j],fI[j]))   
 #            fileI.close()
          elif filter_name == 'ISNf':
-            wlblue = 7607
-            wlred = 8530
+            wlblue = 6968.3
+            wlred = 8400
             fI = filter_trans(wl, wlred, wlblue,width)  
             fileI = open(r_name+'new_fI_'+str(width)+'.dat','w')
             for j in range(len(wl)):
@@ -105,7 +105,7 @@ if __name__=='__main__':
 #   filter_used(100)
 #   filter_used(40)
 #   filter_used(20)
-   filter_used(10)
+#   filter_used(10)
 #   filter_used(5)
 #   filter_used(5.5)
 #   filter_used(1.5)
