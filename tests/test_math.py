@@ -2,7 +2,6 @@
 
 import numpy as np
 import sugar_analysis
-import pylab as plt
 
 def generate_hubble_residuals(sigma_int = 0.13, noise = None):
     """
