@@ -1,0 +1,8 @@
+numpy
+scipy
+matplotlib
+sncosmo
+astropy
+iminuit
+sugar
+# snfit
