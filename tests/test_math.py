@@ -2,6 +2,7 @@
 
 import numpy as np
 import sugar_analysis
+from timer_test import timer
 
 def generate_hubble_residuals(sigma_int = 0.13, noise = None):
     """
@@ -23,6 +24,7 @@ def generate_hubble_residuals(sigma_int = 0.13, noise = None):
 
     return hr, hr_err
 
+@timer
 def test_comp_rms():
     """
     test comp_rms from math_toolbox.py.
