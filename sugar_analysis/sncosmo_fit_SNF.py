@@ -7,19 +7,16 @@ Created on Fri Nov 24 13:24:31 2017
 
 #! /usr/bin/env python
 import sncosmo
-import builtins_SNF as Build_SNF
-import os
+from sugar_analysis import builtins_SNF as Build_SNF
 from matplotlib import pyplot as plt
-from matplotlib import rc, rcParams
-import matplotlib.gridspec as gridspec
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 import numpy as np
 import copy
 import cPickle
-import read_data as RD
-#from decimal import Decimal
+from sugar_analysis import read_data as RD
 
+
+sugar_analysis_data = '../../sugar_analysis_data/'
 t_min = -15
 t_max = 45
 
@@ -35,14 +32,14 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
         if model_used=='salt2':
             if modelcov:
                 if t0_free:
-                    outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'.txt', 'w')
+                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'.txt', 'w')
                 else:
-                    outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'_t0_fix.txt', 'w')
+                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'_t0_fix.txt', 'w')
             else:
                 if t0_free:
-                    outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'_nomodelcov.txt', 'w')
+                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'_nomodelcov.txt', 'w')
                 else:
-                    outfile = open('../sugar_analysis_data/results/res_salt2_SNF_'+str(width)+'_t0_fix_nomodelcov.txt', 'w')
+                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'_t0_fix_nomodelcov.txt', 'w')
             if t0_free:
                 outfile.write('#name zcmb zhel dz mb dmb x1 dx1 color dcolor cov_m_s cov_m_c cov_s_c x0 dx0 tmax dtmax chi2')
             else:
@@ -50,9 +47,9 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
                               
         elif model_used == 'sugar':
             if t0_free:
-                outfile = open('../sugar_analysis_data/results/res_sugar_SNF.txt', 'w')
+                outfile = open(sugar_analysis_data+'results/res_sugar_SNF.txt', 'w')
             else:
-                outfile = open('../sugar_analysis_data/results/res_sugar_SNF_t0_fix.txt', 'w')
+                outfile = open(sugar_analysis_data+'results/res_sugar_SNF_t0_fix.txt', 'w')
             if t0_free:
                 outfile.write('#name zcmb zhel dz mgrey dmgrey q1 dq1 q2 dq2 q3 dq3 A dA cov_mgrey_q1 cov_mgrey_q2 cov_mgrey_q3 cov_mgrey_A cov_q1_q2 cov_q1_q3 cov_q1_A cov_q2_q3 cov_q2_A cov_q3_A tmax dtmax chi2')
             else:
@@ -61,7 +58,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
              raise ValueError('ERROR: model name has to be salt2 or sugar')
 
     
-    meta = cPickle.load(open('../sugar_analysis_data/META-CABALLO2.pkl'))
+    meta = cPickle.load(open(sugar_analysis_data+'META-CABALLO2.pkl'))
     
     
     fitfail=[]   
@@ -227,7 +224,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
                 elif model_used == 'sugar':
                     print 'For the moment no mb for sugar use Mgrey'
                     sncosmo.plot_lc(data, model=fitted_model, errors=res.errors)
-                    plt.savefig('../sugar_analysis_data/results/'+sn_name+'_sugar_fit.pdf')
+                    plt.savefig(sugar_analysis_data+'results/'+sn_name+'_sugar_fit.pdf')
                     plt.show()
         
                     cov_mgrey_q1, cov_mgrey_q2, cov_mgrey_q3, cov_mgrey_A, cov_q1_q2, cov_q1_q3, cov_q1_A, cov_q2_q3, cov_q2_A, cov_q3_A = sugar_covariance(res)
@@ -282,7 +279,7 @@ def mB_determination(res):
     data = np.genfromtxt('../sncosmo_jla/jla_data/MagSys/bd_17d4708_stisnic_002.ascii')
     dispersion = data[:,0]
     flux_density = data[:,1]
-#    fits = pyfits.open('../sugar_analysis_data/Vega.fits')
+#    fits = pyfits.open(sugar_analysis_data+'Vega.fits')
 #    fit = fits[1]
 #    wl = np.zeros(len(fit.data))
 #    flux = np.zeros(len(fit.data))
@@ -428,11 +425,9 @@ if __name__=="__main__":
     t0_free = True
     list_SN = None
 #    t0_free = False
-    try:
-        Build_SNF.register_SNf_bands_width(width=width)
-        Build_SNF.mag_sys_SNF_width(width=width)
-        Build_SNF.register_SUGAR()    
-    except:
-        print 'Filters and mag sys already registred' 
-    
+
+    Build_SNF.register_SNf_bands_width(width=width)
+    Build_SNF.mag_sys_SNF_width(width=width)
+    Build_SNF.register_SUGAR()    
+    print 'Warning : reload of SUGAR, SNF Magnitude systeme and SNF filters' 
     res, model,data = Light_curve_fit(list_SN=list_SN,model_used=model_used,width=width, write_results=write_results, modelcov=modelcov, t0_free=t0_free)

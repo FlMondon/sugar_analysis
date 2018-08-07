@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov 22 17:50:29 2017
-
 @author: mondon
+
+read data from meta.pkl (Caballo2) to creat AstropyTable for the input of the light curve fitting with sncosmo
 """
 import cPickle
 import numpy as np
@@ -14,7 +15,6 @@ from math import isnan
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import pyfits
 import sys
-from math import log, log10
 ###########
 #constants
 ###########
@@ -32,11 +32,12 @@ wl_max_sal = 7000
 # wavelength limits for sugar model
 wl_min_sug = 3341.41521
 wl_max_sug = 8576.61898
-
+sugar_model = '../../sugar_model/'
+sugar_analysis_data = '../../sugar_analysis_data/'
 def read_sugar_salt2_parameters():
     """
     """
-    SUGAR_parameter_pkl = '../sugar_model/sugar_parameters.pkl'
+    SUGAR_parameter_pkl = sugar_model+'sugar_parameters.pkl'
     lds = sugar.load_data_sugar()
     lds.load_salt2_data()
     Filtre = np.array([True]*len(lds.X0))
@@ -169,7 +170,7 @@ def read_sugar_salt2_parameters():
 def read_UBVRI():
     """
     """
-    pkl_file = '../sugar_analysis_data/UBVRI_unix.pkl'
+    pkl_file = sugar_analysis_data+'UBVRI_unix.pkl'
     dico = cPickle.load(open(pkl_file)) 
     zhl = []
     zcmb = []
@@ -316,12 +317,12 @@ def get_zp(band):
             band_file = 'ISNf_7607-9200.dat'
             
             
-        filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/SNIFS/'+ band_file)
+        filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file)
         wlen = filt2[:,0]
         tran = filt2[:,1]
         splB = Spline1d(wlen, tran, k=1,ext = 1)    
 #        
-        fits = pyfits.open('../sugar_analysis_data/Vega.fits')
+        fits = pyfits.open(sugar_analysis_data+'Vega.fits')
         fit = fits[1]
         wl = np.zeros(len(fit.data))
         flux = np.zeros(len(fit.data))
@@ -343,12 +344,11 @@ def get_zp(band):
         
         I2 = np.sum(splref(xs)*xs/ (HPLANCK * CLIGHT)*splB(xs)*dxs)       
 
-        return 2.5*log10(I2)    
+        return 2.5*np.log10(I2)    
         
-def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',errorscale=True, width=10):
+def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',errorscale=True, width=10):
     """
     """
-    snfit_test = open('snfit_test.txt','w')
     # wavelength limits for salt2 model
     wl_min_sal = 3000
     wl_max_sal = 7000
@@ -443,8 +443,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='salt2',erro
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
 
 
-    
-    snfit_test.close()
+
     dic = {}
     for x in data:
         if x[1] in dic.keys():
@@ -502,40 +501,26 @@ def mag_to_flux_hand(mag,band):
         band_file = 'ISNf_7607-9200.dat'
        
         
-    filt2 = np.genfromtxt('../sugar_analysis_data/data/Instruments/SNIFS/'+ band_file)
+    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file)
     wlen = filt2[:,0]
     tran = filt2[:,1]
     splB = Spline1d(wlen, tran, k=1,ext = 1)
 
-#    fits = pyfits.open('../sugar_analysis_data/Vega.fits')
-#    fit = fits[1]
-#    wl = np.zeros(len(fit.data))
-#    flux = np.zeros(len(fit.data))
-#    for i in range(len(fit.data)):
-#         wl[i] = fit.data[i][0]
-#         flux[i] = fit.data[i][1]
-#    splref = Spline1d(wl, flux, k=1,ext = 1)
+
 
     #interpolation of ref spectrum
-    data = np.genfromtxt('../sugar_analysis_data/data/MagSys/bd_17d4708_stisnic_002.ascii')
+    data = np.genfromtxt(sugar_analysis_data+'data/MagSys/bd_17d4708_stisnic_002.ascii')
     dispersion = data[:,0]
     flux_density = data[:,1]  
     splref = Spline1d(dispersion, flux_density, k=1,ext = 1)
-#    
-    
+ 
     
     #computation of the integral
     dt = 100000
     xs = np.linspace(float(wl_min_sal), float(wl_max_sal), dt)
     dxs = (float(wl_max_sal-wl_min_sal)/(dt-1))
     
-#    vega = sncosmo.get_magsystem('vega_snf')
-#    print vega.band_mag_to_flux(mag, band)
-#    print '##################################################'
     I2 = np.sum(splref(xs)*xs/ (HPLANCK * CLIGHT)*splB(xs)*dxs)
-#    print vega.zpbandflux(band)
-#    print I2
-#    print '##################################################'
     return I2*10**(-0.4*(mag))
     
     
