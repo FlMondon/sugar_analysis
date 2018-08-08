@@ -7,16 +7,16 @@ Created on Fri Nov 24 13:24:31 2017
 
 #! /usr/bin/env python
 import sncosmo
-from sugar_analysis import builtins_SNF as Build_SNF
+import builtins_SNF as Build_SNF
 from matplotlib import pyplot as plt
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import numpy as np
 import copy
 import cPickle
-from sugar_analysis import read_data as RD
+import read_data as RD
 
 
-sugar_analysis_data = '../../sugar_analysis_data/'
+sugar_analysis_data = '../../../sugar_analysis_data/'
 t_min = -15
 t_max = 45
 
@@ -353,18 +353,6 @@ def color_law_salt2(wl):
 def sugar_covariance(res):
     '''
     '''
-    
-#    cov_mgrey_q1 = res.covariance[5,1]
-#    cov_mgrey_q2 = res.covariance[5,2]
-#    cov_mgrey_q3 = res.covariance[5,3]
-#    cov_mgrey_A = res.covariance[5,4]
-#    cov_q1_q2 = res.covariance[1,2]
-#    cov_q1_q3 = res.covariance[1,3]
-#    cov_q1_A = res.covariance[1,4]
-#    cov_q2_q3 = res.covariance[2,3]
-#    cov_q2_A = res.covariance[2,4]
-#    cov_q3_A = res.covariance[3,4]  
-    
     cov_mgrey_q1 = res.covariance[4,0]
     cov_mgrey_q2 = res.covariance[4,1]
     cov_mgrey_q3 = res.covariance[4,2]
