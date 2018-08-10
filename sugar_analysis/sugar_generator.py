@@ -12,20 +12,11 @@ import sncosmo
 from sugar_analysis import builtins_SNF as Build_SNF
 from sncosmo.salt2utils import BicubicInterpolator
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from matplotlib import pyplot as plt
 import copy
 from astropy.table import Table
 from sugar_analysis import math_toolbox as sam
-
-CLIGHT = 2.99792458e18         # [A/s]
-HPLANCK = 6.62606896e-27       # [erg s]
-# wavelength limits for sugar model
-wl_min_sug = 3254.01639
-wl_max_sug = 8649.03871
-wl_min_salt = 2000.000000
-wl_max_salt = 9200.000000
-t_min_sug = -12
-t_max_sug = 48
+import constant as cst
+from matplotlib import pyplot as plt
 
 
 Build_SNF.register_SNf_bands_width(width=10)
@@ -120,20 +111,20 @@ class sugar_spectrum():
             phase = self._phase
         if  isinstance(parameters, np.ndarray):    
             self._parameters = parameters
-        wave = np.linspace(3000,9000,10000)
+        wave = np.linspace(cst.wl_min_sug,cst.wl_max_sug,197)
         flux = self.model_spectrum_flux(phase, wave)
         flux_err = np.zeros_like(flux)
         self.dic_spectrum['parameters'] = parameters
         self.dic_spectrum['wave'] = wave
         self.dic_spectrum['phase'] = phase
-        if not isinstance(mean_errors,np.ndarray):
+        if not isinstance(mean_errors,float):
             self.dic_spectrum['fluxerr'] = None
             self.dic_spectrum['flux'] = flux
         else:
             for i in range(len(flux)):
-                flux_err[i]=np.ones(len(flux[i]))*mean_errors[i]
+                flux_err[i]=np.ones(len(flux[i]))*mean_errors
                 for j in range(len(flux[i])):
-                    flux[i,j] = np.random.normal(flux[i,j],mean_errors[i],1)[0]
+                    flux[i,j] = np.random.normal(flux[i,j],mean_errors,1)[0]
             self.dic_spectrum['fluxerr'] = flux_err 
             self.dic_spectrum['flux'] = flux            
         self._parameters = par_init 
@@ -152,11 +143,25 @@ class sugar_spectrum():
         if band == 'fR_10':
             error = np.abs(np.random.normal(0.0088, 0.0395, 1)[0])
         return error
-    
+
+    def integral_to_phot(self, flux, band):
+        filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+band+'.dat')
+        wlen = filt2[:,0]
+        tran = filt2[:,1]
+        self.splB = Spline1d(wlen, tran, k=1,ext = 1)    
+        
+        #computation of the integral
+        dt = 100000
+        dxs = (float(cst.wl_max_sug-cst.wl_min_sug)/(dt-1))
+        inte = np.sum(flux*(self.xs  / (cst.CLIGHT*cst.HPLANCK))*self.splB(self.xs)*dxs)
+#        plt.plot(self.xs,self.splB(self.xs))
+        
+        plt.show()
+        return inte
+        
     def AstropyTable_flux(self, error=None):
         """
         """
-    
                 
         band_used = ['new_fI_10','fB_10','fV_10','fR_10','fU_10']    
         time = []
@@ -166,37 +171,25 @@ class sugar_spectrum():
         zp = []
         zpsys = []
         vega = sncosmo.get_magsystem('vega_snf_10')
-        for i in range(len(self._phase)):
+        for p in self._phase:
             for b in band_used:
-            
-                filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+b+'.dat')
-                wlen = filt2[:,0]
-                tran = filt2[:,1]
-                self.splB = Spline1d(wlen, tran, k=1,ext = 1)    
-                
-                #computation of the integral
-                dt = 100000
-                xs = np.linspace(float(wl_min_sug), float(wl_max_sug), dt)
-                self.xs = xs
-                dxs = (float(wl_max_sug-wl_min_sug)/(dt-1))
-                if error=='spectra':
-                    spec_flux = np.random.normal(self.model_spectrum_flux(self._phase, xs),1e-34)
-                else:
-                    spec_flux = self.model_spectrum_flux(self._phase, xs)
-#                plt.plot(xs,self.splB(xs))
-#                plt.plot(xs,spec_flux[i,:])
-#                print spec_flux[i,:] 
-                plt.show()
-                inte = np.sum(spec_flux[i,:]*(xs  / (CLIGHT*HPLANCK))*self.splB(xs)*dxs)
-                    
-                flux.append(inte)
+                xs = np.linspace(float(cst.wl_min_sug), float(cst.wl_max_sug), 100000)
+                self.xs = xs            
+                spec_flux = self.model_spectrum_flux(p, xs)
+                phot_flux = self.integral_to_phot(spec_flux[0],b)  
                 if error=='factory':
+                    phot_err = self.error_generator_lc_factory(b)
                     fluxerr.append(self.error_generator_lc_factory(b))
+                    flux.append(np.random.normal(phot_flux,phot_err))
                 elif error=='spectra':
-                    fluxerr.append(spec_err)
+                    phot_err = 0.001*phot_flux
+                    print phot_flux, phot_err
+                    flux.append(np.random.normal(phot_flux,phot_err))
+                    fluxerr.append(phot_err)
                 else:
+                    flux.append(phot_flux)
                     fluxerr.append(0.0000000001)
-                time.append(self._phase[i])
+                time.append(p)
                 band.append(b)
                 zp.append(2.5*np.log10(vega.zpbandflux(b)))
                 zpsys.append('vega_snf_10')
@@ -238,8 +231,8 @@ class sugar_spectrum():
             t_peak = fitted_model.parameters[1]
             #print t_peak,fitted_model.parameters[4]
 
-            t1 = t_peak + t_min_sug*(1 + model.get('z'))
-            t2 = t_peak + t_max_sug*(1 + model.get('z'))
+            t1 = t_peak + cst.t_min_sug*(1 + model.get('z'))
+            t2 = t_peak + cst.t_max_sug*(1 + model.get('z'))
                         
             A=[]
             data_new = copy.deepcopy(data)
@@ -277,7 +270,7 @@ class sugar_spectrum():
         #final results
         res = resp
         fitted_model = fitted_modelp
-        return res
+        return res, fitted_model
 
 
 
