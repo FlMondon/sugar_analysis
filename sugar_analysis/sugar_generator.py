@@ -153,7 +153,7 @@ class sugar_spectrum():
         plt.show()
         return inte
         
-    def AstropyTable_flux(self, noise=None):
+    def AstropyTable_flux(self, noise_level=None):
         """
         """
                 
@@ -171,22 +171,29 @@ class sugar_spectrum():
                 self.xs = xs            
                 spec_flux = self.model_spectrum_flux(p, xs)
                 phot_flux = self.integral_to_phot(spec_flux[0],b)  
-                if noise=='factory':
-                    phot_err = self.error_generator_lc_factory(b)
-                    fluxerr.append(self.error_generator_lc_factory(b))
-                    flux.append(np.random.normal(phot_flux,phot_err))
-                elif noise=='spectra':
-                    phot_err = 0.001*phot_flux
-                    print phot_flux, phot_err
-                    flux.append(np.random.normal(phot_flux,phot_err))
-                    fluxerr.append(phot_err)
-                else:
-                    flux.append(phot_flux)
-                    fluxerr.append(0.0000000001)
+                #if noise=='factory':
+                #    phot_err = self.error_generator_lc_factory(b)
+                #    fluxerr.append(self.error_generator_lc_factory(b))
+                #    flux.append(np.random.normal(phot_flux,phot_err))
+                #elif noise=='spectra':
+                #    flux = copy.deepcopy(phot_flux)
+                #    #phot_err = 0.02*np.max(phot_flux)
+                #    print phot_flux, phot_err
+                    #flux.append(np.random.normal(phot_flux,phot_err))
+                    #fluxerr.append(phot_err)
+                flux.append(pho_flux)
                 time.append(p)
                 band.append(b)
                 zp.append(2.5*np.log10(vega.zpbandflux(b)))
                 zpsys.append('vega_snf_10')
+
+        if noise_level is None:
+            flux_err = np.ones(len(flux)) * 1e-7
+        else:
+            noise = noise_level * max(flux)
+            flux += np.random.normal(loc=0, scale=noise, size=len(flux))
+            flux_err = np.ones(len(flux)) * noise
+
         data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
         return data
                 
