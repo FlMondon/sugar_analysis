@@ -99,7 +99,7 @@ class sugar_spectrum():
 #        flux_salt2 = source_salt2._flux(phase, wave)
 #        return flux_salt2  
 
-    def spectrum_generator(self, parameters=None, phase=None, mean_errors=None):
+    def spectrum_generator(self, parameters=None, phase=None):
         """
         simulate sugar spectrum given a set of parameters
         parameters : array of sugar parameters (np.array([q1, q2, q3, A, Mgr]))
@@ -117,16 +117,10 @@ class sugar_spectrum():
         self.dic_spectrum['parameters'] = parameters
         self.dic_spectrum['wave'] = wave
         self.dic_spectrum['phase'] = phase
-        if not isinstance(mean_errors,float):
-            self.dic_spectrum['fluxerr'] = None
-            self.dic_spectrum['flux'] = flux
-        else:
-            for i in range(len(flux)):
-                flux_err[i]=np.ones(len(flux[i]))*mean_errors
-                for j in range(len(flux[i])):
-                    flux[i,j] = np.random.normal(flux[i,j],mean_errors,1)[0]
-            self.dic_spectrum['fluxerr'] = flux_err 
-            self.dic_spectrum['flux'] = flux            
+        self.dic_spectrum['fluxerr'] = None
+        self.dic_spectrum['flux'] = flux
+        self.dic_spectrum['fluxerr'] = flux_err 
+        self.dic_spectrum['flux'] = flux            
         self._parameters = par_init 
         
     def error_generator_lc_factory(self, band):
@@ -159,7 +153,7 @@ class sugar_spectrum():
         plt.show()
         return inte
         
-    def AstropyTable_flux(self, error=None):
+    def AstropyTable_flux(self, noise=None):
         """
         """
                 
@@ -177,11 +171,11 @@ class sugar_spectrum():
                 self.xs = xs            
                 spec_flux = self.model_spectrum_flux(p, xs)
                 phot_flux = self.integral_to_phot(spec_flux[0],b)  
-                if error=='factory':
+                if noise=='factory':
                     phot_err = self.error_generator_lc_factory(b)
                     fluxerr.append(self.error_generator_lc_factory(b))
                     flux.append(np.random.normal(phot_flux,phot_err))
-                elif error=='spectra':
+                elif noise=='spectra':
                     phot_err = 0.001*phot_flux
                     print phot_flux, phot_err
                     flux.append(np.random.normal(phot_flux,phot_err))
