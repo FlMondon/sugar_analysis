@@ -17,7 +17,9 @@ from astropy.table import Table
 from sugar_analysis import math_toolbox as sam
 import constant as cst
 from matplotlib import pyplot as plt
-
+from sklearn.neighbors import KernelDensity
+from sklearn.model_selection import GridSearchCV
+import cPickle as pkl
 
 Build_SNF.register_SNf_bands_width(width=10)
 Build_SNF.mag_sys_SNF_width(width=10)
@@ -37,7 +39,7 @@ class sugar_spectrum():
         
 
         self._SCALE_FACTOR = 1.
-        self._param_names = ['q1', 'q2', 'q3', 'A', 'Mgr']
+        self._param_names = ['q1', 'q2', 'q3', 'Av', 'grey']
         
     
         infile = open(sugar_model+ 'SUGAR_model_v1.asci', 'r')
@@ -68,11 +70,16 @@ class sugar_spectrum():
         self._model = {}
         self._parameters = parameters_init
         self._salt_params = [1., 0., 0.]
-        names_or_objs = {'M0': m0file, 'M1': m1file, 'M2': m2file, 'M3': m3file, 'M4': m4file}
-
+        names_or_objs = {'M0': m0file, 
+                         'M1': m1file, 
+                         'M2': m2file, 
+                         'M3': m3file, 
+                         'M4': m4file}
+        
         # model components are interpolated to 2nd order
         for key in ['M0', 'M1', 'M2', 'M3', 'M4']:
-            phase, wave, values = sncosmo.read_griddata_ascii(sugar_model + names_or_objs[key])
+            phase, wave, values = sncosmo.read_griddata_ascii(sugar_model 
+                                                        + names_or_objs[key])
             values *= self._SCALE_FACTOR
             self._model_raw[key] = np.loadtxt(sugar_model+names_or_objs[key])
             self._model[key] = BicubicInterpolator(phase, wave, values)
@@ -83,6 +90,8 @@ class sugar_spectrum():
                 self._phase = phase
                 self._wave = wave
         self.dic_sts = None
+        
+        
     def model_spectrum_flux(self, phase, wave):
         '''
         '''
@@ -92,7 +101,12 @@ class sugar_spectrum():
         m3 = self._model['M3'](phase, wave)
         m4 = self._model['M4'](phase, wave)
 #        return 10. ** (-0.4 * (m0 + 48.59)) / (wave** 2 / 299792458. * 1.e-10)
-        return 10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4]  + 48.59))/ (wave** 2 / 299792458. * 1.e-10)
+        return 10. ** (-0.4 * (m0 + self._parameters[0] * m1 + 
+                               self._parameters[1] * m2 + 
+                               self._parameters[2] * m3 +
+                               self._parameters[3] * m4 +
+                               self._parameters[4]  +
+                               48.59))/ (wave** 2 / 299792458. * 1.e-10)
 
 
 #        source_salt2 = sncosmo.get_source('salt2')
@@ -139,62 +153,51 @@ class sugar_spectrum():
         return error
 
     def integral_to_phot(self, flux, band):
-        filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+band+'.dat')
+        filt2 = np.genfromtxt(sugar_analysis_data+
+                              'data/Instruments/Florian/'+band+'.dat')
         wlen = filt2[:,0]
         tran = filt2[:,1]
         self.splB = Spline1d(wlen, tran, k=1,ext = 1)    
-        
         #computation of the integral
-        dt = 100000
+        dt = 10000
         dxs = (float(cst.wl_max_sug-cst.wl_min_sug)/(dt-1))
-        inte = np.sum(flux*(self.xs  / (cst.CLIGHT*cst.HPLANCK))*self.splB(self.xs)*dxs)
-#        plt.plot(self.xs,self.splB(self.xs))
-        
+        inte = np.sum(flux*(self.xs/(cst.CLIGHT*cst.HPLANCK))*
+                      self.splB(self.xs)*dxs)
         plt.show()
         return inte
         
-    def AstropyTable_flux(self, noise_level=None):
+    def AstropyTable_flux(self, noise_level=None, phase=None,band_used=['new_fI_10','fB_10','fV_10','fR_10','fU_10']):
         """
-        """
-                
-        band_used = ['new_fI_10','fB_10','fV_10','fR_10','fU_10']    
+        """    
         time = []
         flux = []
-        fluxerr = []
         band = []
         zp = []
         zpsys = []
         vega = sncosmo.get_magsystem('vega_snf_10')
-        for p in self._phase:
+        if phase == None:
+            phase = self._phase
+        for p in phase:
             for b in band_used:
-                xs = np.linspace(float(cst.wl_min_sug), float(cst.wl_max_sug), 100000)
+                xs = np.linspace(float(cst.wl_min_sug), 
+                                 float(cst.wl_max_sug), 10000)
                 self.xs = xs            
                 spec_flux = self.model_spectrum_flux(p, xs)
                 phot_flux = self.integral_to_phot(spec_flux[0],b)  
-                #if noise=='factory':
-                #    phot_err = self.error_generator_lc_factory(b)
-                #    fluxerr.append(self.error_generator_lc_factory(b))
-                #    flux.append(np.random.normal(phot_flux,phot_err))
-                #elif noise=='spectra':
-                #    flux = copy.deepcopy(phot_flux)
-                #    #phot_err = 0.02*np.max(phot_flux)
-                #    print phot_flux, phot_err
-                    #flux.append(np.random.normal(phot_flux,phot_err))
-                    #fluxerr.append(phot_err)
-                flux.append(pho_flux)
+                flux.append(phot_flux)
                 time.append(p)
                 band.append(b)
                 zp.append(2.5*np.log10(vega.zpbandflux(b)))
                 zpsys.append('vega_snf_10')
-
         if noise_level is None:
             flux_err = np.ones(len(flux)) * 1e-7
         else:
             noise = noise_level * max(flux)
             flux += np.random.normal(loc=0, scale=noise, size=len(flux))
             flux_err = np.ones(len(flux)) * noise
-
-        data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
+        data = Table([time, band, flux, flux_err, zp, zpsys], 
+                     names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), 
+                     meta={'name': 'data'})
         return data
                 
     def fit_lc_sugar(self, data ):
@@ -202,7 +205,10 @@ class sugar_spectrum():
         """
         source = sncosmo.get_source('sugar')
         dust = sncosmo.CCM89Dust()
-        model = sncosmo.Model(source=source, effects=[dust],effect_names=['mw'], effect_frames=['obs'])    
+        model = sncosmo.Model(source=source, 
+                              effects=[dust], 
+                              effect_names=['mw'], 
+                              effect_frames=['obs'])    
         model.set(mwebv=0)
         model.set(z=0)
                    
@@ -213,9 +219,15 @@ class sugar_spectrum():
         model.set(q2=0.0)
         model.set(q3=0.0)     
         model.set(t0=0.0)
-        res, fitted_model = sncosmo.fit_lc(data, model, ['A','Mgr'], modelcov = False)
+        model.set(Mgr=37.)
+        res, fitted_model = sncosmo.fit_lc(data, 
+                                           model, 
+                                           ['A','Mgr'], 
+                                           modelcov=False,
+                                           guess_amplitude=False,
+                                           bounds={'Mgr': (34, 40)})
 
-            
+        print res.parameters[1] 
         print 'first iteration'
         chi2 = res.chisq
         print chi2
@@ -242,10 +254,8 @@ class sugar_spectrum():
                     A.append(i)
             A=np.array(A)
             for i in range(len(A)):
-                #print  'We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2)
                 data_new.remove_row(A[i])
                 A-=1   
-
 
 
             print "WARNING: Sugar don't have model covariance for the moment"
@@ -255,16 +265,19 @@ class sugar_spectrum():
             model.set(q3=res.parameters[4])
             model.set(A=res.parameters[5])
             model.set(Mgr=res.parameters[6])
-            #print res.parameters[6]
             model.set(t0=res.parameters[1])                        
-            res, fitted_model = sncosmo.fit_lc(data_new, model, ['q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov)
+            res, fitted_model = sncosmo.fit_lc(data_new, 
+                                               model, 
+                                               ['t0', 
+                                                'q1', 
+                                                'q2', 
+                                                'q3', 
+                                                'A', 
+                                                'Mgr'], 
+                                               modelcov  = modelcov,
+                                               guess_amplitude=False,
+                                               bounds={'Mgr': (34, 40)})
             
-
-#                        sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
-                    
-#                        print res.chisq
-    #                    print res
-
             chi2p = chi2
             chi2 = res.chisq
             print chi2p, chi2
@@ -292,7 +305,9 @@ class sugar_spectrum():
         spec_mag = []
         spec_mag_err = []
         for p in (self._phase):
-            spec_mag_p = sam.flbda2ABmag(self._wave, self.model_spectrum_flux(p, self._wave)[0])  
+            spec_mag_p = sam.flbda2ABmag(self._wave, 
+                                         self.model_spectrum_flux(p, 
+                                                                self._wave)[0])  
             spec_mag_p_err = np.ones_like(spec_mag_p)
             spec_mag += list(spec_mag_p)
             spec_mag_err += list(spec_mag_p_err)
@@ -301,28 +316,34 @@ class sugar_spectrum():
         h = self.get_param(spec_mag, spec_mag_err)
         return h
     
-    def mc_generator(self):
-        """
-        """
-        data = self.AstropyTable_flux(error=True)
         
-        for i in range(len(data['flux'])):
-            if data['band'][i] == 'new_fI_10' or data['band'][i] =='fI_10':
-                data['flux'][i] = np.random.normal(data['flux'][i], data['fluxerr'][i], 1)[0]
-            if data['band'][i] == 'fU_10':
-                data['flux'][i] = np.random.normal(data['flux'][i], data['fluxerr'][i], 1)[0]
-            if data['band'][i] == 'fB_10':
-                data['flux'][i] = np.random.normal(data['flux'][i],data['fluxerr'][i], 1)[0]
-            if data['band'][i] == 'fV_10':
-                data['flux'][i] = np.random.normal(data['flux'][i], data['fluxerr'][i], 1)[0]
-            if data['band'][i] == 'fR_10':
-                data['flux'][i] = np.random.normal(data['flux'][i], data['fluxerr'][i], 1)[0]
-
-        return data
-        
-
-
-
-        
+    def sample_genarator(self, nb_gen):
+        '''
+        '''
+        params = pkl.load(open(sugar_model+'sugar_parameters.pkl'))
+        coefs = []
+        for param_name in self._param_names:
+            coefs.append([v[param_name] for v in params.values()])
+        coefs = np.array(coefs).T
+        coefs.shape
+        self.coefs = coefs
+        kde = KernelDensity(bandwidth=0.1)
+        kde.fit(self.coefs)       
+        v, l, vinv = np.linalg.svd(np.cov(coefs.T))
+        rescaled_coefs = (np.dot(np.dot(np.diag(1./np.sqrt(l)),
+                                        vinv), 
+                                        coefs.T)).T    
+        params = {'bandwidth': np.logspace(-2, 1, 300)}
+        grid = GridSearchCV(KernelDensity(), params)
+        grid.fit(rescaled_coefs)
+        kde = grid.best_estimator_
+        samples = kde.sample(nb_gen)
+        kde_info = {'rot': v,
+                    'rot_inv': vinv,
+                    'eigenvals': l,
+                    'kde': kde}
+        self.samples = (np.dot(np.dot(kde_info['rot'], 
+                                      np.diag(np.sqrt(kde_info['eigenvals']))), 
+                                      samples.T)).T      
         
                 

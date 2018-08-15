@@ -9,14 +9,14 @@ import sncosmo
 import astropy.units as u
 import numpy as np
 from sncosmo.models import _SOURCES
-
+import os
 CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27        # [erg s]
-sugar_model = '../../sugar_model/'
-sugar_analysis_data = '../../sugar_analysis_data/'
+sugar_model = '/home/florian/sugar_model/'
+sugar_analysis_data = '/home/florian/sugar_analysis_data/'
 def register_SNf_bands():
     
-            
+ 
     band_file_U = 'USNf_3300-4102.dat'
     band_file_B = 'BSNf_4102-5100.dat'
     band_file_V = 'VSNf_5200-6289.dat'
