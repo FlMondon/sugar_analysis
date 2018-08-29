@@ -32,7 +32,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
         if model_used=='salt2':
             if modelcov:
                 if t0_free:
-                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'.txt', 'w')
+                    outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'UBVRI.txt', 'w')
                 else:
                     outfile = open(sugar_analysis_data+'results/res_salt2_SNF_'+str(width)+'_t0_fix.txt', 'w')
             else:
@@ -106,7 +106,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
                     model.set(q3=0.0)     
                     model.set(t0=daymax)
     #                    print daymax
-                    res, fitted_model = sncosmo.fit_lc(data, model, ['A','Mgr'], modelcov = False)
+                    res, fitted_model = sncosmo.fit_lc(data, model, ['Mgr','A'], modelcov = False)
     #                    print res.chisq
     #                    model.set(q1=res.parameters[2])
     #                    model.set(q2=res.parameters[3])
@@ -164,7 +164,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
                             model.set(Mgr=res.parameters[6])
                             #print res.parameters[6]
                             model.set(t0=res.parameters[1])                        
-                            res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0','q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov)
+                            res, fitted_model = sncosmo.fit_lc(data_new, model, ['t0','Mgr','q1', 'q2', 'q3', 'A'], modelcov  = modelcov)
                             print res.parameters[1]
         
     #                        sncosmo.plot_lc(data_new, model=fitted_model, errors=res.errors)
@@ -213,7 +213,7 @@ def Light_curve_fit(filters=['BSNf','VSNf','RSNf'],list_SN=None,errorscale=True,
 #                        model.set(Mgr=35.11311197)                        
                         model.set(t0=res.parameters[1])       
                         
-                        res, fitted_model = sncosmo.fit_lc(data, model, ['q1', 'q2', 'q3', 'A', 'Mgr'], modelcov  = modelcov)
+                        res, fitted_model = sncosmo.fit_lc(data, model, ['Mgr','q1', 'q2', 'q3', 'A'], modelcov  = modelcov)
                         chi2 = res.chisq
                 #Calculation of mb
                 if model_used =='salt2':          
@@ -408,14 +408,15 @@ if __name__=="__main__":
     
 #    model_used = 'salt2'
     model_used = 'sugar'
-    write_results = False
+    write_results = True
     modelcov = True
-    t0_free = True
-    list_SN = None
+    t0_free = False
+#    list_SN = None
+#    list_SN = ['PTF11bju']
 #    t0_free = False
 
     Build_SNF.register_SNf_bands_width(width=width)
     Build_SNF.mag_sys_SNF_width(width=width)
     Build_SNF.register_SUGAR()    
     print 'Warning : reload of SUGAR, SNF Magnitude systeme and SNF filters' 
-    res, model,data = Light_curve_fit(list_SN=list_SN,model_used=model_used,width=width, write_results=write_results, modelcov=modelcov, t0_free=t0_free)
+    res, model,data = Light_curve_fit( model_used=model_used,width=width, write_results=write_results, modelcov=modelcov, t0_free=t0_free)

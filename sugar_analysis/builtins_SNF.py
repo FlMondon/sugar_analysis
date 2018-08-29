@@ -9,7 +9,7 @@ import sncosmo
 import astropy.units as u
 import numpy as np
 from sncosmo.models import _SOURCES
-import os
+
 CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27        # [erg s]
 sugar_model = '/home/florian/sugar_model/'
@@ -222,7 +222,7 @@ class SUGARSource(sncosmo.Source):
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([1., 1., 1., 0., 37.])
+        self._parameters = np.array([37., 1., 1., 1., 0.])
         
 
 
@@ -253,7 +253,7 @@ class SUGARSource(sncosmo.Source):
         m2 = self._model['M2'](phase, wave)
         m3 = self._model['M3'](phase, wave)
         m4 = self._model['M4'](phase, wave)
-        return (10. ** (-0.4 * (m0 + self._parameters[0] * m1 + self._parameters[1] * m2 + self._parameters[2] * m3 + self._parameters[3] * m4 + self._parameters[4] + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
+        return (10. ** (-0.4 * (m0-2.5* np.log10(self._parameters[0]) + self._parameters[1] * m1 + self._parameters[2] * m2 + self._parameters[3] * m3 + self._parameters[4] * m4 + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
 
 
     def bandflux_rcov(self, band, phase):
