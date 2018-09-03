@@ -205,9 +205,9 @@ def mag_sys_SNF_width(width=10):
 
 
 class SUGARSource(sncosmo.Source):
-    _param_names = ['q1', 'q2', 'q3', 'A', 'Mgr']
-    param_names_latex = ['q_1', 'q_2', 'q_3', 'A', 'M_g']
-    _SCALE_FACTOR = 1.
+    _param_names = ['Mgr', 'q1', 'q2', 'q3', 'A']
+    param_names_latex = ['M_g', 'q_1', 'q_2', 'q_3', 'A']
+    
 
 
     def __init__(self, modeldir=None,
@@ -222,7 +222,7 @@ class SUGARSource(sncosmo.Source):
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([37., 1., 1., 1., 0.])
+        self._parameters = np.array([1.6e-3, 1., 1., 1., 0.])
         
 
 
@@ -234,17 +234,15 @@ class SUGARSource(sncosmo.Source):
         for key in ['M0', 'M1', 'M2', 'M3', 'M4']:
             phase, wave, values = sncosmo.read_griddata_ascii(sugar_model + names_or_objs[key])
             
-            values *= self._SCALE_FACTOR
-            self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values)
             # The "native" phases and wavelengths of the model are those
             # of the first model component.
             if key == 'M0':
+                
                 self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
                                         21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.])
                                 
                 self._wave = wave
-
-                 
+            self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
 
 
     def _flux(self, phase, wave):
@@ -253,7 +251,7 @@ class SUGARSource(sncosmo.Source):
         m2 = self._model['M2'](phase, wave)
         m3 = self._model['M3'](phase, wave)
         m4 = self._model['M4'](phase, wave)
-        return (10. ** (-0.4 * (m0-2.5* np.log10(self._parameters[0]) + self._parameters[1] * m1 + self._parameters[2] * m2 + self._parameters[3] * m3 + self._parameters[4] * m4 + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
+        return (self._parameters[0] * 10. ** (-0.4 * (m0 + self._parameters[1] * m1 + self._parameters[2] * m2 + self._parameters[3] * m3 + self._parameters[4] * m4 + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
 
 
     def bandflux_rcov(self, band, phase):
