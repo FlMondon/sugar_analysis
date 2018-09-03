@@ -30,11 +30,11 @@ class test_fit(object):
     def test_fit_phot(self):
         self.data_phot = self.ss.AstropyTable_flux()
         res_phot, fitted_model = self.ss.fit_lc_sugar(self.data_phot)
-        res = np.array([res_phot.parameters[2], 
-                  res_phot.parameters[3], 
+        res = np.array([res_phot.parameters[3], 
                   res_phot.parameters[4], 
                   res_phot.parameters[5], 
-                  res_phot.parameters[6]])
+                  res_phot.parameters[6], 
+                  -2.5*np.log10(res_phot.parameters[2])])
         np.testing.assert_allclose(res, self.ss._parameters, atol=1e-3)
 
     def test_fit_spec(self):

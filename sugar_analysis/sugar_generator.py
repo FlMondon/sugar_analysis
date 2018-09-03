@@ -219,13 +219,11 @@ class sugar_spectrum():
         model.set(q2=0.0)
         model.set(q3=0.0)     
         model.set(t0=0.0)
-        model.set(Mgr=37.)
+        model.set(Mgr=1.6e-3)
         res, fitted_model = sncosmo.fit_lc(data, 
                                            model, 
                                            ['A','Mgr'], 
-                                           modelcov=False,
-                                           guess_amplitude=False,
-                                           bounds={'Mgr': (34, 40)})
+                                           modelcov=False)
 
         print res.parameters[1] 
         print 'first iteration'
@@ -260,11 +258,11 @@ class sugar_spectrum():
 
             print "WARNING: Sugar don't have model covariance for the moment"
             modelcov = False
-            model.set(q1=res.parameters[2])
-            model.set(q2=res.parameters[3])
-            model.set(q3=res.parameters[4])
-            model.set(A=res.parameters[5])
-            model.set(Mgr=res.parameters[6])
+            model.set(q1=res.parameters[3])
+            model.set(q2=res.parameters[4])
+            model.set(q3=res.parameters[5])
+            model.set(A=res.parameters[6])
+            model.set(Mgr=res.parameters[2])
             model.set(t0=res.parameters[1])                        
             res, fitted_model = sncosmo.fit_lc(data_new, 
                                                model, 
@@ -274,9 +272,7 @@ class sugar_spectrum():
                                                 'q3', 
                                                 'A', 
                                                 'Mgr'], 
-                                               modelcov  = modelcov,
-                                               guess_amplitude=False,
-                                               bounds={'Mgr': (34, 40)})
+                                               modelcov  = modelcov)
             
             chi2p = chi2
             chi2 = res.chisq
