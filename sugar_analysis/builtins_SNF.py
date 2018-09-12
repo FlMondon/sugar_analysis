@@ -14,7 +14,8 @@ CLIGHT = 2.99792458e18         # [A/s]
 HPLANCK = 6.62606896e-27        # [erg s]
 sugar_model = '/home/florian/sugar_model/'
 sugar_analysis_data = '/home/florian/sugar_analysis_data/'
-def register_SNf_bands():
+
+def register_SNf_bands_width(width=10):
     
  
     band_file_U = 'USNf_3300-4102.dat'
@@ -46,54 +47,18 @@ def register_SNf_bands():
     
     
     band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='USNf')    
-    sncosmo.registry.register(band_U)
+    sncosmo.registry.register(band_U, force=True)
     band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='BSNf')    
-    sncosmo.registry.register(band_B)
+    sncosmo.registry.register(band_B, force=True)
     band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='VSNf')    
-    sncosmo.registry.register(band_V)
+    sncosmo.registry.register(band_V, force=True)
     band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='RSNf')    
-    sncosmo.registry.register(band_R)
+    sncosmo.registry.register(band_R, force=True)
     band_I = sncosmo.Bandpass(wl_I,transmission_I,wave_unit=u.AA,name='ISNf')    
-    sncosmo.registry.register(band_I)
+    sncosmo.registry.register(band_I, force=True)
     
     
-    band_file_U = 'fU.dat'
-    band_file_B = 'fB.dat'
-    band_file_V = 'fV.dat'
-    band_file_R = 'fR.dat'
 
-       
-        
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_U)
-    wl_U = filt2[:,0]
-    transmission_U = filt2[:,1]
-
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_B)
-    wl_B = filt2[:,0]
-    transmission_B = filt2[:,1]
-
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_V)
-    wl_V = filt2[:,0]
-    transmission_V = filt2[:,1]
-
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_R)
-    wl_R = filt2[:,0]
-    transmission_R = filt2[:,1]
-
-
-            
-    band_U = sncosmo.Bandpass(wl_U,transmission_U,wave_unit=u.AA,name='fU')    
-    sncosmo.registry.register(band_U)
-    band_B = sncosmo.Bandpass(wl_B,transmission_B,wave_unit=u.AA,name='fB')    
-    sncosmo.registry.register(band_B)
-    band_V = sncosmo.Bandpass(wl_V,transmission_V,wave_unit=u.AA,name='fV')    
-    sncosmo.registry.register(band_V)
-    band_R = sncosmo.Bandpass(wl_R,transmission_R,wave_unit=u.AA,name='fR')    
-    sncosmo.registry.register(band_R)
- 
-    
-
-def register_SNf_bands_width(width=10):
     
     band_file_U = 'fU_'+str(width)+'.dat'
     band_file_B = 'fB_'+str(width)+'.dat'
@@ -192,6 +157,7 @@ def mag_sys_SNF_width(width=10):
 	'fB_'+str(width): ('vega_snf_0_'+str(width), 9.791),
 	'fV_'+str(width): ('vega_snf_0_'+str(width), 9.353),
 	'fR_'+str(width): ('vega_snf_0_'+str(width), 9.011),
+    'ISNf': ('vega_snf_0_'+str(width), 9.011),
     'fI_'+str(width): ('vega_snf_0_'+str(width), 8.768)}
 
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf_'+str(width), force=True) 
@@ -205,8 +171,8 @@ def mag_sys_SNF_width(width=10):
 
 
 class SUGARSource(sncosmo.Source):
-    _param_names = ['Mgr', 'q1', 'q2', 'q3', 'A']
-    param_names_latex = ['M_g', 'q_1', 'q_2', 'q_3', 'A']
+    _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
+    param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
     
 
 
@@ -222,7 +188,7 @@ class SUGARSource(sncosmo.Source):
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([1.6e-3, 1., 1., 1., 0.])
+        self._parameters = np.array([1.0e10-15, 1., 1., 1., 0.])
         
 
 
