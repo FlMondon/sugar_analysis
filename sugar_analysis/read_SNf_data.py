@@ -33,6 +33,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
     errorscale_factor = meta[sn_name]['target.errorscale']
     zhl = meta[sn_name]['host.zhelio']
     zcmb = meta[sn_name]['host.zcmb']
+    zerr = meta[sn_name]['host.zhelio.err']
     daymax = meta[sn_name]['salt2.DayMax']
     mwebv = meta[sn_name]['target.mwebv']
     sn_data = meta[sn_name]['spectra']
@@ -90,7 +91,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
 
                 fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],fn,width) / 1.0857362047581294)
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
-    return data, zhl, zcmb, mwebv, daymax
+    return data, zhl, zerr, zcmb, mwebv, daymax
     
     
 

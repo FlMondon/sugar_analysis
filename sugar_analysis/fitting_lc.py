@@ -15,7 +15,7 @@ import read_SNf_data as RSNf
 import cPickle as pkl
 
 SNf_path = '../../sugar_analysis_data/META-CABALLO2.pkl'
-output_path = '../../sugar_analysis_data/'
+output_path = '../../'
 
 class LC_Fitter(object):
     
@@ -61,7 +61,7 @@ class LC_Fitter(object):
     def sn_data(self, sn_name):
        
         if self.sample == 'SNf':
-            self.table_sn, self.zhl, self.zcmb, self.mwebv, self.daymax = RSNf.read_meta_SNF(self.data, sn_name,
+            self.table_sn, self.zhl, self.zerr, self.zcmb, self.mwebv, self.daymax = RSNf.read_meta_SNF(self.data, sn_name,
                                                filters=self.filters, 
                                                model=self.model_name, 
                                                errorscale=self.errorscale,
@@ -72,6 +72,7 @@ class LC_Fitter(object):
         else:
             self.table_sn = self.data[sn_name]['table']
             self.zhl = self.data[sn_name]['zhl']
+            self.zerr = self.data[sn_name]['zerr']
             self.zcmb = self.data[sn_name]['zcmb']
             self.mwebv = self.data[sn_name]['mwebv']
             if self.t0_fix== True:
@@ -81,7 +82,7 @@ class LC_Fitter(object):
                     raise ValueError('t0_fix is True: need daymax in the dictionary data')
             
     
-    def fit_lc_sugar(self, data ):
+    def fit_lc_sugar(self, data, zhl=None,  mwebv=None):
         """
         """
         if not self.fitting_sample :
@@ -91,7 +92,9 @@ class LC_Fitter(object):
                               effects=[dust], 
                               effect_names=['mw'], 
                               effect_frames=['obs']) 
-
+            self.mwebv = mwebv
+            self.zhl = zhl
+            
         self.model.set(mwebv=self.mwebv)
         self.model.set(z=self.zhl)
         
@@ -161,7 +164,7 @@ class LC_Fitter(object):
         fitted_model = fitted_modelp
         return res, fitted_model    
 
-    def fit_lc_salt2(self, data ):
+    def fit_lc_salt2(self, data, zhl=None,  mwebv=None ):
         """
         """
         if not self.fitting_sample :
@@ -171,6 +174,9 @@ class LC_Fitter(object):
                               effects=[dust], 
                               effect_names=['mw'], 
                               effect_frames=['obs']) 
+            self.mwebv = mwebv
+            self.zhl = zhl
+            
         self.model.set(mwebv=self.mwebv)
         self.model.set(z=self.zhl)
         print 'initialisation'            
@@ -237,6 +243,7 @@ class LC_Fitter(object):
         """
         self.dic_res = {}
         self.fit_fail = []
+        self.fitted_model = []
         self.fitting_sample = True
         self.source = sncosmo.get_source(self.model_name)
         dust = sncosmo.CCM89Dust()
@@ -246,6 +253,7 @@ class LC_Fitter(object):
                               effect_frames=['obs'])
         for sn_name in self.data.keys():
             self.sn_data(sn_name)
+            print sn_name
             if self.model_name == 'sugar':
                 try:
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn)
@@ -262,9 +270,13 @@ class LC_Fitter(object):
                     self.fit_fail.append(sn_name)
             else :
                 raise ValueError('Error model_name have to be salt2 or sugar')
+            self.fitted_model.append(fitted_model_sn)
             self.dic_res[sn_name] = {}
             self.dic_res[sn_name]['res'] = res_sn
-            self.dic_res[sn_name]['fitted_model'] = fitted_model_sn
+            self.dic_res[sn_name]['zhl'] = self.zhl
+            self.dic_res[sn_name]['zerr'] = self.zerr
+            self.dic_res[sn_name]['zcmb'] = self.zcmb
+            self.dic_res[sn_name]['mwebv'] = self.mwebv 
         self.fitting_sample = False
        
     def write_result(self):
@@ -273,7 +285,9 @@ class LC_Fitter(object):
         if self.dic_res == None:
             raise ValueError('fitted sample needed to write result')
         else:
-            pkl.dump(self.dic_res, output_path+'resfitlc_'+self.sample+'_'+self.model_name)
+            File = open(output_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+            
+            pkl.dump(self.dic_res, File)
         
         
         
