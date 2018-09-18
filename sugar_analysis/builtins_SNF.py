@@ -10,8 +10,7 @@ import astropy.units as u
 import numpy as np
 from sncosmo.models import _SOURCES
 
-CLIGHT = 2.99792458e18         # [A/s]
-HPLANCK = 6.62606896e-27        # [erg s]
+
 sugar_model = '/home/florian/sugar_model/'
 sugar_analysis_data = '/home/florian/sugar_analysis_data/'
 

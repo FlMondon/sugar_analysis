@@ -6,7 +6,7 @@ Created on Thu Aug  9 20:28:04 2018
 @author: florian
 """
 
-CLIGHT = 2.99792458e18         # [A/s]
+CLIGHT = 299792.458     # [km/s]
 HPLANCK = 6.62606896e-27       # [erg s]
 H0 = 0.000070
 # wavelength limits for sugar model

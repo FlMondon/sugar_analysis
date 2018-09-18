@@ -52,6 +52,8 @@ class read_input_data_SNf(object):
         for sn_name in self.dic_res.keys():
             if self.dic_res[sn_name]['res'] != 'fit fail':
                 dic_del[sn_name] = self.dic_res[sn_name]
+            else:
+                self.fit_fail.append(sn_name)
         self.dic_res = dic_del 
     
     def selection(self):
@@ -77,8 +79,8 @@ class read_input_data_SNf(object):
         list_zerr = []
         for sn_name in self.dic_res.keys():
             
-            list_param.append(list(self.dic_res[sn_name]['parameters'][2:-2]))
-            list_cov.append(np.delete(np.delete(self.dic_res[sn_name]['covariance'], 0, 0),0,1))
+            list_param.append(list(self.dic_res[sn_name]['res']['parameters'][2:-2]))
+            list_cov.append(np.delete(np.delete(self.dic_res[sn_name]['res']['covariance'], 0, 0),0,1))
             list_zhl.append(self.dic_res[sn_name]['zhl'])
             list_zcmb.append(self.dic_res[sn_name]['zcmb'])
             list_zerr.append(self.dic_res[sn_name]['zerr'])
@@ -149,11 +151,11 @@ class Hubble_fit(object):
         
         self.variable = X
         self.cov = cov_X
-        self.zhl = zhl
         self.zcmb = zcmb
+        self.zhl = zhl
         self.zerr = zerr
         self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb
-        self.dof = np.shape(X)[0] - np.shape(X)[1]
+        self.dof = len(X)-len(self.freeparameters)  
         
     
     # ------------------ #
