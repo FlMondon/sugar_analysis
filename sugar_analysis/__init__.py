@@ -12,5 +12,8 @@ Some description.
 #           if '__init__' not in m]
 
 from .math_toolbox import comp_rms
-from .builtins_SNF import register_SNf_bands_width, mag_sys_SNF_width, register_SUGAR
-from .read_data import read_meta_SNF
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width, register_SUGAR,  builtins_jla_bandpasses, mag_sys_jla
+from .Hubble_fit import read_input_data_SNf, Hubble_fit
+from .fitting_lc import LC_Fitter
+#from .read_data import read_meta_SNF
+
