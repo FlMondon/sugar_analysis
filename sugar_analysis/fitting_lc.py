@@ -19,13 +19,14 @@ output_path = '../../'
 
 class LC_Fitter(object):
     
-    def __init__(self, model_name='sugar', sample='SNf', data=None , t0_fix=False, sub_sample=None):
+    def __init__(self, model_name='sugar', sample='SNf', data=None , t0_fix=False, sub_sample=None, modelcov=False):
         
         self.model_name = model_name
         self.t0_fix = t0_fix
         self.dic_res = None
         self.sub_sample = sub_sample
         self.sample = sample
+        self.modelcov = modelcov
         Build_SNF.register_SUGAR()
         
         if self.sample=='SNf':
@@ -104,64 +105,80 @@ class LC_Fitter(object):
         self.model.set(q2=0.0)
         self.model.set(q3=0.0)     
         self.model.set(Xgr=1.0e-15)
-        res, fitted_model = sncosmo.fit_lc(data, 
-                                           self.model, 
-                                           ['t0','A','Xgr'], 
-                                           modelcov=False)
-
-        print res.parameters[1] 
-        print 'first iteration'
-        chi2 = res.chisq
-        chi2p = chi2*2
-        m=0
-    
-        while chi2 < chi2p and m < 10:
-
-            print m
-            if m > 0:
-                resp = res
-                fitted_modelp = fitted_model
-            m += 1
-            t_peak = fitted_model.parameters[1]
-            t1 = t_peak + cst.t_min_sug*(1 + self.model.get('z'))
-            t2 = t_peak + cst.t_max_sug*(1 + self.model.get('z'))
-                        
-            A=[]
-            data_new = copy.deepcopy(data)
-            for i in range(len(data_new)):                    
-                if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                    A.append(i)
-            A=np.array(A)
-            for i in range(len(A)):
-                data_new.remove_row(A[i])
-                A-=1   
-
-
-            print "WARNING: Sugar don't have model covariance for the moment"
-            modelcov = False
-            self.model.set(q1=res.parameters[3])
-            self.model.set(q2=res.parameters[4])
-            self.model.set(q3=res.parameters[5])
-            self.model.set(A=res.parameters[6])
-            self.model.set(Xgr=res.parameters[2])
-            self.model.set(t0=res.parameters[1])                        
-            res, fitted_model = sncosmo.fit_lc(data_new, 
+        
+        if self.t0_fix:
+            self.model.set(t0=self.daymax)
+            res, fitted_model = sncosmo.fit_lc(data, 
                                                self.model, 
-                                               ['t0', 
-                                                'q1', 
+                                               ['A','Xgr'], 
+                                               modelcov=False)
+            res, fitted_model = sncosmo.fit_lc(data, 
+                                               self.model, 
+                                               ['q1', 
                                                 'q2', 
                                                 'q3', 
                                                 'A', 
                                                 'Xgr'], 
-                                               modelcov  = modelcov,
-                                               bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
-            
-            chi2p = chi2
+                                               modelcov  = self.modelcov)
+            print res.chisq
+        else:
+            res, fitted_model = sncosmo.fit_lc(data, 
+                                               self.model, 
+                                               ['t0','A','Xgr'], 
+                                               modelcov=False)
+    
+            print res.parameters[1] 
+            print 'first iteration'
             chi2 = res.chisq
-            print chi2p, chi2
-        #final results
-        res = resp
-        fitted_model = fitted_modelp
+            chi2p = chi2*2
+            m=0
+            while chi2 < chi2p and m < 10:
+    
+                print m
+                if m > 0:
+                    resp = res
+                    fitted_modelp = fitted_model
+                m += 1
+                t_peak = fitted_model.parameters[1]
+                t1 = t_peak + cst.t_min_sug*(1 + self.model.get('z'))
+                t2 = t_peak + cst.t_max_sug*(1 + self.model.get('z'))
+                            
+                A=[]
+                data_new = copy.deepcopy(data)
+                for i in range(len(data_new)):                    
+                    if data_new[i][0] <= t1 or data_new[i][0] >= t2:
+                        A.append(i)
+                A=np.array(A)
+                for i in range(len(A)):
+                    data_new.remove_row(A[i])
+                    A-=1   
+    
+    
+                print "WARNING: Sugar don't have model covariance for the moment"
+                
+                self.model.set(q1=res.parameters[3])
+                self.model.set(q2=res.parameters[4])
+                self.model.set(q3=res.parameters[5])
+                self.model.set(A=res.parameters[6])
+                self.model.set(Xgr=res.parameters[2])
+                self.model.set(t0=res.parameters[1])                        
+                res, fitted_model = sncosmo.fit_lc(data_new, 
+                                                   self.model, 
+                                                   ['t0', 
+                                                    'q1', 
+                                                    'q2', 
+                                                    'q3', 
+                                                    'A', 
+                                                    'Xgr'], 
+                                                   modelcov  = self.modelcov,
+                                                   bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
+                
+                chi2p = chi2
+                chi2 = res.chisq
+                print chi2p, chi2
+            #final results
+            res = resp
+            fitted_model = fitted_modelp
         return res, fitted_model    
 
     def fit_lc_salt2(self, data, zhl=None,  mwebv=None ):
@@ -228,7 +245,8 @@ class LC_Fitter(object):
                                                 'x1',
                                                 'c', 
                                                 'x0'], 
-                                               modelcov  = modelcov)
+                                               modelcov  = modelcov,
+                                               bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
             
             chi2p = chi2
             chi2 = res.chisq
@@ -242,6 +260,9 @@ class LC_Fitter(object):
         """
         """
         self.dic_res = {}
+        self.dic_res['data'] = {}
+        self.dic_res['info'] = {}
+        self.dic_res['info']['t0 fix'] = self.t0_fix
         self.fit_fail = []
         self.fitted_model = []
         self.fitting_sample = True
@@ -271,12 +292,12 @@ class LC_Fitter(object):
             else :
                 raise ValueError('Error model_name have to be salt2 or sugar')
             self.fitted_model.append(fitted_model_sn)
-            self.dic_res[sn_name] = {}
-            self.dic_res[sn_name]['res'] = res_sn
-            self.dic_res[sn_name]['zhl'] = self.zhl
-            self.dic_res[sn_name]['zerr'] = self.zerr
-            self.dic_res[sn_name]['zcmb'] = self.zcmb
-            self.dic_res[sn_name]['mwebv'] = self.mwebv 
+            self.dic_res['data'][sn_name] = {}
+            self.dic_res['data'][sn_name]['res'] = res_sn
+            self.dic_res['data'][sn_name]['zhl'] = self.zhl
+            self.dic_res['data'][sn_name]['zerr'] = self.zerr
+            self.dic_res['data'][sn_name]['zcmb'] = self.zcmb
+            self.dic_res['data'][sn_name]['mwebv'] = self.mwebv 
         self.fitting_sample = False
        
     def write_result(self):
@@ -289,94 +310,6 @@ class LC_Fitter(object):
             
             pkl.dump(self.dic_res, File)
         
-        
-        
-        
-        
-    def mB_determination(res):
-        """
-        determine mb restframe 
-        """
-        scale_factor = 10**-12
-        
-        #interpolation of TB and Trest
-        filt2 = np.genfromtxt(jla_path+'Instruments/SNLS3-Landolt-model/sb-shifted.dat')
-        wlen = filt2[:,0]
-        tran = filt2[:,1]
-        splB = Spline1d(wlen, tran, k=1,ext = 1)
+
     
     
-    
-        #interpolation of ref spectrum
-        data = np.genfromtxt(jla_path+'MagSys/bd_17d4708_stisnic_002.ascii')
-        dispersion = data[:,0]
-        flux_density = data[:,1]
-    #    fits = pyfits.open(sugar_analysis_data+'Vega.fits')
-    #    fit = fits[1]
-    #    wl = np.zeros(len(fit.data))
-    #    flux = np.zeros(len(fit.data))
-    #    for i in range(len(fit.data)):
-    #         wl[i] = fit.data[i][0]
-    #         flux[i] = fit.data[i][1]
-    
-        splref = Spline1d(dispersion, flux_density, k=1,ext = 1)
-    
-      
-        #interpolation of the spectrum flux
-        template_0 = np.genfromtxt(jla_path+'salt2-4/salt2_template_0.dat')    
-        template_1 = np.genfromtxt(jla_path+'salt2-4/salt2_template_1.dat')
-    #    salt2source=sncosmo.SALT2Source('/users/divers/lsst/mondon/hubblefit/sncosmo_jla/salt2-4')
-        
-        wlM0 = []
-        M0 = []
-        for i in range(len(template_0[:,0])):
-            if template_0[:,0][i] == 0.0:
-                 wlM0.append(template_0[:,1][i]) 
-                 M0.append(template_0[:,2][i])
-        splM0 = Spline1d(wlM0, M0, k=1,ext = 1)
-    
-        wlM1 = []
-        M1 = []
-        for i in range(len(template_1[:,0])):
-            if template_1[:,0][i] == 0.0:
-                wlM1.append(template_1[:,1][i]) 
-                M1.append(template_1[:,2][i])
-        splM1 = Spline1d(wlM1, M1, k=1,ext = 1)
-    
-        #computation of the integral
-        dt = 100000
-        xs = np.linspace(float(wl_min_sal), float(wl_max_sal), dt)
-        dxs = (float(wl_max_sal-wl_min_sal)/(dt-1))
-    
-    #    I1=np.sum((splM0(xs)*10**-12+res.parameters[3]*splM1(xs)*10**-12)*(10**(-0.4*salt2source.colorlaw(xs)*res.parameters[4]))*xs*splB(xs)*dxs)
-        I1 = np.sum((splM0(xs)*scale_factor + res.parameters[3]*splM1(xs)*scale_factor)*(10**(-0.4*color_law_salt2(xs)*res.parameters[4]))*xs*splB(xs)*dxs)    
-        I2 = np.sum(splref(xs)*xs*splB(xs)*dxs)
-    #    print I1, I2   
-        
-        
-        
-        #computation of mb
-        mref = 9.907
-        mb = -2.5*np.log10(res.parameters[2]*(I1/I2))+mref
-    
-    
-    def color_law_salt2(self, wl):
-        B_wl = 4302.57
-        V_wl = 5428.55
-        l = (wl-B_wl)/(V_wl-B_wl)
-        l_lo = (2800.-B_wl)/(V_wl-B_wl)
-        l_hi = (7000.-B_wl)/(V_wl-B_wl)
-        a = -0.504294
-        b = 0.787691
-        c = -0.461715
-        d = 0.0815619
-        cst = 1-(a+b+c+d)
-        cl = []
-        for i in range (len(l)):
-            if l[i] > l_hi:
-                cl.append(-(cst*l_hi+l_hi**2*a+l_hi**3*b+l_hi**4*c+l_hi**5*d+(cst+2*l_hi*a+3*l_hi**2*b+4*l_hi**3*c+5*l_hi**4*d)*(l[i]-l_hi)))
-            if l[i] < l_lo:
-                cl.append(-(cst*l_lo+l_lo**2*a+l_lo**3*b+l_lo**4*c+l_lo**5*d+(cst+2*l_lo*a+3*l_lo**2*b+4*l_lo**3*c+5*l_lo**4*d)*(l[i]-l_lo))) 
-            if l[i]>= l_lo and l[i]<= l_hi:
-                cl.append(-(cst*l[i]+l[i]**2*a+l[i]**3*b+l[i]**4*c+l[i]**5*d)) 
-        return np.array(cl)
