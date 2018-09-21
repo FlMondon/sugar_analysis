@@ -6,6 +6,8 @@ Created on Wed Sep 12 15:56:16 2018
 @author: florian
 """
 
+import sncosmo
+import builtins_SNF as Build_SNF
 import numpy as np
 import constant as cst
 from scipy import integrate
@@ -16,7 +18,9 @@ import iminuit as minuit
 from scipy import optimize
 import math_toolbox as math
 
+
 output_path = '../../'
+jla_path = '../../../sncosmo_jla/jla_data/'
 
 def make_method(obj):
     """Decorator to make the function a method of *obj*.
@@ -40,9 +44,11 @@ class read_input_data_SNf(object):
     """
     def __init__(self, res_dict_path=output_path, model_name='sugar', select=None):
         self.model_name = model_name
-        self.dic_res =  pkl.load(open(res_dict_path+'sugar_analysis_data/resfitlc_SNf_'+self.model_name+'.pkl'))
+        dic =  pkl.load(open(res_dict_path+'sugar_analysis_data/resfitlc_SNf_'+self.model_name+'.pkl'))
+        self.dic_res = dic['data']
+        self.t0_fix = dic['info']['t0 fix']
         self.select = select
-    
+        
     
     def delete_fit_fail(self):
         """
@@ -80,7 +86,10 @@ class read_input_data_SNf(object):
         for sn_name in self.dic_res.keys():
             
             list_param.append(list(self.dic_res[sn_name]['res']['parameters'][2:-2]))
-            list_cov.append(np.delete(np.delete(self.dic_res[sn_name]['res']['covariance'], 0, 0),0,1))
+            if self.t0_fix:
+                list_cov.append(self.dic_res[sn_name]['res']['covariance'])
+            else:
+                list_cov.append(np.delete(np.delete(self.dic_res[sn_name]['res']['covariance'], 0, 0),0,1))
             list_zhl.append(self.dic_res[sn_name]['zhl'])
             list_zcmb.append(self.dic_res[sn_name]['zcmb'])
             list_zerr.append(self.dic_res[sn_name]['zerr'])
@@ -91,17 +100,60 @@ class read_input_data_SNf(object):
         self.cov = np.array(list_cov)
         
     def Xgr_to_Mgr(self):
-        self.trans_data_form()
         for j in range(len(self.cov[:,0])):
-            self.cov[j,0,:] = self.cov[j,0,:]* (1./(2.5*np.log(10)*self.params[j,0]))
-            self.cov[j,:,0] = self.cov[j,:,0]* (1./(2.5*np.log(10)*self.params[j,0]))
+            self.cov[j,0,:] = self.cov[j,0,:]* (1./(-2.5*np.log(10)*self.params[j,0]))
+            self.cov[j,:,0] = self.cov[j,:,0]* (1./(-2.5*np.log(10)*self.params[j,0]))
         self.params[:,0] = -2.5*np.log10(self.params[:,0])
 
+    def  Xgr_to_mb(self):
+
+        # Calculation of m_b
+        Build_SNF.register_SUGAR()
+        source = sncosmo.get_source('sugar')
+        model = sncosmo.Model(source=source)
+        self.mb = np.zeros(self.dic_res.keys())
+        for i, sn_name in enumerate (self.dic_res.keys()):
+            parameters = self.dic_res[sn_name]['res']['parameters']
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], A=parameters[6])
+            self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
+            h = 10**-9
+            #dmbxgr
+            model.set(t0=parameters[1], Xgr=parameters[2]+h, q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], A=parameters[6])
+            dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            #dmbq1
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
+                       q2=parameters[4], q3=parameters[5], A=parameters[6])
+            dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            #dmbq2
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
+            dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            #dmbq3
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
+            dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            #dmbA
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
+            dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            
+            dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
+            for j in range(len(parameters[2:-2])):
+                if j ==0:
+                    self.cov[i,0,j] = np.dot(dray,np.dot(self.cov[i],dray))
+                else:
+                    self.cov[i,0,j] = np.dot(self.cov[i,0,:],dray)
+                    self.cov[i,j,0] = self.cov[i,0,j]
+        
     def build_HD_data(self):
+        self.trans_data_form()
         self.Xgr_to_Mgr()
         self.cov = list(self.cov)
         self.cov = block_diag(*self.cov)
     
+          
 
 def get_hubblefit(x, cov_x, zhl, zcmb, zerr, PARAM_NAME=np.asarray(['alpha1','alpha2',"alpha3","beta","delta"])):
     """
