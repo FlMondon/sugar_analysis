@@ -6,7 +6,6 @@ Created on Mon Oct  1 10:55:09 2018
 @author: florian
 """
 
-
 import numpy as np
 import sncosmo
 from sugar_analysis import constant as cst
@@ -15,6 +14,7 @@ from astropy.table import Table
 from sugar_analysis import builtins
 import cPickle as pkl
 output_path = '../../'
+
 
     
 class build_data(object):
@@ -58,7 +58,7 @@ class build_data(object):
         definition range, or even *inside*.
         """
 
-        from scipy.interpolate import UnivariateSpline
+        from scipy.interpolate import UnivariateSpline, pchip
         filt2 = np.genfromtxt(output_path+
                               'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
