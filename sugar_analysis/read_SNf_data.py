@@ -79,8 +79,8 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
                     band.append(fn) 
 
                 
-                flux.append(mag_to_flux(sn_data[t]['mag.'+f],fn,width))
-                zp.append(2.5*np.log10(vega.zpbandflux(fn)))               
+                flux.append(mag_to_flux(sn_data[t]['mag.'+f],f,width))
+                zp.append(2.5*np.log10(vega.zpbandflux(f)))               
                 zpsys.append('vega_snf_'+str(width))
                 if errorscale:
 
@@ -89,7 +89,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
                 else:  
                     err_mag = sn_data[t]['mag.'+f+'.err']/errorscale_factor
 
-                fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],fn,width) / 1.0857362047581294)
+                fluxerr.append(err_mag * mag_to_flux(sn_data[t]['mag.'+f],f,width) / 1.0857362047581294)
     data = Table([time, band, flux, fluxerr, zp, zpsys], names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), meta={'name': 'data'})
     return data, zhl, zerr, zcmb, mwebv, daymax
     

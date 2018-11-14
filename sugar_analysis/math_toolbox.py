@@ -2,7 +2,6 @@
 
 import numpy as np
 
-
 def comp_rms(residuals, dof, err=True, variance=None):
     """
     Compute the RMS or WRMS of a given distribution.
@@ -49,3 +48,4 @@ def flbda2ABmag( x, y, ABmag0=48.59, var=None):
         return -2.5*np.log10(z) - ABmag0 
     else:
         return (2.5/np.log(10)/z)**2 * flbda2fnu(x,y,var=var)
+    

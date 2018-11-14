@@ -68,7 +68,7 @@ class build_data(object):
         definition range, or even *inside*.
         """
 
-        from scipy.interpolate import UnivariateSpline, pchip
+        from scipy.interpolate import UnivariateSpline
         filt2 = np.genfromtxt(output_path+
                               'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
