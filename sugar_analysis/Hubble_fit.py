@@ -7,20 +7,19 @@ Created on Wed Sep 12 15:56:16 2018
 """
 
 import sncosmo
-import builtins_SNF as Build_SNF
+import builtins
 import numpy as np
-import constant as cst
-from scipy import integrate
+import cosmo_tools as ct
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 import cPickle as pkl
 import iminuit as minuit
 from scipy import optimize
 import math_toolbox as math
-
+import copy
 
 output_path = '../../'
-jla_path = '../../../sncosmo_jla/jla_data/'
+
 
 def make_method(obj):
     """Decorator to make the function a method of *obj*.
@@ -42,13 +41,13 @@ def make_method(obj):
 class read_input_data_SNf(object):
     """
     """
-    def __init__(self, res_dict_path=output_path, model_name='sugar', select=None):
+    def __init__(self, res_dict_path=output_path, model_name='sugar', select=None, standard_SNf='mb'):
         self.model_name = model_name
         dic =  pkl.load(open(res_dict_path+'sugar_analysis_data/resfitlc_SNf_'+self.model_name+'.pkl'))
         self.dic_res = dic['data']
         self.t0_fix = dic['info']['t0 fix']
         self.select = select
-        
+        self.standard_SNf = standard_SNf
     
     def delete_fit_fail(self):
         """
@@ -106,12 +105,14 @@ class read_input_data_SNf(object):
         self.params[:,0] = -2.5*np.log10(self.params[:,0])
 
     def  Xgr_to_mb(self):
-
+        builtins.builtins_jla_bandpasses()
+        builtins.mag_sys_jla()
         # Calculation of m_b
-        Build_SNF.register_SUGAR()
+        builtins.register_SUGAR()
         source = sncosmo.get_source('sugar')
         model = sncosmo.Model(source=source)
-        self.mb = np.zeros(self.dic_res.keys())
+        self.mb = np.zeros(len(self.dic_res.keys()))
+        cov_copy = copy.deepcopy(self.cov)
         for i, sn_name in enumerate (self.dic_res.keys()):
             parameters = self.dic_res[sn_name]['res']['parameters']
             model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
@@ -121,35 +122,40 @@ class read_input_data_SNf(object):
             #dmbxgr
             model.set(t0=parameters[1], Xgr=parameters[2]+h, q1=parameters[3],
                        q2=parameters[4], q3=parameters[5], A=parameters[6])
-            dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
             #dmbq1
             model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
                        q2=parameters[4], q3=parameters[5], A=parameters[6])
-            dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
             #dmbq2
             model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
                        q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
-            dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
             #dmbq3
             model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
                        q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
-            dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
             #dmbA
             model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
                        q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
-            dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.m[i])/h
+            dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
             
             dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
             for j in range(len(parameters[2:-2])):
                 if j ==0:
-                    self.cov[i,0,j] = np.dot(dray,np.dot(self.cov[i],dray))
+                    self.cov[i,0,j] = np.dot(np.dot(dray.T,cov_copy[i]),dray)
                 else:
-                    self.cov[i,0,j] = np.dot(self.cov[i,0,:],dray)
+                    self.cov[i,0,j] = np.dot(cov_copy[i,j,:],dray)
                     self.cov[i,j,0] = self.cov[i,0,j]
-        
+        self.params[:,0] = self.mb
     def build_HD_data(self):
         self.trans_data_form()
-        self.Xgr_to_Mgr()
+        if self.standard_SNf == 'Mgr':
+            self.Xgr_to_Mgr()
+        elif self.standard_SNf == 'mb':
+            self.Xgr_to_mb()
+        else:
+            raise ValueError('standard_SNf have to be Mgr or mb')
         self.cov = list(self.cov)
         self.cov = block_diag(*self.cov)
     
@@ -210,31 +216,7 @@ class Hubble_fit(object):
         self.dof = len(X)-len(self.freeparameters)  
         
     
-    # ------------------ #
-    #   Cosmology        #
-    # ------------------ #
 
-    def int_cosmo(self, z, Omega_M=0.3):   
-        """
-        """
-        return 1./np.sqrt(Omega_M*(1+z)**3+(1.-Omega_M))
-        
-    def luminosity_distance(self):
-        """
-        """
-        if type(self.zcmb)==np.ndarray:
-            integr = np.zeros_like(self.zcmb)
-            for i in range(len(self.zcmb)):
-                integr[i]=integrate.quad(self.int_cosmo, 0, self.zcmb[i])[0]
-        else:
-            integr = integrate.quad(self.int_cosmo, 0, self.zcmb)[0]
-    
-        return (1+self.zhl)*(cst.CLIGHT/cst.H0)*integr
- 
-    def distance_modulus_th(self):
-        """
-        """
-        return 5.*np.log(self.luminosity_distance())/np.log(10.)-5.
     
 
     def distance_modulus(self, params):
@@ -255,7 +237,7 @@ class Hubble_fit(object):
                 
         self.Cmu[np.diag_indices_from(self.Cmu)] += self.sig_int**2 + self.dmz**2 
         self.C = inv(self.Cmu)
-        L = self.distance_modulus(params) - self.distance_modulus_th()
+        L = self.distance_modulus(params) - ct.distance_modulus_th(self.zcmb, self.zhl)
         self.residuals = L
         self.var = np.diag(self.Cmu)
         return np.dot(L, np.dot(self.C,L))        

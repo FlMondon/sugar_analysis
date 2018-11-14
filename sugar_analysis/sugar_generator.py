@@ -9,7 +9,7 @@ Created on Thu Apr  5 13:02:35 2018
 import numpy as np
 from operator import itemgetter
 import sncosmo
-from sugar_analysis import builtins_SNF as Build_SNF
+from sugar_analysis import builtins as Build_SNF
 from sncosmo.salt2utils import BicubicInterpolator
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import copy
@@ -26,7 +26,7 @@ Build_SNF.mag_sys_SNF_width(width=10)
 Build_SNF.register_SUGAR()
 sugar_model = '/home/florian/sugar_model/'
 sugar_analysis_data = '/home/florian/sugar_analysis_data/'
-class sugar_spectrum():
+class sugar_simulation():
     
     def __init__(self, modeldir=None,
                  m0file='sugar_template_0.dat',
@@ -34,7 +34,7 @@ class sugar_spectrum():
                     m2file='sugar_template_2.dat',
                     m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
-                 parameters_init=np.array([0., 0., 0., 0., 37.]),
+                 parameters_init=np.array([37., 0., 0., 0., 0.]),
                  name=None, version=None):
         
 
@@ -101,11 +101,11 @@ class sugar_spectrum():
         m3 = self._model['M3'](phase, wave)
         m4 = self._model['M4'](phase, wave)
 #        return 10. ** (-0.4 * (m0 + 48.59)) / (wave** 2 / 299792458. * 1.e-10)
-        return 10. ** (-0.4 * (m0 + self._parameters[0] * m1 + 
-                               self._parameters[1] * m2 + 
-                               self._parameters[2] * m3 +
-                               self._parameters[3] * m4 +
-                               self._parameters[4]  +
+        return 10. ** (-0.4 * (m0 + self._parameters[1] * m1 + 
+                               self._parameters[2] * m2 + 
+                               self._parameters[3] * m3 +
+                               self._parameters[4] * m4 +
+                               self._parameters[0]  +
                                48.59))/ (wave** 2 / 299792458. * 1.e-10)
 
 
@@ -113,7 +113,7 @@ class sugar_spectrum():
 #        flux_salt2 = source_salt2._flux(phase, wave)
 #        return flux_salt2  
 
-    def spectrum_generator(self, parameters=None, phase=None):
+    def spectrum_generator(self, parameters=None, phase=None, wave=None):
         """
         simulate sugar spectrum given a set of parameters
         parameters : array of sugar parameters (np.array([q1, q2, q3, A, Mgr]))
@@ -125,14 +125,15 @@ class sugar_spectrum():
             phase = self._phase
         if  isinstance(parameters, np.ndarray):    
             self._parameters = parameters
-        wave = np.linspace(cst.wl_min_sug,cst.wl_max_sug,197)
+        if  isinstance(wave, np.ndarray):
+            wave = wave
+        else:
+            wave = np.linspace(cst.wl_min_sug,cst.wl_max_sug,197)
         flux = self.model_spectrum_flux(phase, wave)
         flux_err = np.zeros_like(flux)
         self.dic_spectrum['parameters'] = parameters
         self.dic_spectrum['wave'] = wave
         self.dic_spectrum['phase'] = phase
-        self.dic_spectrum['fluxerr'] = None
-        self.dic_spectrum['flux'] = flux
         self.dic_spectrum['fluxerr'] = flux_err 
         self.dic_spectrum['flux'] = flux            
         self._parameters = par_init 
@@ -163,7 +164,6 @@ class sugar_spectrum():
         dxs = (float(cst.wl_max_sug-cst.wl_min_sug)/(dt-1))
         inte = np.sum(flux*(self.xs/(cst.CLIGHT*cst.HPLANCK))*
                       self.splB(self.xs)*dxs)
-        plt.show()
         return inte
         
     def AstropyTable_flux(self, noise_level=None, phase=None,band_used=['new_fI_10','fB_10','fV_10','fR_10','fU_10']):
@@ -200,87 +200,6 @@ class sugar_spectrum():
                      meta={'name': 'data'})
         return data
                 
-    def fit_lc_sugar(self, data ):
-        """
-        """
-        source = sncosmo.get_source('sugar')
-        dust = sncosmo.CCM89Dust()
-        model = sncosmo.Model(source=source, 
-                              effects=[dust], 
-                              effect_names=['mw'], 
-                              effect_frames=['obs'])    
-        model.set(mwebv=0)
-        model.set(z=0)
-                   
-        #initial iteration x1 fix
-        print 'initialisation'            
-
-        model.set(q1=0.0)
-        model.set(q2=0.0)
-        model.set(q3=0.0)     
-        model.set(t0=0.0)
-        model.set(Mgr=1.6e-3)
-        res, fitted_model = sncosmo.fit_lc(data, 
-                                           model, 
-                                           ['A','Mgr'], 
-                                           modelcov=False)
-
-        print res.parameters[1] 
-        print 'first iteration'
-        chi2 = res.chisq
-        print chi2
-        chi2p = chi2*2
-        m=0
-    
-        while chi2 < chi2p and m < 10:
-
-            print m
-            if m > 0:
-                resp = res
-                fitted_modelp = fitted_model
-            m += 1
-            t_peak = fitted_model.parameters[1]
-            #print t_peak,fitted_model.parameters[4]
-
-            t1 = t_peak + cst.t_min_sug*(1 + model.get('z'))
-            t2 = t_peak + cst.t_max_sug*(1 + model.get('z'))
-                        
-            A=[]
-            data_new = copy.deepcopy(data)
-            for i in range(len(data_new)):                    
-                if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                    A.append(i)
-            A=np.array(A)
-            for i in range(len(A)):
-                data_new.remove_row(A[i])
-                A-=1   
-
-
-            print "WARNING: Sugar don't have model covariance for the moment"
-            modelcov = False
-            model.set(q1=res.parameters[3])
-            model.set(q2=res.parameters[4])
-            model.set(q3=res.parameters[5])
-            model.set(A=res.parameters[6])
-            model.set(Mgr=res.parameters[2])
-            model.set(t0=res.parameters[1])                        
-            res, fitted_model = sncosmo.fit_lc(data_new, 
-                                               model, 
-                                               ['t0', 
-                                                'q1', 
-                                                'q2', 
-                                                'q3', 
-                                                'A', 
-                                                'Mgr'], 
-                                               modelcov  = modelcov)
-            
-            chi2p = chi2
-            chi2 = res.chisq
-            print chi2p, chi2
-        #final results
-        res = resp
-        fitted_model = fitted_modelp
-        return res, fitted_model
 
 
 
