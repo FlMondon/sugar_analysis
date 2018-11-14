@@ -14,6 +14,7 @@ from astropy.table import Table
 #from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from sugar_analysis import builtins
 import cPickle as pkl
+import os 
 output_path = '../../'
 
     
@@ -24,8 +25,8 @@ class build_data(object):
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
         self.noTH = True
-        self.spec = pkl.load(open(output_path+
-                                  'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl'))
+        pkl_file = os.path.join(output_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
+        self.spec = pkl.load(open(pkl_file))
         self.meta= pkl.load(open(meta))
       
     def integral_to_phot(self, wave, flux, var=None):

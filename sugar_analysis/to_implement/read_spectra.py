@@ -69,7 +69,9 @@ class spectrum_table():
                         meta_spectra[sn_name]['spectra'][str(time)]['var'] = var
                         meta_spectra[sn_name]['spectra'][str(time)]['mag'] = -2.5 *np.log10(flux)  
                         meta_spectra[sn_name]['spectra'][str(time)]['dmag'] = 1.0857362047581294 / flux  * var  # 2.5/log(10) = 1.0857...
-        cPickle.dump(meta_spectra, open('../sugar_analysis_data/spectra_table/meta_spectra.pkl','w'))
+        File = open('../sugar_analysis_data/spectra_table/meta_spectra.pkl','w')
+        cPickle.dump(meta_spectra, File)
+        File.close()
         return meta_spectra
                     
                         
