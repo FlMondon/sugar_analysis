@@ -6,7 +6,7 @@ Created on Mon Oct  1 10:55:09 2018
 @author: florian
 """
 
-from sugar_training import extract_idr_data
+
 import numpy as np
 import sncosmo
 from sugar_analysis import constant as cst
@@ -16,16 +16,6 @@ from sugar_analysis import builtins
 import cPickle as pkl
 output_path = '../../'
 
-def extract_spectra():
-    
-    bsd = extract_idr_data.build_spectral_data(output_path+'sugar_analysis_data/SNF-0203-CABALLO2',
-                                               mjd_max=np.inf, day_max=5., redshift_max=0.11)
-    bsd.load_spectra()
-#    bsd.resampled_spectra(velocity=1500.)
-#    bsd.to_ab_mag()
-#    bsd.reorder_and_clean()
-    bsd.write_pkl(output_path+'sugar_analysis_data/data_input/spectra_snia_all_good_for_florian.pkl')
-    return bsd
     
 class build_data(object):
 
