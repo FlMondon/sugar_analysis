@@ -11,8 +11,8 @@ import numpy as np
 from sncosmo.models import _SOURCES
 
 
-sugar_model = '/home/florian/sugar_model/'
-sugar_analysis_data = '/home/florian/sugar_analysis_data/'
+sugar_model = '../../sugar_model/'
+sugar_analysis_data = '../../sugar_analysis_data/'
 jla_path = '../../sncosmo_jla/jla_data/'
 def register_SNf_bands_width(width=10):
     
