@@ -17,5 +17,4 @@ from .Hubble_fit import read_input_data_SNf, get_hubblefit
 from .fitting_lc import LC_Fitter
 from .cosmo_tools import distance_modulus_th, int_cosmo, luminosity_distance
 from .sugar_generator import sugar_simulation
-from .data_table import extract_spectra
 from .data_table import build_data
