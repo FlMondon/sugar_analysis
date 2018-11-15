@@ -25,7 +25,7 @@ class build_data(object):
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
         self.noTH = True
-        pkl_file = os.path.join('/sps/lsst/users/fmondon/sugar_analysis_data/meta_spectra.pkl')
+        pkl_file = '/sps/lsst/users/fmondon/sugar_analysis_data/meta_spectra.pkl'
         self.spec = pkl.load(open(pkl_file))
         self.meta= pkl.load(open(meta))
       
