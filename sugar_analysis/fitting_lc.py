@@ -15,13 +15,12 @@ import constant as cst
 from data_table import build_data
 import cPickle as pkl
 import os
-SNf_path = '../../sugar_analysis_data/META-CABALLO2.pkl'
-output_path = '../../'
+
 
 class LC_Fitter(object):
     
     def __init__(self, model_name='sugar', sample='SNf', data=None, 
-                 t0_fix=False, sub_sample=None, modelcov=False, 
+                 t0_fix=False, sub_sample=None, modelcov=False, output_path = '../../',
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
                  width=10):
         self.fitting_sample =  False
@@ -33,6 +32,7 @@ class LC_Fitter(object):
         self.modelcov = modelcov
         self.bd = build_data()#
         self.filters = filters
+        self.output_path = output_path
         builtins.register_SUGAR()
         
         if self.sample=='SNf':
@@ -55,7 +55,7 @@ class LC_Fitter(object):
         elif sample=='jla':
             builtins.builtins_jla_bandpasses()
             builtins.mag_sys_jla()
-            datos = os.listdir(output_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
+            datos = os.listdir(self.output_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
             self.data = []
             for sn_name in datos:
                 if sub_sample==None:
@@ -402,7 +402,7 @@ class LC_Fitter(object):
         if self.dic_res == None:
             raise ValueError('fitted sample needed to write result')
         else:
-            File = open(output_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+            File = open(self.output_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
             pkl.dump(self.dic_res, File)
         
 
