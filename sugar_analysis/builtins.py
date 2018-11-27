@@ -122,7 +122,7 @@ def load_spectral_magsys_fits2(relpath, name=None, version=None):
     return sncosmo.magsystems.SpectralMagSystem(refspectrum, name=name)
     
 
-def mag_sys_SNF():
+def mag_sys_SNF(sugar_analysis_data = '../../sugar_analysis_data/'):
     """
     define magnitude systeme for snf
     """
@@ -146,7 +146,7 @@ def mag_sys_SNF():
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf', force=True) 
 
 
-def mag_sys_SNF_width(width=10):
+def mag_sys_SNF_width(width=10,sugar_analysis_data = '../../sugar_analysis_data/'):
     """
     define magnitude systeme for snf
     """  
