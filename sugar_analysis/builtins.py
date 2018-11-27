@@ -11,9 +11,6 @@ import numpy as np
 from sncosmo.models import _SOURCES
 
 
-sugar_model = '../../sugar_model/'
-
-jla_path = '../../sncosmo_jla/jla_data/'
 def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analysis_data/'):
     
  
@@ -344,7 +341,7 @@ class SUGARSource(sncosmo.Source):
             		m2file='sugar_template_2.dat',
             		m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
-                 name=None, version=None):
+                 name=None, version=None,sugar_model = '../../sugar_model/'):
 
         
         self.name = name
@@ -391,7 +388,7 @@ from sncosmo.builtins import DATADIR
 def load_sugarmodel(relpath, name=None, version=None):
     return SUGARSource(modeldir=relpath, name=name, version=version)
 
-def register_SUGAR():
+def register_SUGAR(sugar_model='../../sugar_model/'):
     from operator import itemgetter
     
 
