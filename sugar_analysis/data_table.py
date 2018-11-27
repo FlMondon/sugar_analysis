@@ -15,19 +15,19 @@ from astropy.table import Table
 from sugar_analysis import builtins
 import cPickle as pkl
 import os 
-output_path = '../../'
+
 
     
 class build_data(object):
 
-    def __init__(self,meta=output_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'):
+    def __init__(self, output_path='../../'):
         builtins.register_SNf_bands_width(width=10)
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
         self.noTH = True
         pkl_file = '/sps/lsst/users/fmondon/sugar_analysis_data/meta_spectra.pkl'
         self.spec = pkl.load(open(pkl_file))
-        self.meta= pkl.load(open(meta))
+        self.meta= pkl.load(open(output_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
       
     def integral_to_phot(self, wave, flux, var=None):
 
