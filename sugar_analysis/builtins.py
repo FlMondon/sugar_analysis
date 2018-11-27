@@ -12,9 +12,9 @@ from sncosmo.models import _SOURCES
 
 
 sugar_model = '../../sugar_model/'
-sugar_analysis_data = '../../sugar_analysis_data/'
+
 jla_path = '../../sncosmo_jla/jla_data/'
-def register_SNf_bands_width(width=10):
+def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analysis_data/'):
     
  
     band_file_U = 'USNf_3300-4102.dat'
@@ -172,7 +172,7 @@ def mag_sys_SNF_width(width=10):
 
 # =============================================================================
 # Bandpasses
-def builtins_jla_bandpasses():
+def builtins_jla_bandpasses(jla_path='../../sncosmo_jla/jla_data/'):
     jla_meta = {
         'filterset': 'jla',
         'reference': ('Betoule14', 'http://supernovae.in2p3.fr/salt/doku.php?id=instruments'),
@@ -227,7 +227,7 @@ def builtins_jla_bandpasses():
 
 # =============================================================================
 # MagSystems
-def mag_sys_jla():
+def mag_sys_jla(jla_path = '../../sncosmo_jla/jla_data/'):
     def load_spectral_magsys_fits2(relpath, name=None, version=None):
         data = np.genfromtxt(relpath)
         dispersion = data[:,0]
