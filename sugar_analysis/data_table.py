@@ -24,6 +24,7 @@ class build_data(object):
         builtins.register_SNf_bands_width(width=10)
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
+        self.output_path = output_path
         self.noTH = True
         pkl_file = '/sps/lsst/users/fmondon/sugar_analysis_data/meta_spectra.pkl'
         self.spec = pkl.load(open(pkl_file))
@@ -60,7 +61,7 @@ class build_data(object):
         """
 
         from scipy.interpolate import UnivariateSpline
-        filt2 = np.genfromtxt(output_path+
+        filt2 = np.genfromtxt(self.output_path+
                               'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
         for i, trans in enumerate(filt2[:,1]):
