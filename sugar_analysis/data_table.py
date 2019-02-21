@@ -5,7 +5,7 @@ Created on Mon Oct  1 10:55:09 2018
 
 @author: florian
 """
-
+from ToolBox import Astro
 import numpy as np
 import sncosmo
 from sugar_analysis import constant as cst
@@ -13,19 +13,25 @@ from astropy.table import Table
 #from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 from sugar_analysis import builtins
 import cPickle as pkl
-output_path = '../../'
+import os 
+import sfdmap
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
 
 
     
 class build_data(object):
 
-    def __init__(self,meta=output_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'):
+    def __init__(self,sad_path = '../../'):
+        self.sad_path = sad_path
+        meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
         builtins.register_SNf_bands_width(width=10)
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
         self.noTH = True
-        self.spec = pkl.load(open(output_path+
-                                  'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl'))
+        pkl_file = os.path.join(self.sad_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
+        self.spec = pkl.load(open(pkl_file))
         self.meta= pkl.load(open(meta))
       
     def integral_to_phot(self, wave, flux, var=None):
@@ -59,7 +65,7 @@ class build_data(object):
         """
 
         from scipy.interpolate import UnivariateSpline, pchip
-        filt2 = np.genfromtxt(output_path+
+        filt2 = np.genfromtxt(self.sad_path+
                               'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
         for i, trans in enumerate(filt2[:,1]):
@@ -74,6 +80,8 @@ class build_data(object):
             inside = y > 0
             spline = UnivariateSpline(filt2[:,0], filt2[:,1], s=0)
             y[inside] = np.maximum(spline(x[inside]), 0)
+#            spline = pchip(filt2[:,0], filt2[:,1])
+#            y[inside] = spline(x[inside])
         return y
 
     def pixel_fracs(self, x, xmin, xmax):
@@ -142,3 +150,59 @@ class build_data(object):
                      names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), 
                      meta={'name': 'data'})
         return data
+
+
+class read_csp(object):
+    def __init__(self, file_path='../../sugar_analysis_data/DR3/'):
+        self.file_path = file_path
+    def build_csp_table(self, sn_name,  drop=None):
+        """
+        """
+        csp_filter_dict = {'u' : 'cspu', 'g' : 'cspg', 'r' : 'cspr', 'i' : 'cspi',
+                   'B' : 'cspb', 'V0' : 'cspv3014', 'V1' : 'cspv3009',
+                   'V' : 'cspv9844', 'Y' : 'cspys', 'H' : 'csphs',
+                   'J' : 'cspjs', 'Jrc2' : 'cspjs', 'Ydw' : 'cspyd',
+                   'Jdw' : 'cspjd', 'Hdw' : 'csphd'}
+        self.infile = open(self.file_path+sn_name,'r')
+        self.inline = self.infile.readlines()
+        time = []
+        flux = []
+        flux_err = []
+        band = []
+        zp = []
+        zpsys = []
+        vega = sncosmo.get_magsystem('csp')
+        zhl = float(self.inline[0].split()[1])
+        for line in self.inline :
+            line = line.split()
+            if line[0] == 'filter':
+                f = csp_filter_dict[line[1]]
+            elif len(line) == 3:
+                if type(drop) == str:
+                    if f == drop:
+                        continue
+                elif type(drop) == list:
+                    if f in drop:
+                        continue
+                time.append(float(line[0]))
+                flux.append(vega.band_mag_to_flux(float(line[1]),f))
+                flux_err.append(float(line[2])*vega.band_mag_to_flux(float(line[1]),f) / 1.0857362047581294)
+                band.append(f)
+                zp.append(2.5*np.log10(vega.zpbandflux(f)))  
+                zpsys.append('csp')
+
+        data = Table([time, band, flux, flux_err, zp, zpsys], 
+                     names=('time', 'band', 'flux', 'fluxerr', 'zp', 'zpsys'), 
+                     meta={'name': 'data'})   
+        
+
+        return data, zhl
+    
+    def get_mwebv(self, ra, dec, zhelio):
+        """
+        """
+        c = SkyCoord(ra+' '+dec, unit=(u.hourangle, u.deg))
+        m = sfdmap.SFDMap(self.sad_path+'sugar_analysis_data/sfddata-master', scaling=1.0)
+        galcoords = Astro.Coords.radec2gcs(c.ra.deg, c.dec.deg, deg=True)
+        return m.ebv(c.ra.deg, c.dec.deg), Astro.Coords.zhelio2zcmb(zhelio, galcoords)
+            

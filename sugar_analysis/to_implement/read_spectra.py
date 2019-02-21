@@ -9,10 +9,10 @@ Created on Mon Jul  9 15:04:14 2018
 import pyfits
 import cPickle
 import numpy as np
-outpath = '../../../'
+
 class spectrum_table():
     
-    def read_spectrum(self, spec_path):
+    def read_spectrum(self, spec_path, sad_path = '../../../'):
         """
         """
         self._fits = pyfits.open(spec_path)
@@ -27,6 +27,7 @@ class spectrum_table():
         self.x = np.linspace(self.start, self.end, self.npts)  # Wavelength
         self.y = self.spec.data.copy()                         # Signal
         self.v = self._fits['VARIANCE'].data.copy()
+        self.sad_path = sad_path
         return self.x, self.y ,self.v
 
     def deredden(self, ebmv, law='OD94', Rv=3.1):
@@ -49,7 +50,7 @@ class spectrum_table():
     def table_time_wave_flux(self):
         """
         """
-        meta = cPickle.load(open(outpath+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
+        meta = cPickle.load(open(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
         meta_spectra = {}
         for sn_name in meta.keys():
 #        for sn_name in list_SN :
@@ -78,13 +79,15 @@ class spectrum_table():
                         quality_flag_R = 0
                     if quality_flag_B == 1 and quality_flag_R == 1:
                         for x in ['B','R']:
-                            wave, flux, var = self.read_spectrum(outpath+'sugar_analysis_data/SNF-0203-CABALLO2/'+sn_data[t]['idr.spec_'+x])
+                            wave, flux, var = self.read_spectrum(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/'+sn_data[t]['idr.spec_'+x])
                             time = sn_data[t]['obs.mjd']
                             meta_spectra[sn_name]['spectra_'+x][str(time)] = {}
                             meta_spectra[sn_name]['spectra_'+x][str(time)]['wave'] = wave
                             meta_spectra[sn_name]['spectra_'+x][str(time)]['flux'] = flux  
                             meta_spectra[sn_name]['spectra_'+x][str(time)]['var'] = var
-        cPickle.dump(meta_spectra, open(outpath+'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl','w'))
+        File = open('../../../sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl','w')
+        cPickle.dump(meta_spectra, File)
+        File.close()
         return meta_spectra
                     
                         

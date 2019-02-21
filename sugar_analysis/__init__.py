@@ -13,8 +13,9 @@ Some description.
 
 from .math_toolbox import comp_rms
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width, register_SUGAR,  builtins_jla_bandpasses, mag_sys_jla
-from .Hubble_fit import read_input_data_SNf, get_hubblefit
+from .Hubble_fit import read_input_data_SNf, get_hubblefit, generate_fake_data
 from .fitting_lc import LC_Fitter
 from .cosmo_tools import distance_modulus_th, int_cosmo, luminosity_distance
 from .sugar_generator import sugar_simulation
 from .data_table import build_data
+from .plot_lc import plot_lc_res

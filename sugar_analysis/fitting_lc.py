@@ -8,35 +8,46 @@ Created on Wed Sep  5 10:33:31 2018
 
 import sncosmo
 import builtins
+import read_jla as rjla
 import numpy as np
 import cosmo_tools as ct
 import copy
 import constant as cst
 from data_table import build_data
+from data_table import read_csp
 import cPickle as pkl
 import os
-SNf_path = '../../sugar_analysis_data/META-CABALLO2.pkl'
-output_path = '../../'
 
 class LC_Fitter(object):
     
     def __init__(self, model_name='sugar', sample='SNf', data=None, 
                  t0_fix=False, sub_sample=None, modelcov=False, 
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
-                 width=10):
+                 filter_drop_csp = None, sad_path = '../../',
+                 width=10, param_sug_fix =[]):
+        
+        
         self.fitting_sample =  False
         self.model_name = model_name
         self.t0_fix = t0_fix
+        self.sad_path = sad_path
+        self.filter_drop_csp = filter_drop_csp
         self.dic_res = None
         self.sub_sample = sub_sample
         self.sample = sample
         self.modelcov = modelcov
-        self.bd = build_data()#
+        self.bd = build_data()
         self.filters = filters
+        self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
         builtins.register_SUGAR()
+        self.param_sug = ['q1', 'q2', 'q3']
+        for psf in param_sug_fix:
+            self.param_sug.remove(psf)
+
+                
         
         if self.sample=='SNf':
-            self.meta = pkl.load(open(SNf_path))
+            self.meta = pkl.load(open(self.sad_path+'sugar_analysis_data/META-CABALLO2.pkl'))
             self.data = []
             if sub_sample==None:
                 for sn_name in self.meta.keys():
@@ -55,29 +66,73 @@ class LC_Fitter(object):
         elif sample=='jla':
             builtins.builtins_jla_bandpasses()
             builtins.mag_sys_jla()
-            datos = os.listdir(output_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
+            self.dic_jla_zbias = {}
+            jla_file = np.loadtxt(self.sad_path+'sugar_analysis_data/data/jla_data/jla_lcparams.txt',dtype='str')
+            datos = os.listdir(self.sad_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
             self.data = []
             for sn_name in datos:
                 if sub_sample==None:
                     if sn_name.startswith('lc-'):
                         self.data.append(sn_name)
-            else :
-                if sub_sample=='SDSS':
+                elif sub_sample=='SDSS':
                     if sn_name.startswith('lc-SDSS'):
                         self.data.append(sn_name)      
                 elif sub_sample=='SNLS':
-                    raise ValueError ('SNLS not implemented yet')
+                    if sn_name.startswith('lc-0'):
+                        self.data.append(sn_name)                     
                 elif sub_sample=='Nearby':
-                    raise ValueError ('Nearby not implemented yet') 
+                    if sn_name.startswith('lc-sn'):
+                        self.data.append(sn_name) 
                 elif sub_sample=='HST':
-                    raise ValueError ('HST not implemented yet')                
+                    HST_name = ['lc-Vilas.list','lc-Torngasek.list',
+                                'lc-Ombo.list', 'lc-Patuxent.list',
+                                'lc-Lancaster.list', 'lc-Gabi.list',
+                                'lc-Gabi.list','lc-Eagle.list',
+                                'lc-Aphrodite.list']
+                    if sn_name in HST_name:
+                        self.data.append(sn_name)              
                 else:
-                    for sn_name in self.sub_sample:
-                        self.data.append(sn_name)         
+                    if sn_name in self.sub_sample:
+                        self.data.append(sn_name)   
+            for line in jla_file:
+                if 'lc-' + line[0] + '.list' in self.data:
+                    self.dic_jla_zbias['lc-' + line[0] + '.list'] = float(line[1]), float(line[3]), float(line[20])
+        
+        elif sample=='csp':
+            builtins.builtins_jla_bandpasses()
+            builtins.mag_sys_jla()
+            self.rcsp = read_csp()
+            datos = os.listdir(self.sad_path+'sugar_analysis_data/DR3/')
+            self.data = []
+            csp_type_file = open(self.sad_path+'sugar_analysis_data/DR3/krisciunas17_table2.org')
+            csp_type_lines = csp_type_file.readlines()
+            dic_csp_type={}
+            for line in csp_type_lines:
+                line = line.split()
+                dic_csp_type['SN'+line[1] +'_snpy.txt'] =line[5]
+                
+            for sn_name in datos:
+                if sub_sample==None:
+                    if sn_name.startswith('SN2') and dic_csp_type[sn_name]=='normal':
+                        self.data.append(sn_name)  
+                else:
+                    if sn_name in self.sub_sample and dic_csp_type[sn_name]=='normal':
+                        self.data.append(sn_name) 
+            
+            self.dic_csp_radec = {}
+            csp_file = open(self.sad_path+'sugar_analysis_data/DR3/tab1.dat')
+            csp_line = csp_file.readlines()
+            for line in csp_line:
+                line = line.split()
+                if 'SN'+line[0] + '_snpy.txt' in self.data:
+                    self.dic_csp_radec['SN'+line[0] +'_snpy.txt'] =line[1], line[2]
+            
+
+            
         else:
             builtins.register_SNf_bands_width(width=self.width)
             builtins.mag_sys_SNF_width(width=self.width)
-            print 'Warning : Mag sys and band used in your data have to be register in sncosmo our in builtins_SNF'
+            Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins_SNF')
             try:
                 self.data = pkl.load(open(data))
                 if type(self.data) is not dict:
@@ -88,12 +143,17 @@ class LC_Fitter(object):
     def sn_data(self, sn_name):
        
         if self.sample == 'SNf':
-            self.zhl, self.zerr, self.zcmb, self.mwebv, self.daymax = self.meta[sn_name]['host.zhelio'], self.meta[sn_name]['host.zcmb'], self.meta[sn_name]['host.zhelio.err'], self.meta[sn_name]['target.mwebv'], self.meta[sn_name]['salt2.DayMax']
+            self.zhl, self.zcmb, self.zerr, self.mwebv, self.daymax = self.meta[sn_name]['host.zhelio'], self.meta[sn_name]['host.zcmb'], self.meta[sn_name]['host.zhelio.err'], self.meta[sn_name]['target.mwebv'], self.meta[sn_name]['salt2.DayMax']
             self.table_sn = self.bd.build_Astropy_Table(sn_name, band_used=self.filters)
         
         elif self.sample == 'jla':
-            raise ValueError('jla not implemented yet')
-            
+            self.head, self.table_sn = rjla.read_lc_jla(sn_name, model=self.model_name)
+            self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV']
+
+        elif self.sample == 'csp':
+            self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name, drop=self.filter_drop_csp)
+            self.mwebv, self.zcmb = self.rcsp.get_mwebv(self.dic_csp_radec[sn_name][0], self.dic_csp_radec[sn_name][1], self.zhl)
+            self.zerr = 0.
         else:
             self.table_sn = self.data[sn_name]['table']
             self.zhl = self.data[sn_name]['zhl']
@@ -137,7 +197,12 @@ class LC_Fitter(object):
                 Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
         else:
             self.model.set(z=self.zhl)
-            Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
+            self.model.set(mwebv=self.mwebv)
+            if self.zcmb==None:
+                Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zhl,self.zhl)))
+            else:
+                Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
+
         print 'initialisation'            
 
         self.model.set(q1=0.0)
@@ -149,11 +214,7 @@ class LC_Fitter(object):
             self.model.set(t0=self.daymax)
             res, fitted_model = sncosmo.fit_lc(data, 
                                                self.model, 
-                                               ['q1', 
-                                                'q2', 
-                                                'q3', 
-                                                'A', 
-                                                'Xgr'], 
+                                               self.param_sug+['A', 'Xgr'], 
                                                modelcov  = self.modelcov)
             print res.chisq
         else:
@@ -166,7 +227,6 @@ class LC_Fitter(object):
             chi2p = chi2*2
             m=0
             recovery = True
-            print res.parameters[1] 
             t0_init = res.parameters[1] 
             Xgr_init = res.parameters[2]
             self.model.set(A=res.parameters[6])
@@ -174,7 +234,7 @@ class LC_Fitter(object):
             self.model.set(t0=res.parameters[1]) 
             res, fitted_model = sncosmo.fit_lc(data, 
                                                self.model, 
-                                               ['q1','q2','q3'], 
+                                               self.param_sug, 
                                                modelcov=False)
             
             print 'first iteration'
@@ -199,7 +259,7 @@ class LC_Fitter(object):
                     A-=1   
     
     
-                print "WARNING: Sugar don't have model covariance for the moment"
+                Warning("Sugar don't have model covariance for the moment")
                 
                 self.model.set(q1=res.parameters[3])
                 self.model.set(q2=res.parameters[4])
@@ -209,12 +269,7 @@ class LC_Fitter(object):
                 self.model.set(t0=res.parameters[1])                        
                 res, fitted_model = sncosmo.fit_lc(data_new, 
                                                    self.model, 
-                                                   ['t0', 
-                                                    'q1', 
-                                                    'q2', 
-                                                    'q3', 
-                                                    'A', 
-                                                    'Xgr'], 
+                                                   ['t0']+self.param_sug+['A', 'Xgr'], 
                                                    modelcov  = self.modelcov,
                                                    bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
             
@@ -252,12 +307,7 @@ class LC_Fitter(object):
             try:
                 res, fitted_model = sncosmo.fit_lc(data, 
                                            self.model, 
-                                           ['t0', 
-                                            'q1', 
-                                            'q2', 
-                                            'q3', 
-                                            'A', 
-                                            'Xgr'], 
+                                           ['t0']+self.param_sug+['A', 'Xgr'], 
                                            modelcov  = self.modelcov,
                                            bounds = {'t0' : [res.parameters[1]-5,res.parameters[1]+5]}) 
             except:
@@ -275,16 +325,12 @@ class LC_Fitter(object):
         """
         """
         if not self.fitting_sample :
-            self.source = sncosmo.get_source('salt2')
+            self.source = sncosmo.get_source('salt2', version='2.4')
             dust = sncosmo.CCM89Dust()
             self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
                               effect_names=['mw'], 
-                              effect_frames=['obs']) 
-            self.mwebv = mwebv
-            self.zhl = zhl
-
-                
+                              effect_frames=['obs'])         
         self.model.set(mwebv=self.mwebv)
         self.model.set(z=self.zhl)
         print 'initialisation'            
@@ -323,9 +369,7 @@ class LC_Fitter(object):
                 data_new.remove_row(A[i])
                 A-=1   
 
-
-            print "WARNING: Sugar don't have model covariance for the moment"
-            modelcov = False
+            modelcov = True
             self.model.set(x1=res.parameters[3])
             self.model.set(c=res.parameters[4])
             self.model.set(x0=res.parameters[2])
@@ -354,10 +398,17 @@ class LC_Fitter(object):
         self.dic_res['data'] = {}
         self.dic_res['info'] = {}
         self.dic_res['info']['t0 fix'] = self.t0_fix
+        self.dic_res['info']['model used'] = self.model_name
+        self.dic_res['info']['sample'] = self.sample
+        if self.sub_sample is not None:
+            self.dic_res['info']['sub sample'] = self.sub_sample
         self.fit_fail = []
         self.fitted_model = []
         self.fitting_sample = True
-        self.source = sncosmo.get_source(self.model_name)
+        if self.model_name== 'salt2':
+            self.source = sncosmo.get_source(self.model_name, version='2.4')
+        else:
+            self.source = sncosmo.get_source(self.model_name)
         dust = sncosmo.CCM89Dust()
         self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
@@ -369,42 +420,68 @@ class LC_Fitter(object):
             if self.model_name == 'sugar':
                 try:
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn)
-#                    sncosmo.plot_lc(self.table_sn, fitted_model_sn)
+                    success = True
                 except :
+                    success = False
                     print 'fit fail for '+sn_name
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
             elif self.model_name == 'salt2':
                 try :
                     res_sn, fitted_model_sn = self.fit_lc_salt2(self.table_sn)
-                    
+                    success = True
                 except :
+                    success = False
                     print 'fit fail for '+sn_name
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
                     
             else :
                 raise ValueError('Error model_name have to be salt2 or sugar')
+
             self.fitted_model.append(fitted_model_sn)
             self.dic_res['data'][sn_name] = {}
 #            self.dic_res['data'][sn_name]['fitted_model'] = fitted_model_sn
-#            self.dic_res['data'][sn_name]['data_table'] = self.table_sn
+            self.dic_res['data'][sn_name]['data_table'] = np.array(self.table_sn)
             self.dic_res['data'][sn_name]['res'] = res_sn
             self.dic_res['data'][sn_name]['zhl'] = self.zhl
-            self.dic_res['data'][sn_name]['zerr'] = self.zerr
-            self.dic_res['data'][sn_name]['zcmb'] = self.zcmb
             self.dic_res['data'][sn_name]['mwebv'] = self.mwebv 
+            self.dic_res['data'][sn_name]['zerr'] = self.zerr
+            self.dic_res['data'][sn_name]['zcmb'] = self.zcmb                
+            if self.sample == 'jla':
+                self.dic_res['data'][sn_name]['biascor'] = self.biascor
         self.fitting_sample = False
        
-    def write_result(self):
+    def write_result(self, specific_file=None):
         """
         """
-        if self.dic_res == None:
-            raise ValueError('fitted sample needed to write result')
+        if specific_file==None:
+            if self.dic_res == None:
+                raise ValueError('fitted sample needed to write result')
+            elif self.sample =='SNf':
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.strfilters+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)            
+            elif self.sample =='csp': 
+                if type(self.filter_drop_csp) == str:
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+self.filter_drop_csp+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)
+                elif type(self.filter_drop_csp) == list:
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+str(self.filter_drop_csp)+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)                
+                else: 
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)
+            else:
+                if self.sub_sample == None:
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)
+                elif type(self.sub_sample) == str :
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sub_sample+'_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File)       
+                elif type(self.sub_sample) == list :
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'list_'+self.model_name+'.pkl','w')
+                    pkl.dump(self.dic_res, File) 
         else:
-            File = open(output_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
-            pkl.dump(self.dic_res, File)
-        
+            pkl.dump(self.dic_res, open(specific_file, 'w'))
 
-    
     
