@@ -9,7 +9,7 @@ Created on Thu Apr  5 13:02:35 2018
 import numpy as np
 from operator import itemgetter
 import sncosmo
-from sugar_analysis import builtins as Build_SNF
+import builtins
 from sncosmo.salt2utils import BicubicInterpolator
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import copy
@@ -21,9 +21,7 @@ from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
 import cPickle as pkl
 
-Build_SNF.register_SNf_bands_width(width=10)
-Build_SNF.mag_sys_SNF_width(width=10)
-Build_SNF.register_SUGAR()
+
 
 
 class sugar_simulation():
@@ -42,7 +40,9 @@ class sugar_simulation():
         self._SCALE_FACTOR = 1.
         self._param_names = ['q1', 'q2', 'q3', 'Av', 'grey']
         
-    
+        builtins.register_SNf_bands_width(width=10)
+        builtins.mag_sys_SNF_width(width=10)
+        builtins.register_SUGAR()
         infile = open(self.sugar_model+ 'SUGAR_model_v1.asci', 'r')
         lines = infile.readlines()
         infile.close()

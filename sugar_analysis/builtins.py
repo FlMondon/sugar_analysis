@@ -11,7 +11,7 @@ import numpy as np
 from sncosmo.models import _SOURCES
 
 
-def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analysis_data/'):
+def register_SNf_bands_width(width=10, sad_path = '../../'):
     
  
     band_file_U = 'USNf_3300-4102.dat'
@@ -21,23 +21,23 @@ def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analys
     band_file_I = 'ISNf_7607-9200.dat'
        
         
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file_U)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/SNIFS/'+ band_file_U)
     wl_U = filt2[:,0]
     transmission_U = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file_B)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/SNIFS/'+ band_file_B)
     wl_B = filt2[:,0]
     transmission_B = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file_V)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/SNIFS/'+ band_file_V)
     wl_V = filt2[:,0]
     transmission_V = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file_R)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/SNIFS/'+ band_file_R)
     wl_R = filt2[:,0]
     transmission_R = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/SNIFS/'+ band_file_I)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/SNIFS/'+ band_file_I)
     wl_I = filt2[:,0]
     transmission_I = filt2[:,1]
     
@@ -64,31 +64,31 @@ def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analys
     band_file_new_U = 'new_fU_'+str(width)+'.dat'
     band_file_new_I = 'new_fI_'+str(width)+'.dat'
         
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_U)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_U)
     wl_U = filt2[:,0]
     transmission_U = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_B)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
     wl_B = filt2[:,0]
     transmission_B = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_V)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_V)
     wl_V = filt2[:,0]
     transmission_V = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_R)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_R)
     wl_R = filt2[:,0]
     transmission_R = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_I)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_I)
     wl_I = filt2[:,0]
     transmission_I = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_new_U)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_new_U)
     wl_new_U = filt2[:,0]
     transmission_new_U = filt2[:,1]
 
-    filt2 = np.genfromtxt(sugar_analysis_data+'data/Instruments/Florian/'+ band_file_new_I)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_new_I)
     wl_new_I = filt2[:,0]
     transmission_new_I = filt2[:,1]
             
@@ -122,12 +122,12 @@ def load_spectral_magsys_fits2(relpath, name=None, version=None):
     return sncosmo.magsystems.SpectralMagSystem(refspectrum, name=name)
     
 
-def mag_sys_SNF(sugar_analysis_data = '../../sugar_analysis_data/'):
+def mag_sys_SNF(sad_path='../../'):
     """
     define magnitude systeme for snf
     """
     sncosmo.registry.register_loader(sncosmo.MagSystem, 'vega_snf_0', load_spectral_magsys_fits2,
-                             args=[sugar_analysis_data+'data/MagSys/bd_17d4708_stisnic_002.ascii'],
+                             args=[sad_path+'sugar_analysis_data/data/MagSys/bd_17d4708_stisnic_002.ascii'],
                              meta={'description': 'use bd_17d4708 spectrum that come from snfit'},force=True)        
 
     bands_snf ={#'USNf': ('vega_snf_0', 9.787),
@@ -146,12 +146,12 @@ def mag_sys_SNF(sugar_analysis_data = '../../sugar_analysis_data/'):
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf', force=True) 
 
 
-def mag_sys_SNF_width(width=10,sugar_analysis_data = '../../sugar_analysis_data/'):
+def mag_sys_SNF_width(width=10, sad_path='../../'):
     """
     define magnitude systeme for snf
     """  
     sncosmo.registry.register_loader(sncosmo.MagSystem, 'vega_snf_0_'+str(width), load_spectral_magsys_fits2,
-                             args=[sugar_analysis_data+'data/MagSys/bd_17d4708_stisnic_002.ascii'],
+                             args=[sad_path+'sugar_analysis_data/data/MagSys/bd_17d4708_stisnic_002.ascii'],
                              meta={'description': 'use bd_17d4708 spectrum that come from snfit'},
                              force=True)      
 
@@ -169,7 +169,7 @@ def mag_sys_SNF_width(width=10,sugar_analysis_data = '../../sugar_analysis_data/
 
 # =============================================================================
 # Bandpasses
-def builtins_jla_bandpasses(jla_path='../../sncosmo_jla/jla_data/'):
+def builtins_jla_bandpasses(sad_path='../../'):
     jla_meta = {
         'filterset': 'jla',
         'reference': ('Betoule14', 'http://supernovae.in2p3.fr/salt/doku.php?id=instruments'),
@@ -217,14 +217,14 @@ def builtins_jla_bandpasses(jla_path='../../sncosmo_jla/jla_data/'):
             	 ('jla_SWOPE2::i', 'Swope2/i_texas_WLcorr_atm.txt', jla_meta)]
 
     for name, fname, meta in bands:
-        	gen = (r.encode('utf-8') for r in open(jla_path + 'Instruments/' +  fname) if not r[0] in ('@', '#'))
+        	gen = (r.encode('utf-8') for r in open(sad_path + 'sugar_analysis_data/data/jla_data/Instruments/' +  fname) if not r[0] in ('@', '#'))
         	data = np.genfromtxt(gen)
         	band = sncosmo.Bandpass(data[:,0],data[:,1],wave_unit=u.AA,name=name)
         	sncosmo.registry.register(band, force=True)
 
 # =============================================================================
 # MagSystems
-def mag_sys_jla(jla_path = '../../sncosmo_jla/jla_data/'):
+def mag_sys_jla(sad_path = '../../'):
     def load_spectral_magsys_fits2(relpath, name=None, version=None):
         data = np.genfromtxt(relpath)
         dispersion = data[:,0]
@@ -247,7 +247,7 @@ def mag_sys_jla(jla_path = '../../sncosmo_jla/jla_data/'):
                            ('jla_VEGA2_0', 'bd_17d4708_stisnic_003.ascii', VEGA2_desc),
     		       ('jla_VEGA2_mb_0', 'bd_17d4708_stisnic_002.ascii', VEGA2_mb_desc)]:
         sncosmo.registry.register_loader(sncosmo.MagSystem, name, load_spectral_magsys_fits2,
-                                 args=[jla_path + 'MagSys/' + fn],
+                                 args=[sad_path + 'sugar_analysis_data/data/jla_data/MagSys/' + fn],
                                  meta={'subclass': subclass, 'url': website,
                                        'description': desc}, force=True)
 
