@@ -24,8 +24,8 @@ import cPickle as pkl
 Build_SNF.register_SNf_bands_width(width=10)
 Build_SNF.mag_sys_SNF_width(width=10)
 Build_SNF.register_SUGAR()
-sugar_model = '/../../sugar_model/'
-sugar_analysis_data = '/../../sugar_analysis_data/'
+
+
 class sugar_simulation():
     
     def __init__(self, modeldir=None,
@@ -35,14 +35,15 @@ class sugar_simulation():
                     m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
                  parameters_init=np.array([37., 0., 0., 0., 0.]),
-                 name=None, version=None):
+                 name=None, version=None, sugar_model = '/../../sugar_model/', sad_path = '/../../'):
         
-
+        self.sad_path = sad_path
+        self.sugar_model = sugar_model
         self._SCALE_FACTOR = 1.
         self._param_names = ['q1', 'q2', 'q3', 'Av', 'grey']
         
     
-        infile = open(sugar_model+ 'SUGAR_model_v1.asci', 'r')
+        infile = open(self.sugar_model+ 'SUGAR_model_v1.asci', 'r')
         lines = infile.readlines()
         infile.close()
         
@@ -55,7 +56,7 @@ class sugar_simulation():
         
         names = ['0','1','2','3','4']
         for i in names:
-            outfile = open(sugar_model + 'sugar_template_' + i + '.dat', 'w')
+            outfile = open(self.sugar_model + 'sugar_template_' + i + '.dat', 'w')
             for line in s:
                 j = 2+int(i)
                 outfile.write('%4.4f %8.8f %8.8f' %(line[0],line[1],line[j]))
@@ -78,10 +79,10 @@ class sugar_simulation():
         
         # model components are interpolated to 2nd order
         for key in ['M0', 'M1', 'M2', 'M3', 'M4']:
-            phase, wave, values = sncosmo.read_griddata_ascii(sugar_model 
+            phase, wave, values = sncosmo.read_griddata_ascii(self.sugar_model 
                                                         + names_or_objs[key])
             values *= self._SCALE_FACTOR
-            self._model_raw[key] = np.loadtxt(sugar_model+names_or_objs[key])
+            self._model_raw[key] = np.loadtxt(self.sugar_model+names_or_objs[key])
             self._model[key] = BicubicInterpolator(phase, wave, values)
 
             # The "native" phases and wavelengths of the model are those
@@ -154,8 +155,8 @@ class sugar_simulation():
         return error
 
     def integral_to_phot(self, flux, band):
-        filt2 = np.genfromtxt(sugar_analysis_data+
-                              'data/Instruments/Florian/'+band+'.dat')
+        filt2 = np.genfromtxt(self.sad_path+
+                              'sugar_analysis_data/data/Instruments/Florian/'+band+'.dat')
         wlen = filt2[:,0]
         tran = filt2[:,1]
         self.splB = Spline1d(wlen, tran, k=1,ext = 1)    
@@ -235,7 +236,7 @@ class sugar_simulation():
     def sample_genarator(self, nb_gen):
         '''
         '''
-        params = pkl.load(open(sugar_model+'sugar_parameters.pkl'))
+        params = pkl.load(open(self.sugar_model+'sugar_parameters.pkl'))
         coefs = []
         for param_name in self._param_names:
             coefs.append([v[param_name] for v in params.values()])
