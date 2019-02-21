@@ -11,10 +11,7 @@ import numpy as np
 from sncosmo.models import _SOURCES
 
 
-sugar_model = '../../sugar_model/'
-sugar_analysis_data = '../../sugar_analysis_data/'
-jla_path = '../../sncosmo_jla/jla_data/'
-def register_SNf_bands_width(width=10):
+def register_SNf_bands_width(width=10, sugar_analysis_data = '../../sugar_analysis_data/'):
     
  
     band_file_U = 'USNf_3300-4102.dat'
@@ -125,7 +122,7 @@ def load_spectral_magsys_fits2(relpath, name=None, version=None):
     return sncosmo.magsystems.SpectralMagSystem(refspectrum, name=name)
     
 
-def mag_sys_SNF():
+def mag_sys_SNF(sugar_analysis_data = '../../sugar_analysis_data/'):
     """
     define magnitude systeme for snf
     """
@@ -149,7 +146,7 @@ def mag_sys_SNF():
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf', force=True) 
 
 
-def mag_sys_SNF_width(width=10):
+def mag_sys_SNF_width(width=10,sugar_analysis_data = '../../sugar_analysis_data/'):
     """
     define magnitude systeme for snf
     """  
@@ -172,7 +169,7 @@ def mag_sys_SNF_width(width=10):
 
 # =============================================================================
 # Bandpasses
-def builtins_jla_bandpasses():
+def builtins_jla_bandpasses(jla_path='../../sncosmo_jla/jla_data/'):
     jla_meta = {
         'filterset': 'jla',
         'reference': ('Betoule14', 'http://supernovae.in2p3.fr/salt/doku.php?id=instruments'),
@@ -227,7 +224,7 @@ def builtins_jla_bandpasses():
 
 # =============================================================================
 # MagSystems
-def mag_sys_jla():
+def mag_sys_jla(jla_path = '../../sncosmo_jla/jla_data/'):
     def load_spectral_magsys_fits2(relpath, name=None, version=None):
         data = np.genfromtxt(relpath)
         dispersion = data[:,0]
@@ -344,7 +341,7 @@ class SUGARSource(sncosmo.Source):
             		m2file='sugar_template_2.dat',
             		m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
-                 name=None, version=None):
+                 name=None, version=None,sugar_model = '../../sugar_model/'):
 
         
         self.name = name
@@ -391,7 +388,7 @@ from sncosmo.builtins import DATADIR
 def load_sugarmodel(relpath, name=None, version=None):
     return SUGARSource(modeldir=relpath, name=name, version=version)
 
-def register_SUGAR():
+def register_SUGAR(sugar_model='../../sugar_model/'):
     from operator import itemgetter
     
 

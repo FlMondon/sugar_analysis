@@ -24,8 +24,8 @@ import cPickle as pkl
 Build_SNF.register_SNf_bands_width(width=10)
 Build_SNF.mag_sys_SNF_width(width=10)
 Build_SNF.register_SUGAR()
-sugar_model = '/home/florian/sugar_model/'
-sugar_analysis_data = '/home/florian/sugar_analysis_data/'
+sugar_model = '/../../sugar_model/'
+sugar_analysis_data = '/../../sugar_analysis_data/'
 class sugar_simulation():
     
     def __init__(self, modeldir=None,

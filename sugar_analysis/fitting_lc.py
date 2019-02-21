@@ -17,11 +17,15 @@ from data_table import build_data
 from data_table import read_csp
 import cPickle as pkl
 import os
+<<<<<<< HEAD
+=======
+
+>>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
 
 class LC_Fitter(object):
     
     def __init__(self, model_name='sugar', sample='SNf', data=None, 
-                 t0_fix=False, sub_sample=None, modelcov=False, 
+                 t0_fix=False, sub_sample=None, modelcov=False, output_path = '../../',
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
                  filter_drop_csp = None, sad_path = '../../',
                  width=10, param_sug_fix =[]):
@@ -38,7 +42,11 @@ class LC_Fitter(object):
         self.modelcov = modelcov
         self.bd = build_data()
         self.filters = filters
+<<<<<<< HEAD
         self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
+=======
+        self.output_path = output_path
+>>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
         builtins.register_SUGAR()
         self.param_sug = ['q1', 'q2', 'q3']
         for psf in param_sug_fix:
@@ -66,9 +74,13 @@ class LC_Fitter(object):
         elif sample=='jla':
             builtins.builtins_jla_bandpasses()
             builtins.mag_sys_jla()
+<<<<<<< HEAD
             self.dic_jla_zbias = {}
             jla_file = np.loadtxt(self.sad_path+'sugar_analysis_data/data/jla_data/jla_lcparams.txt',dtype='str')
             datos = os.listdir(self.sad_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
+=======
+            datos = os.listdir(self.output_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
+>>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
             self.data = []
             for sn_name in datos:
                 if sub_sample==None:
@@ -482,6 +494,12 @@ class LC_Fitter(object):
                     File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'list_'+self.model_name+'.pkl','w')
                     pkl.dump(self.dic_res, File) 
         else:
+<<<<<<< HEAD
             pkl.dump(self.dic_res, open(specific_file, 'w'))
+=======
+            File = open(self.output_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+            pkl.dump(self.dic_res, File)
+        
+>>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
 
     
