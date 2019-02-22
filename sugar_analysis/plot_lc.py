@@ -11,9 +11,7 @@ import cPickle as pkl
 import sncosmo
 import sugar_analysis as sa
 import matplotlib.gridspec as gridspec
-import os
-import copy
-from astropy.stats import median_absolute_deviation as mad
+
 
 
 def plot_lc_res(sn_name, 

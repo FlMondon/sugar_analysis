@@ -14,35 +14,24 @@ from astropy.table import Table
 from sugar_analysis import builtins
 import cPickle as pkl
 import os 
-<<<<<<< HEAD
 import sfdmap
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-
-=======
->>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
 
 
     
 class build_data(object):
 
-<<<<<<< HEAD
+
     def __init__(self,sad_path = '../../'):
         self.sad_path = sad_path
         meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
-=======
-    def __init__(self, output_path='../../'):
->>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
         builtins.register_SNf_bands_width(width=10)
         builtins.mag_sys_SNF_width(width=10)
         builtins.register_SUGAR()  
         self.output_path = output_path
         self.noTH = True
-<<<<<<< HEAD
         pkl_file = os.path.join(self.sad_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
-=======
-        pkl_file = '/sps/lsst/users/fmondon/sugar_analysis_data/meta_spectra.pkl'
->>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
         self.spec = pkl.load(open(pkl_file))
         self.meta= pkl.load(open(output_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
       
@@ -71,19 +60,11 @@ class build_data(object):
         """
         Interpolate filter over input array x (not necessarily
         regularly sampled).
-
         Beware that interpolation doesn't go wild *outside* the filter
         definition range, or even *inside*.
         """
-
-<<<<<<< HEAD
         from scipy.interpolate import UnivariateSpline, pchip
-        filt2 = np.genfromtxt(self.sad_path+
-=======
-        from scipy.interpolate import UnivariateSpline
-        filt2 = np.genfromtxt(self.output_path+
->>>>>>> c9b587f7fba74f402eb725550ab217cfec90ac45
-                              'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
+        filt2 = np.genfromtxt(self.sad_path+'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
         for i, trans in enumerate(filt2[:,1]):
             if trans > 0.000 and transp == 0.000:
