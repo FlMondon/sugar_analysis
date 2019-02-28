@@ -13,6 +13,9 @@ from sncosmo.models import _SOURCES
 
 
 class SUGARSource(sncosmo.Source):
+    """
+    TO DO
+    """
     _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
     param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
     
@@ -50,6 +53,9 @@ class SUGARSource(sncosmo.Source):
                 self._wave = wave
 
     def _flux(self, phase, wave):
+        """
+        TO DO
+        """
         M_sug = 48.59
         for i, key in enumerate(self.M_keys):
             if i >= 1.: 
@@ -61,6 +67,9 @@ class SUGARSource(sncosmo.Source):
 
 
     def bandflux_rcov(self, band, phase):
+        """
+        model error in comming
+        """
         return np.zeros(phase.shape, dtype=np.float64)
     
 
