@@ -68,7 +68,7 @@ def register_SNf_bands_width(width=10, sad_path = '../../'):
     wl_U = filt2[:,0]
     transmission_U = filt2[:,1]
 
-    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
+    filt2 = np.genfromtxt(sad_path+'sugar_analysis_data/data/Instruments/Florian/'+ band_file_B)
     wl_B = filt2[:,0]
     transmission_B = filt2[:,1]
 
@@ -316,107 +316,12 @@ def mag_sys_jla(sad_path = '../../'):
     	'jla_4SHOOTER2::I': ('jla_VEGA2_mb_0', 8.8506)}
     
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_BD17_mb),'jla_VEGA2_mb', force=True)
-# =============================================================================
-
-
-
-
-# =============================================================================
-# Sources
 
 
 
 
 
 
-class SUGARSource(sncosmo.Source):
-    _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
-    param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
-    
 
-
-    def __init__(self, modeldir=None,
-                 m0file='sugar_template_0.dat',
-                 m1file='sugar_template_1.dat',
-            		m2file='sugar_template_2.dat',
-            		m3file='sugar_template_3.dat',
-                 m4file='sugar_template_4.dat', 
-                 name=None, version=None,sugar_model = '../../sugar_model/'):
-
-        
-        self.name = name
-        self.version = version
-        self._model = {}
-        self._parameters = np.array([1.0e10-15, 1., 1., 1., 0.])
-        
-
-
-
-
-        names_or_objs = {'M0': m0file, 'M1': m1file, 'M2': m2file, 'M3': m3file, 'M4': m4file}
-
-        # model components are interpolated to 2nd order
-        for key in ['M0', 'M1', 'M2', 'M3', 'M4']:
-            phase, wave, values = sncosmo.read_griddata_ascii(sugar_model + names_or_objs[key])
-            
-            # The "native" phases and wavelengths of the model are those
-            # of the first model component.
-            if key == 'M0':
-                
-                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
-                                        21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.])
-                                
-                self._wave = wave
-            self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
-
-
-    def _flux(self, phase, wave):
-        m0 = self._model['M0'](phase, wave)
-        m1 = self._model['M1'](phase, wave)
-        m2 = self._model['M2'](phase, wave)
-        m3 = self._model['M3'](phase, wave)
-        m4 = self._model['M4'](phase, wave)
-        return (self._parameters[0] * 10. ** (-0.4 * (m0 + self._parameters[1] * m1 + self._parameters[2] * m2 + self._parameters[3] * m3 + self._parameters[4] * m4 + 48.59)) / (wave ** 2 / 299792458. * 1.e-10))
-
-
-    def bandflux_rcov(self, band, phase):
-        return np.zeros(phase.shape, dtype=np.float64)
-    
-from sncosmo.builtins import DATADIR
-
-# Sugar model
-def load_sugarmodel(relpath, name=None, version=None):
-    return SUGARSource(modeldir=relpath, name=name, version=version)
-
-def register_SUGAR(sugar_model='../../sugar_model/'):
-    from operator import itemgetter
-    
-
-    infile = open(sugar_model + 'SUGAR_model_v1.asci', 'r')
-    lines = infile.readlines()
-    infile.close()
-    
-    listik = []
-    for line in lines:
-        new_line = [float(i) for i in line.split()]
-        listik.append(new_line)
-    
-    s = sorted(listik, key=itemgetter(0))
-    
-    names = ['0','1','2','3','4']
-    for i in names:
-        outfile = open(sugar_model + 'sugar_template_' + i + '.dat', 'w')
-        for line in s:
-            j = 2+int(i)
-            outfile.write('%4.4f %8.8f %8.8f' %(line[0],line[1],line[j]))
-            outfile.write('\n')
-        outfile.close()
-    website = 'http://no'
-    PF16ref = ('PF16', 'PF et al. 2016 '
-              '<http://arxiv.org/>')
-    for topdir, ver, ref in [('SUGAR_model', '1.0', PF16ref)]:
-        meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
-                'url': website, 'reference': ref}
-        _SOURCES.register_loader('sugar', load_sugarmodel, args=([sugar_model+'SUGAR_model_v1.asci']), version=ver, meta=meta, force=True)
 
    

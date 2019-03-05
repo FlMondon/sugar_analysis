@@ -20,7 +20,6 @@ class SUGARSource(sncosmo.Source):
     param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
     
 
-
     def __init__(self, modeldir='../../sugar_model/', m0file='sugar_template_0.dat',
                  m1file='sugar_template_1.dat',
             		m2file='sugar_template_2.dat',
@@ -28,7 +27,6 @@ class SUGARSource(sncosmo.Source):
                  m4file='sugar_template_4.dat',
                  name=None, version=None):
 
-        
         self.name = name
         self.version = version
         self._model = {}
@@ -52,6 +50,7 @@ class SUGARSource(sncosmo.Source):
                                                 21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.])
                 self._wave = wave
 
+
     def _flux(self, phase, wave):
         """
         TO DO
@@ -64,7 +63,7 @@ class SUGARSource(sncosmo.Source):
                 M_sug += self._model[key](phase, wave)
         wave2_factor = (wave ** 2 / 299792458. * 1.e-10)
         return (self._parameters[0] * 10. ** (-0.4 * M_sug) /  wave2_factor)
-
+    
 
     def bandflux_rcov(self, band, phase):
         """

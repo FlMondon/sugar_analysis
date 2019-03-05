@@ -10,8 +10,8 @@ import numpy as np
 import sncosmo
 from sugar_analysis import constant as cst
 from astropy.table import Table
-#from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
-from sugar_analysis import builtins
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
 import cPickle as pkl
 import os 
 import sfdmap
@@ -25,15 +25,15 @@ class build_data(object):
 
     def __init__(self,sad_path = '../../'):
         self.sad_path = sad_path
-        meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
-        builtins.register_SNf_bands_width(width=10)
-        builtins.mag_sys_SNF_width(width=10)
-        builtins.register_SUGAR()  
-        self.output_path = output_path
+        self.meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
+        register_SNf_bands_width(width=10)
+        mag_sys_SNF_width(width=10)
+        register_SUGAR()  
+
         self.noTH = True
         pkl_file = os.path.join(self.sad_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
         self.spec = pkl.load(open(pkl_file))
-        self.meta= pkl.load(open(output_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
+        self.meta= pkl.load(open(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
       
     def integral_to_phot(self, wave, flux, var=None):
 
@@ -63,7 +63,7 @@ class build_data(object):
         Beware that interpolation doesn't go wild *outside* the filter
         definition range, or even *inside*.
         """
-        from scipy.interpolate import UnivariateSpline, pchip
+        from scipy.interpolate import UnivariateSpline
         filt2 = np.genfromtxt(self.sad_path+'sugar_analysis_data/data/Instruments/Florian/'+self.band+'.dat')
         transp = 0.000
         for i, trans in enumerate(filt2[:,1]):
@@ -151,8 +151,9 @@ class build_data(object):
 
 
 class read_csp(object):
-    def __init__(self, file_path='../../sugar_analysis_data/DR3/'):
-        self.file_path = file_path
+    def __init__(self, sad_path='../../'):
+        self.sad_path = sad_path
+        self.file_path = self.sad_path+'sugar_analysis_data/DR3/'
     def build_csp_table(self, sn_name,  drop=None):
         """
         """

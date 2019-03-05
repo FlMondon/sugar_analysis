@@ -9,7 +9,8 @@ import pylab as plt
 import numpy as np
 import cPickle as pkl
 import sncosmo
-import sugar_analysis as sa
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
 import matplotlib.gridspec as gridspec
 
 
@@ -18,18 +19,18 @@ def plot_lc_res(sn_name,
             dic_path='../../sugar_analysis_data/resfitlc_csp_sugar.pkl', 
             sed_model = 'sugar',
             sample='csp',
-            filters = ['cspb', 'cspg', 'cspv3014', 'cspv3009','cspv9844','cspr' , 'cspi'],
+            filters = ['cspb', 'cspg', 'cspv3014', 'cspv3009', 'cspv9844', 'cspr', 'cspi'],
             outfile_path='../../sugar_analysis_data/results/save_plot/jla/'):
     """
     doc a faire 
     """
     if sample == 'jla':
-        sa.builtins.builtins_jla_bandpasses()
-        sa.builtins.mag_sys_jla()
+        builtins_jla_bandpasses()
+        mag_sys_jla()
         sample='jla_Vega2'
     elif sample == 'SNf':
-        sa.builtins.register_SNf_bands_width(width=10)
-        sa.builtins.mag_sys_SNF_width(width=10)
+        register_SNf_bands_width(width=10)
+        mag_sys_SNF_width(width=10)
         sample = 'vega_snf_10'
         
     dic = pkl.load(open(dic_path))
@@ -50,7 +51,7 @@ def plot_lc_res(sn_name,
     sys = sncosmo.get_magsystem(sample)
     
     if sed_model is 'sugar':
-        sa.builtins.register_SUGAR()
+        register_SUGAR()
         source = sncosmo.get_source('sugar')
         dust = sncosmo.CCM89Dust()
         model = sncosmo.Model(source=source,

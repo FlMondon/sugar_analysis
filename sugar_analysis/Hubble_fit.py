@@ -7,7 +7,8 @@ Created on Wed Sep 12 15:56:16 2018
 """
 
 import sncosmo
-import builtins
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
 import numpy as np
 import cosmo_tools as ct
 from scipy.linalg import block_diag
@@ -121,10 +122,10 @@ class read_input_data_SNf(object):
         self.params[:,0] = -2.5*np.log10(self.params[:,0])
 
     def  Xgr_to_mb(self):
-        builtins.builtins_jla_bandpasses()
-        builtins.mag_sys_jla()
+        builtins_jla_bandpasses()
+        mag_sys_jla()
         # Calculation of m_b
-        builtins.register_SUGAR()
+        register_SUGAR()
         source = sncosmo.get_source('sugar')
         model = sncosmo.Model(source=source)
         self.mb = np.zeros(len(self.dic_res.keys()))
@@ -182,8 +183,8 @@ class read_input_data_SNf(object):
         self.params[:,0] = self.mb
 
     def x0_to_mb(self):
-        builtins.builtins_jla_bandpasses()
-        builtins.mag_sys_jla()
+        builtins_jla_bandpasses()
+        mag_sys_jla()
         # Calculation of m_b
         source = sncosmo.get_source('salt2', version='2.4')
         model = sncosmo.Model(source=source)

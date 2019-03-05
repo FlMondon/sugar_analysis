@@ -7,7 +7,8 @@ Created on Wed Sep  5 10:33:31 2018
 """
 
 import sncosmo
-import builtins
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
 import read_jla as rjla
 import numpy as np
 import cosmo_tools as ct
@@ -39,7 +40,7 @@ class LC_Fitter(object):
         self.bd = build_data()
         self.filters = filters
         self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
-        builtins.register_SUGAR()
+        register_SUGAR()
         self.param_sug = ['q1', 'q2', 'q3']
         for psf in param_sug_fix:
             self.param_sug.remove(psf)
@@ -60,12 +61,12 @@ class LC_Fitter(object):
             
             self.errorscale = True
             self.width= width
-            builtins.register_SNf_bands_width(width=self.width)
-            builtins.mag_sys_SNF_width(width=self.width)
+            register_SNf_bands_width(width=self.width)
+            mag_sys_SNF_width(width=self.width)
             
         elif sample=='jla':
-            builtins.builtins_jla_bandpasses()
-            builtins.mag_sys_jla()
+            builtins_jla_bandpasses()
+            mag_sys_jla()
             self.dic_jla_zbias = {}
             jla_file = np.loadtxt(self.sad_path+'sugar_analysis_data/data/jla_data/jla_lcparams.txt',dtype='str')
             datos = os.listdir(self.sad_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
@@ -99,8 +100,8 @@ class LC_Fitter(object):
                     self.dic_jla_zbias['lc-' + line[0] + '.list'] = float(line[1]), float(line[3]), float(line[20])
         
         elif sample=='csp':
-            builtins.builtins_jla_bandpasses()
-            builtins.mag_sys_jla()
+            builtins_jla_bandpasses()
+            mag_sys_jla()
             self.rcsp = read_csp()
             datos = os.listdir(self.sad_path+'sugar_analysis_data/DR3/')
             self.data = []
@@ -130,8 +131,8 @@ class LC_Fitter(object):
 
             
         else:
-            builtins.register_SNf_bands_width(width=self.width)
-            builtins.mag_sys_SNF_width(width=self.width)
+            register_SNf_bands_width(width=self.width)
+            mag_sys_SNF_width(width=self.width)
             Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins_SNF')
             try:
                 self.data = pkl.load(open(data))
