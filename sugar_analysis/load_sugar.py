@@ -76,11 +76,11 @@ class SUGARSource(sncosmo.Source):
 def load_sugarmodel(relpath, name=None, version=None):
     return SUGARSource(modeldir=relpath, name=name, version=version)
 
-def register_SUGAR(sugar_model='../../sugar_model/'):
+def register_SUGAR(modeldir='../../sugar_model/'):
     website = 'http://no'
     PF16ref = ('PF16', 'PF et al. 2016 '
               '<http://arxiv.org/>')
     for topdir, ver, ref in [('SUGAR_model', '1.0', PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-        _SOURCES.register_loader('sugar', load_sugarmodel, args=([sugar_model]), version=ver, meta=meta, force=True)
+        _SOURCES.register_loader('sugar', load_sugarmodel, args=([modeldir]), version=ver, meta=meta, force=True)

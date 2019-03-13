@@ -25,6 +25,7 @@ class LC_Fitter(object):
                  t0_fix=False, sub_sample=None, modelcov=False,
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
                  filter_drop_csp = None, sad_path = '../../',
+                 modeldir='../../sugar_model/',
                  width=10, param_sug_fix =[]):
         
         
@@ -36,11 +37,11 @@ class LC_Fitter(object):
         self.dic_res = None
         self.sub_sample = sub_sample
         self.sample = sample
+        self.modeldir = modeldir
         self.modelcov = modelcov
-        self.bd = build_data()
         self.filters = filters
         self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
-        register_SUGAR()
+        register_SUGAR(modeldir=self.modeldir)
         self.param_sug = ['q1', 'q2', 'q3']
         for psf in param_sug_fix:
             self.param_sug.remove(psf)
@@ -48,6 +49,7 @@ class LC_Fitter(object):
                 
         
         if self.sample=='SNf':
+            self.bd = build_data(sad_path=self.sad_path, modeldir=self.modeldir)
             self.meta = pkl.load(open(self.sad_path+'sugar_analysis_data/META-CABALLO2.pkl'))
             self.data = []
             if sub_sample==None:
@@ -65,8 +67,8 @@ class LC_Fitter(object):
             mag_sys_SNF_width(width=self.width)
             
         elif sample=='jla':
-            builtins_jla_bandpasses()
-            mag_sys_jla()
+            builtins_jla_bandpasses(sad_path=self.sad_path)
+            mag_sys_jla(sad_path=self.sad_path)
             self.dic_jla_zbias = {}
             jla_file = np.loadtxt(self.sad_path+'sugar_analysis_data/data/jla_data/jla_lcparams.txt',dtype='str')
             datos = os.listdir(self.sad_path+'sugar_analysis_data/data/jla_data/jla_light_curves/')
@@ -131,16 +133,17 @@ class LC_Fitter(object):
 
             
         else:
+            self.width= width
             register_SNf_bands_width(width=self.width)
             mag_sys_SNF_width(width=self.width)
-            Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins_SNF')
-            try:
+            Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins')                
+            if type(data) is not dict and data is not None:
+                print type(data)
+                raise ValueError('data have to be a dictionary or None')
+            elif data is not None:
                 self.data = pkl.load(open(data))
-                if type(self.data) is not dict:
-                    raise ValueError('data type have to be a dictionary')
-            except:
-                raise ValueError('data type have to be a dictionary')
-    
+            else:
+                Warning('Data is not defined you can only fit a sigle SNIa with an astropy Table')
     def sn_data(self, sn_name):
        
         if self.sample == 'SNf':
@@ -192,7 +195,7 @@ class LC_Fitter(object):
                 self.model.set(mwebv=self.mwebv)
             if zhl==None:
                 self.model.set(z=0.)
-                Xgr_init = 1.
+                Xgr_init = 1.e-15
             else:
                 self.model.set(z=self.zhl)
                 Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
@@ -347,7 +350,8 @@ class LC_Fitter(object):
         chi2p = chi2*2
         m=0
     
-        while chi2 < chi2p and m < 10:
+    
+        while chi2 < chi2p and m < 20:
 
             print m
             if m > 0:
@@ -370,7 +374,6 @@ class LC_Fitter(object):
                 data_new.remove_row(A[i])
                 A-=1   
 
-            modelcov = True
             self.model.set(x1=res.parameters[3])
             self.model.set(c=res.parameters[4])
             self.model.set(x0=res.parameters[2])
@@ -381,7 +384,7 @@ class LC_Fitter(object):
                                                 'x1',
                                                 'c', 
                                                 'x0'], 
-                                               modelcov  = modelcov,
+                                               modelcov  = True,
                                                bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
             
             chi2p = chi2

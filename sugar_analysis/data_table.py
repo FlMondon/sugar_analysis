@@ -23,12 +23,12 @@ from astropy import units as u
 class build_data(object):
 
 
-    def __init__(self,sad_path = '../../'):
+    def __init__(self,sad_path = '../../', modeldir='../../sugar_model/'):
         self.sad_path = sad_path
         self.meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
-        register_SNf_bands_width(width=10)
-        mag_sys_SNF_width(width=10)
-        register_SUGAR()  
+        register_SNf_bands_width(width=10, sad_path=self.sad_path)
+        mag_sys_SNF_width(width=10 , sad_path=self.sad_path)
+        register_SUGAR(modeldir=modeldir)  
 
         self.noTH = True
         pkl_file = os.path.join(self.sad_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
