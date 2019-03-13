@@ -361,8 +361,8 @@ class LC_Fitter(object):
             t_peak = fitted_model.parameters[1]
             #print t_peak,fitted_model.parameters[4]
 
-            t1 = t_peak + cst.t_min_sug*(1 + self.model.get('z'))
-            t2 = t_peak + cst.t_max_sug*(1 + self.model.get('z'))
+            t1 = t_peak + cst.t_min_salt2*(1 + self.model.get('z'))
+            t2 = t_peak + cst.t_max_salt2*(1 + self.model.get('z'))
                         
             A=[]
             data_new = copy.deepcopy(data)
