@@ -151,7 +151,7 @@ class LC_Fitter(object):
             self.table_sn = self.bd.build_Astropy_Table(sn_name, band_used=self.filters)
         
         elif self.sample == 'jla':
-            self.head, self.table_sn = rjla.read_lc_jla(sn_name, model=self.model_name)
+            self.head, self.table_sn = rjla.read_lc_jla(sn_name, sad_path=self.sad_path, model=self.model_name)
             self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV']
 
         elif self.sample == 'csp':
