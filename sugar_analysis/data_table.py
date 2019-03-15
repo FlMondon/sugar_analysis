@@ -8,7 +8,7 @@ Created on Mon Oct  1 10:55:09 2018
 from ToolBox import Astro
 import numpy as np
 import sncosmo
-from sugar_analysis import constant as cst
+from .constant import CLIGHT, HPLANCK
 from astropy.table import Table
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
 from .load_sugar import register_SUGAR
@@ -41,7 +41,7 @@ class build_data(object):
         self.end =  max(wave)
         # Interpolate filter over spectrum (natively regularly sampled)
         f = self.interpolate(wave)
-        f *= wave/(cst.CLIGHT*1.0e13*cst.HPLANCK)
+        f *= wave/(CLIGHT*1.0e13*HPLANCK)
         
         #computation of the integral
         dxs = (float(self.end - self.start)/(len(wave)-1))

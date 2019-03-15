@@ -6,7 +6,7 @@ Created on Mon Sep 24 16:23:09 2018
 @author: florian
 """
 import numpy as np
-import constant as cst
+from .constant import CLIGHT, H0
 from scipy import integrate
 # ------------------ #
 #   Cosmology        #
@@ -27,7 +27,7 @@ def luminosity_distance(zcmb, zhl):
     else:
         integr = integrate.quad(int_cosmo, 0, zcmb)[0]
 
-    return (1+zhl)*(cst.CLIGHT/cst.H0)*integr
+    return (1+zhl)*(CLIGHT/H0)*integr
  
 def distance_modulus_th(zcmb, zhl):
     """

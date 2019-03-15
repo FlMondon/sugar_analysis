@@ -13,7 +13,7 @@ import read_jla as rjla
 import numpy as np
 import cosmo_tools as ct
 import copy
-import constant as cst
+from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
 from data_table import build_data
 from data_table import read_csp
 import cPickle as pkl
@@ -249,8 +249,8 @@ class LC_Fitter(object):
                     resp = res
                     fitted_modelp = fitted_model
                 t_peak = fitted_model.parameters[1]
-                t1 = t_peak + cst.t_min_sug*(1 + self.model.get('z'))
-                t2 = t_peak + cst.t_max_sug*(1 + self.model.get('z'))
+                t1 = t_peak + t_min_sug*(1 + self.model.get('z'))
+                t2 = t_peak + t_max_sug*(1 + self.model.get('z'))
                             
                 A=[]
                 data_new = copy.deepcopy(data)
@@ -361,8 +361,8 @@ class LC_Fitter(object):
             t_peak = fitted_model.parameters[1]
             #print t_peak,fitted_model.parameters[4]
 
-            t1 = t_peak + cst.t_min_salt2*(1 + self.model.get('z'))
-            t2 = t_peak + cst.t_max_salt2*(1 + self.model.get('z'))
+            t1 = t_peak + t_min_salt2*(1 + self.model.get('z'))
+            t2 = t_peak + t_max_salt2*(1 + self.model.get('z'))
                         
             A=[]
             data_new = copy.deepcopy(data)

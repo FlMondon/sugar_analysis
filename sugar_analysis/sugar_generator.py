@@ -16,8 +16,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import copy
 from astropy.table import Table
 from sugar_analysis import math_toolbox as sam
-import constant as cst
-from matplotlib import pyplot as plt
+from .constant import wl_min_sug, wl_max_sug, CLIGHT, HPLANCK
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
 import cPickle as pkl
@@ -34,12 +33,12 @@ class sugar_simulation():
                     m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
                  parameters_init=np.array([37., 0., 0., 0., 0.]),
-                 name=None, version=None, sugar_model = '/../../sugar_model/', sad_path = '/../../'):
+                 name=None, version=None, sugar_model = '../../sugar_model/', sad_path = '../../'):
         
         self.sad_path = sad_path
         self.sugar_model = sugar_model
         self._SCALE_FACTOR = 1.
-        self._param_names = ['q1', 'q2', 'q3', 'Av', 'grey']
+        self._param_names = ['grey', 'q1', 'q2', 'q3', 'Av']
         
         register_SNf_bands_width(width=10)
         mag_sys_SNF_width(width=10)
@@ -130,7 +129,7 @@ class sugar_simulation():
         if  isinstance(wave, np.ndarray):
             wave = wave
         else:
-            wave = np.linspace(cst.wl_min_sug,cst.wl_max_sug,197)
+            wave = np.linspace(wl_min_sug,wl_max_sug,197)
         flux = self.model_spectrum_flux(phase, wave)
         flux_err = np.zeros_like(flux)
         self.dic_spectrum['parameters'] = parameters
@@ -163,8 +162,8 @@ class sugar_simulation():
         self.splB = Spline1d(wlen, tran, k=1,ext = 1)    
         #computation of the integral
         dt = 10000
-        dxs = (float(cst.wl_max_sug-cst.wl_min_sug)/(dt-1))
-        inte = np.sum(flux*(self.xs/(cst.CLIGHT*cst.HPLANCK))*
+        dxs = (float(wl_max_sug-wl_min_sug)/(dt-1))
+        inte = np.sum(flux*(self.xs/(CLIGHT*1.0e13*HPLANCK))*
                       self.splB(self.xs)*dxs)
         return inte
         
@@ -181,8 +180,8 @@ class sugar_simulation():
             phase = self._phase
         for p in phase:
             for b in band_used:
-                xs = np.linspace(float(cst.wl_min_sug), 
-                                 float(cst.wl_max_sug), 10000)
+                xs = np.linspace(float(wl_min_sug), 
+                                 float(wl_max_sug), 10000)
                 self.xs = xs            
                 spec_flux = self.model_spectrum_flux(p, xs)
                 phot_flux = self.integral_to_phot(spec_flux[0],b)  
