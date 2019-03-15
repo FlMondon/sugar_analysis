@@ -138,7 +138,7 @@ class LC_Fitter(object):
             mag_sys_SNF_width(width=self.width)
             Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins')                
             if type(data) is not dict and data is not None:
-                print type(data)
+                print (type(data))
                 raise ValueError('data have to be a dictionary or None')
             elif data is not None:
                 self.data = pkl.load(open(data))
@@ -207,7 +207,7 @@ class LC_Fitter(object):
             else:
                 Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
 
-        print 'initialisation'            
+        print ('initialisation')            
 
         self.model.set(q1=0.0)
         self.model.set(q2=0.0)
@@ -220,7 +220,7 @@ class LC_Fitter(object):
                                                self.model, 
                                                self.param_sug+['A', 'Xgr'], 
                                                modelcov  = self.modelcov)
-            print res.chisq
+            print (res.chisq)
         else:
             res, fitted_model = sncosmo.fit_lc(data, 
                                                self.model, 
@@ -241,10 +241,10 @@ class LC_Fitter(object):
                                                self.param_sug, 
                                                modelcov=False)
             
-            print 'first iteration'
+            print ('first iteration')
             while chi2 < chi2p and m < 10:
     
-                print m
+                print (m)
                 if m > 0:
                     resp = res
                     fitted_modelp = fitted_model
@@ -279,10 +279,10 @@ class LC_Fitter(object):
             
                 chi2p = chi2
                 chi2 = res.chisq
-                print chi2p, chi2
+                print (chi2p, chi2)
                 if m == 0 and chi2 > chi2p :
                     if recovery:
-                        print 'First iteration fail try to recovery :'
+                        print ('First iteration fail try to recovery :')
                         chi2 = self.recovery_sugar(data, t0_init, Xgr_init, res, chi2p)
                         recovery = False 
                     else:
@@ -299,7 +299,7 @@ class LC_Fitter(object):
         n=0
         t0_iter=t0_init-5
         while res.chisq > chi2p and n < 10:
-            print n
+            print (n)
             n+=1
     
             self.model.set(Xgr=Xgr_init)
@@ -317,11 +317,11 @@ class LC_Fitter(object):
             except:
                 'Fit fail in recovery iteration %f! Next iteration'%n
             t0_iter += 1
-            print res.chisq
+            print (res.chisq)
         if n == 10:
             raise ValueError('recovery fail')
         else:
-            print 'successful recovery retry to fit'
+            print ('successful recovery retry to fit')
         
         return res.chisq
             
@@ -337,23 +337,23 @@ class LC_Fitter(object):
                               effect_frames=['obs'])         
         self.model.set(mwebv=self.mwebv)
         self.model.set(z=self.zhl)
-        print 'initialisation'            
+        print ('initialisation')            
         res, fitted_model = sncosmo.fit_lc(data, 
                                            self.model, 
                                            ['t0','c','x0'], 
                                            modelcov=False)
 
-        print res.parameters[1] 
-        print 'first iteration'
+        print (res.parameters[1])
+        print ('first iteration')
         chi2 = res.chisq
-        print chi2
+        print (chi2)
         chi2p = chi2*2
         m=0
     
     
         while chi2 < chi2p and m < 20:
 
-            print m
+            print (m)
             if m > 0:
                 resp = res
                 fitted_modelp = fitted_model
@@ -389,7 +389,7 @@ class LC_Fitter(object):
             
             chi2p = chi2
             chi2 = res.chisq
-            print chi2p, chi2
+            print (chi2p, chi2)
         #final results
         res = resp
         fitted_model = fitted_modelp
@@ -420,14 +420,14 @@ class LC_Fitter(object):
                               effect_frames=['obs'])
         for sn_name in self.data:
             self.sn_data(sn_name)
-            print sn_name
+            print (sn_name)
             if self.model_name == 'sugar':
                 try:
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn)
                     success = True
                 except :
                     success = False
-                    print 'fit fail for '+sn_name
+                    print ('fit fail for '+sn_name)
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
             elif self.model_name == 'salt2':
@@ -436,7 +436,7 @@ class LC_Fitter(object):
                     success = True
                 except :
                     success = False
-                    print 'fit fail for '+sn_name
+                    print ('fit fail for '+sn_name)
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
                     

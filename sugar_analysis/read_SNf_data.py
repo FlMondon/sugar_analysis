@@ -53,8 +53,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
                 except:
                     quality_flag = 1
             else:
-                print >> sys.stderr, \
-                    'filter not recognise' 
+                    raise ValueError('filter not recognise' )
                 return
 
             if quality_flag == 1 and not isnan(sn_data[t]['mag.'+f]):

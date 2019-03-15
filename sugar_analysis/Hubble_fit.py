@@ -308,8 +308,8 @@ class read_input_data_SNf(object):
         if self.model_name=='salt2':
                 self.x0_to_mb()
         self.cov_save = np.array(self.cov) 
-        self.cov = list(self.cov)
-        self.cov = block_diag(*self.cov)
+        self.cov_list = list(self.cov)
+        self.cov = block_diag(*self.cov_list)
         
 
     def write_data_yaml(self, outfile = '../../lsfr_analysis/meta_sugar_flo.yaml'):
@@ -594,8 +594,8 @@ class Hubble_fit(object):
         if model_name == None:
             raise ValueError('model_name have to be salt2 or sugar')
         self.fit(Mb_guess = -19.05)
-        print 'chi2', self.minuit.fval, 'dof ', self.dof
-        print 'chi2 per dof ', self.chi2_per_dof 
+        print ('chi2', self.minuit.fval, 'dof ', self.dof)
+        print ('chi2 per dof ', self.chi2_per_dof )
         step = modefit.stepfit(self.lssfr, self.residuals, np.sqrt(self.var-0.1**2),
                                proba=self.proba, dx=None, xcut=xcut, masknan=True, names=None)
         step.fit()
@@ -609,7 +609,7 @@ class Hubble_fit(object):
         ax.set_ylabel(ylabel,fontsize=16)
         ax.set_xlabel(xlabel,fontsize=16)
         PLOT['fig'].subplots_adjust(top=0.97,right=0.99)
-        print 'sig int ', self.sig_int
+        print ('sig int ', self.sig_int)
         import sugar_training as st
         wrms, wrms_err = st.comp_rms(self.residuals, 1, variance=self.var)
 
@@ -623,7 +623,7 @@ class Hubble_fit(object):
                                                             step.modelstep[1])),
                          fontsize=18)
 
-        print model_name+' step: ', step.modelstep
+        print (model_name+' step: ', step.modelstep)
         plt.savefig(fig_path+model_name+'.png')
         self.step_fitvalues = step.fitvalues
 
