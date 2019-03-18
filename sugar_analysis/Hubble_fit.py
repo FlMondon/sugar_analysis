@@ -16,7 +16,7 @@ from numpy.linalg import inv
 import cPickle as pkl
 import iminuit as minuit
 from scipy import optimize
-import math_toolbox as math
+from .math_toolbox import comp_rms
 from matplotlib import pyplot as plt
 import copy
 
@@ -401,10 +401,10 @@ class Hubble_fit(object):
         """
         obj = super(Hubble_fit,cls).__new__(cls)
         
-        exec "@make_method(Hubble_fit)\n"+\
+        exec ("@make_method(Hubble_fit)\n"+\
              "def _minuit_chi2_(self,%s): \n"%(", ".join(obj.freeparameters))+\
              "    parameters = %s \n"%(", ".join(obj.freeparameters))+\
-             "    return self.get_chi2(parameters)\n"
+             "    return self.get_chi2(parameters)\n")
 
 
         return obj
@@ -586,7 +586,7 @@ class Hubble_fit(object):
         
     def _fit_readout_(self):
         """ Computes the main numbers """
-        return math.comp_rms(self.residuals, self.dof, err=True, variance=self.var) , self.sig_int  
+        return comp_rms(self.residuals, self.dof, err=True, variance=self.var) , self.sig_int  
     
     def comp_mass_step_modefit(self, xcut=-10.8, xlabel='$\log(lsSFR)$', PRINT_WRMS=False, model_name=None, fig_path='../../lsfr_analysis/lsfr_') :
         import modefit
