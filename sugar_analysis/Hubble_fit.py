@@ -19,7 +19,7 @@ from scipy import optimize
 import math_toolbox as math
 from matplotlib import pyplot as plt
 import copy
-import modefit
+
 
 
 
@@ -589,6 +589,7 @@ class Hubble_fit(object):
         return math.comp_rms(self.residuals, self.dof, err=True, variance=self.var) , self.sig_int  
     
     def comp_mass_step_modefit(self, xcut=-10.8, xlabel='$\log(lsSFR)$', PRINT_WRMS=False, model_name=None, fig_path='../../lsfr_analysis/lsfr_') :
+        import modefit
         if (self.proba == self.variable[:,-1]).all():
             raise ValueError('Step done in the gloabal fit')
         if model_name == None:
