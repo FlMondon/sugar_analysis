@@ -10,7 +10,7 @@ import sncosmo
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
 from .load_sugar import register_SUGAR
 import numpy as np
-import cosmo_tools as ct
+from .cosmo_tools import distance_modulus_th
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 import cPickle as pkl
@@ -327,7 +327,7 @@ def generate_fake_data(N=200, slopes=None, stds=None, stds_err=None, sigma_int=N
     Mb = -19.3
     noise_level = 0.05
     z = np.random.uniform(0.01,0.1,size=N)
-    mb = ct.distance_modulus_th(z, z) + Mb
+    mb = distance_modulus_th(z, z) + Mb
 
     if slopes is not None:
         data = np.zeros((len(mb), len(slopes)+1))
@@ -449,7 +449,7 @@ class Hubble_fit(object):
         self.Cmu[np.diag_indices_from(self.Cmu)] += self.sig_int**2 + self.dmz**2 
         self.C = inv(self.Cmu)
         self.distance_modulus_table =  self.distance_modulus(params)
-        L = self.distance_modulus_table - ct.distance_modulus_th(self.zcmb, self.zhl)
+        L = self.distance_modulus_table - distance_modulus_th(self.zcmb, self.zhl)
         self.residuals = L
         self.var = np.diag(self.Cmu)
         return np.dot(L, np.dot(self.C,L))        

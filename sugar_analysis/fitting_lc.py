@@ -11,7 +11,7 @@ from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla
 from .load_sugar import register_SUGAR
 import read_jla as rjla
 import numpy as np
-import cosmo_tools as ct
+from .cosmo_tools import distance_modulus_th
 import copy
 from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
 from data_table import build_data
@@ -198,14 +198,14 @@ class LC_Fitter(object):
                 Xgr_init = 1.e-15
             else:
                 self.model.set(z=self.zhl)
-                Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
         else:
             self.model.set(z=self.zhl)
             self.model.set(mwebv=self.mwebv)
             if self.zcmb==None:
-                Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zhl,self.zhl)))
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zhl,self.zhl)))
             else:
-                Xgr_init = 10**(-0.4*(ct.distance_modulus_th(self.zcmb,self.zhl)))
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
 
         print ('initialisation')            
 
