@@ -9,7 +9,7 @@ Created on Wed Sep  5 10:33:31 2018
 import sncosmo
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
 from .load_sugar import register_SUGAR
-import read_jla as rjla
+from .read_jla import read_lc_jla
 import numpy as np
 from .cosmo_tools import distance_modulus_th
 import copy
@@ -155,7 +155,7 @@ class LC_Fitter(object):
             self.table_sn = self.bd.build_Astropy_Table(sn_name, band_used=self.filters)
         
         elif self.sample == 'jla':
-            self.head, self.table_sn = rjla.read_lc_jla(sn_name, sad_path=self.sad_path, model=self.model_name)
+            self.head, self.table_sn = read_lc_jla(sn_name, sad_path=self.sad_path, model=self.model_name)
             self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV']
 
         elif self.sample == 'csp':

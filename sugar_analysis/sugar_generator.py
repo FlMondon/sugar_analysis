@@ -15,7 +15,7 @@ from sncosmo.salt2utils import BicubicInterpolator
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import copy
 from astropy.table import Table
-from sugar_analysis import math_toolbox as sam
+from .math_toolbox import flbda2ABmag
 from .constant import wl_min_sug, wl_max_sug, CLIGHT, HPLANCK
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
@@ -224,7 +224,7 @@ class sugar_simulation():
         spec_mag = []
         spec_mag_err = []
         for p in (self._phase):
-            spec_mag_p = sam.flbda2ABmag(self._wave, 
+            spec_mag_p = flbda2ABmag(self._wave, 
                                          self.model_spectrum_flux(p, 
                                                                 self._wave)[0])  
             spec_mag_p_err = np.ones_like(spec_mag_p)
