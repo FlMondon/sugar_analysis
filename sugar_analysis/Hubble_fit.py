@@ -13,7 +13,10 @@ import numpy as np
 from .cosmo_tools import distance_modulus_th
 from scipy.linalg import block_diag
 from numpy.linalg import inv
-import cPickle as pkl
+try:
+   import cPickle as pkl
+except ModuleNotFoundError:
+   import pickle as pkl
 import iminuit as minuit
 from scipy import optimize
 from .math_toolbox import comp_rms
