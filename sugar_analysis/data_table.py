@@ -5,20 +5,22 @@ Created on Mon Oct  1 10:55:09 2018
 
 @author: florian
 """
-from ToolBox import Astro
+
 import numpy as np
 import sncosmo
 from .constant import CLIGHT, HPLANCK
 from astropy.table import Table
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
 from .load_sugar import register_SUGAR
-import cPickle as pkl
 import os 
 import sfdmap
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-
+try:
+   import cPickle as pkl
+except ModuleNotFoundError:
+   import pickle as pkl
     
 class build_data(object):
 
@@ -200,6 +202,7 @@ class read_csp(object):
     def get_mwebv(self, ra, dec, zhelio):
         """
         """
+        from ToolBox import Astro
         c = SkyCoord(ra+' '+dec, unit=(u.hourangle, u.deg))
         m = sfdmap.SFDMap(self.sad_path+'sugar_analysis_data/sfddata-master', scaling=1.0)
         galcoords = Astro.Coords.radec2gcs(c.ra.deg, c.dec.deg, deg=True)

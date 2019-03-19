@@ -14,11 +14,15 @@ import numpy as np
 from .cosmo_tools import distance_modulus_th
 import copy
 from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
-from data_table import build_data
-from data_table import read_csp
-import cPickle as pkl
-import os
+from .data_table import build_data
+from .data_table import read_csp
 
+import os
+try:
+   import cPickle as pkl
+except ModuleNotFoundError:
+   import pickle as pkl
+   
 class LC_Fitter(object):
     
     def __init__(self, model_name='sugar', sample='SNf', data=None, 

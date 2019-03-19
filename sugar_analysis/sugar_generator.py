@@ -19,7 +19,10 @@ from sugar_analysis import math_toolbox as sam
 from .constant import wl_min_sug, wl_max_sug, CLIGHT, HPLANCK
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
-import cPickle as pkl
+try:
+   import cPickle as pkl
+except ModuleNotFoundError:
+   import pickle as pkl
 
 
 
