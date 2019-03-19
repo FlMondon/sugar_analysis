@@ -60,6 +60,7 @@ class SUGARSource(sncosmo.Source):
             		m2file='sugar_template_2.dat',
             		m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat',
+                 mod_errfile='model_err_sug.dat',
                  name=None, version=None):
 
         self.name = name
@@ -81,15 +82,17 @@ class SUGARSource(sncosmo.Source):
             self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
             if key == 'M0':
                 # The "native" phases and wavelengths of the model are those
-                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3.,   6.,   9.,  12.,  15.,  18.,
-                                                21.,  24.,  27.,  30.,  33.,  36.,  39.,  42.,  45.,  48.])
+                self._phase = np.array([ -12.,  -9.,  -6.,  -3.,   0.,   3., 
+                                        6.,   9.,  12.,  15.,  18., 21.,  24., 
+                                        27.,  30.,  33.,  36.,  39.,  42.,
+                                        45.,  48.])
                 self._wave = wave
 
-
+        phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
+        self._model['mod_err'] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
+        
     def _flux(self, phase, wave):
-        """
-        TO DO
-        """
+
         M_sug = 48.59
         for i, key in enumerate(self.M_keys):
             if i >= 1.: 
@@ -98,13 +101,37 @@ class SUGARSource(sncosmo.Source):
                 M_sug += self._model[key](phase, wave)
         wave2_factor = (wave ** 2 / 299792458. * 1.e-10)
         return (self._parameters[0] * 10. ** (-0.4 * M_sug) /  wave2_factor)
-    
 
+    def _bandflux_rvar_single(self, band, phase):
+        """Model relative variance for a single bandpass."""
+        # Raise an exception if bandpass is out of model range.
+        if (band.minwave() < self._wave[0] or band.maxwave() > self._wave[-1]):
+            raise ValueError('bandpass {0!r:s} [{1:.6g}, .., {2:.6g}] '
+                             'outside spectral range [{3:.6g}, .., {4:.6g}]'
+                             .format(band.name, band.wave[0], band.wave[-1],
+                                     self._wave[0], self._wave[-1]))
+        mod_err = self._model['mod_err'](phase, band.wave_eff)[:, 0]
+        
+        # v is supposed to be variance but can go negative
+        # due to interpolation.  Correct negative values to some small
+        # number. (at present, use prescription of snfit : set
+        # negatives to 0.0001)
+        mod_err[mod_err < 0.0] = 0.0001
+        result = (mod_err * self.bandflux(band, phase)) / 1.0857362047581294
+        return result
+    
     def bandflux_rcov(self, band, phase):
         """
         model error in comming
         """
-        return np.zeros(phase.shape, dtype=np.float64)
+        # construct covariance array with relative variance on diagonal
+        diagonal = np.zeros(phase.shape, dtype=np.float64)
+        for b in set(band):
+            mask = band == b
+            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
+        result = np.diagflat(diagonal)
+        
+        return result
     
 
 # Sugar model
