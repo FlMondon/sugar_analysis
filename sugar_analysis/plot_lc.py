@@ -7,16 +7,16 @@ Created on Thu Feb  7 16:09:44 2019
 """
 import pylab as plt
 import numpy as np
-
 import sncosmo
-from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
 import matplotlib.gridspec as gridspec
-
 try:
    import cPickle as pkl
 except ModuleNotFoundError:
    import pickle as pkl
+
+
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
 
 def plot_lc_res(sn_name, 
             dic_path='../../sugar_analysis_data/resfitlc_csp_sugar.pkl', 

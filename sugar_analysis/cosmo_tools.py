@@ -6,8 +6,9 @@ Created on Mon Sep 24 16:23:09 2018
 @author: florian
 """
 import numpy as np
-from .constant import CLIGHT, H0
 from scipy import integrate
+
+from .constant import CLIGHT, H0
 # ------------------ #
 #   Cosmology        #
 # ------------------ #

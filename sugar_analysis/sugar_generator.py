@@ -9,14 +9,10 @@ Created on Thu Apr  5 13:02:35 2018
 import numpy as np
 from operator import itemgetter
 import sncosmo
-from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
 from sncosmo.salt2utils import BicubicInterpolator
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline1d
 import copy
 from astropy.table import Table
-from .math_toolbox import flbda2ABmag
-from .constant import wl_min_sug, wl_max_sug, CLIGHT, HPLANCK
 from sklearn.neighbors import KernelDensity
 from sklearn.model_selection import GridSearchCV
 try:
@@ -24,8 +20,10 @@ try:
 except ModuleNotFoundError:
    import pickle as pkl
 
-
-
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
+from .math_toolbox import flbda2ABmag
+from .constant import wl_min_sug, wl_max_sug, CLIGHT, HPLANCK
 
 class sugar_simulation():
     
