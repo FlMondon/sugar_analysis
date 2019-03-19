@@ -7,21 +7,23 @@ Created on Wed Sep  5 10:33:31 2018
 """
 
 import sncosmo
-from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
-from .read_jla import read_lc_jla
-import numpy as np
-from .cosmo_tools import distance_modulus_th
 import copy
-from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
-from .data_table import build_data
-from .data_table import read_csp
-
+import numpy as np
 import os
 try:
    import cPickle as pkl
 except ModuleNotFoundError:
    import pickle as pkl
+   
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
+from .read_jla import read_lc_jla
+from .cosmo_tools import distance_modulus_th
+from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
+from .data_table import build_data
+from .data_table import read_csp
+
+
    
 class LC_Fitter(object):
     

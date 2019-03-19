@@ -7,23 +7,23 @@ Created on Wed Sep 12 15:56:16 2018
 """
 
 import sncosmo
-from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
+from matplotlib import pyplot as plt
+import copy
 import numpy as np
-from .cosmo_tools import distance_modulus_th
 from scipy.linalg import block_diag
 from numpy.linalg import inv
+from scipy import optimize
 try:
    import cPickle as pkl
 except ModuleNotFoundError:
    import pickle as pkl
 import iminuit as minuit
-from scipy import optimize
+
+
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
+from .cosmo_tools import distance_modulus_th
 from .math_toolbox import comp_rms
-from matplotlib import pyplot as plt
-import copy
-
-
 
 
 def make_method(obj):

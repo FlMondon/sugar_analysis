@@ -5,22 +5,23 @@ Created on Mon Oct  1 10:55:09 2018
 
 @author: florian
 """
-
-import numpy as np
-import sncosmo
-from .constant import CLIGHT, HPLANCK
-from astropy.table import Table
-from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
 import os 
 import sfdmap
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-
+from astropy.table import Table
+import numpy as np
+import sncosmo
 try:
    import cPickle as pkl
 except ModuleNotFoundError:
    import pickle as pkl
+   
+from .constant import CLIGHT, HPLANCK
+from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
+from .load_sugar import register_SUGAR
+
+
     
 class build_data(object):
 
