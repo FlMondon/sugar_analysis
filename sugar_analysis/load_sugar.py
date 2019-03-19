@@ -14,7 +14,42 @@ from sncosmo.models import _SOURCES
 
 class SUGARSource(sncosmo.Source):
     """
-    TO DO
+    The SUGAR Type Ia supernova spectral timeseries model.
+    
+    The spectral flux density of this model is given by
+    
+    .. math::
+       
+    F(t, \\lambda) = Xgr 10^{-0.4 (M_0(t, \\lambda) 
+                                + q_1 M_1(t, \\lambda)
+                                + q_1 M_1(t, \\lambda)
+                                + q_2 M_2(t, \\lambda)
+                                +q_3 M_3(t, \\lambda) 
+                                + A M_4(t, \\lambda))} (10^{-3} c\\lambda^{2})
+
+    where ``Xgr``, ``q_1``, ``q_2``, ``q_3``  and ``A`` are the free parameters
+    of the model,``M_0``, ``M_1``, `M_2``, `M_4``, `M_4`` are the zeroth and 
+    first components of the model.     
+
+    Parameters
+    ----------
+    modeldir : str, optional
+        Directory path containing model component files. Default is `None`,
+        which means that no directory is prepended to filenames when
+        determining their path.
+        m0file, m1file, m2file, m3file, m4file: str or fileobj, optional
+        Filenames of various model components. Defaults are:
+
+        * m0file = 'sugar_template_0.dat' (2-d grid)
+        * m1file = 'sugar_template_1.dat' (2-d grid)
+        * m2file = 'sugar_template_1.dat' (2-d grid)
+        * m3file = 'sugar_template_1.dat' (2-d grid)
+        * m4file = 'sugar_template_1.dat' (2-d grid)
+        
+    Notes
+    -----
+    The "2-d grid" files have the format ``<phase> <wavelength>
+    <value>`` on each line.    
     """
     _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
     param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
