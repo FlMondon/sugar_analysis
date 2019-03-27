@@ -53,7 +53,10 @@ class read_input_data_SNf(object):
                  step_data=None):
         
         self.model_name = model_name
-        dic =  pkl.load(open(res_dict_path))
+        try:
+            dic =  pkl.load(open(res_dict_path))
+        except:
+            dic = pkl.load(open(res_dict_path,'rb'),encoding='latin1')
         self.dic_res = dic['data']
         self.t0_fix = dic['info']['t0 fix']
         self.select = select
