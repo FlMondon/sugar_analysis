@@ -6,7 +6,6 @@ Created on Mon Oct  1 10:55:09 2018
 @author: florian
 """
 import os 
-import sfdmap
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.table import Table
@@ -204,6 +203,7 @@ class read_csp(object):
         """
         """
         from ToolBox import Astro
+        import sfdmap
         c = SkyCoord(ra+' '+dec, unit=(u.hourangle, u.deg))
         m = sfdmap.SFDMap(self.sad_path+'sugar_analysis_data/sfddata-master', scaling=1.0)
         galcoords = Astro.Coords.radec2gcs(c.ra.deg, c.dec.deg, deg=True)
