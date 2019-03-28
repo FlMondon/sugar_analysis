@@ -52,7 +52,7 @@ class SUGARSource(sncosmo.Source):
     <value>`` on each line.    
     """
     _param_names = ['Xgr', 'q1', 'q2', 'q3', 'A']
-    param_names_latex = ['X_r', 'q_1', 'q_2', 'q_3', 'A']
+    param_names_latex = ['X_gr', 'q_1', 'q_2', 'q_3', 'A']
     
 
     def __init__(self, modeldir='../../sugar_model/', m0file='sugar_template_0.dat',
