@@ -88,7 +88,7 @@ class SUGARSource(sncosmo.Source):
                                         45.,  48.])
                 self._wave = wave
 
-        phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
+#        phase, wave, values = sncosmo.read_griddata_ascii(modeldir+mod_errfile)
         self._model['mod_err'] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
         
     def _flux(self, phase, wave):
