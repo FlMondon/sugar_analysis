@@ -74,6 +74,8 @@ class read_input_data_SNf(object):
         elif model_name == 'salt2':
             if self.standard == 'mb' :
                 self.param_name = ['mb', 'x1', 'c']
+            elif self.standard == 'log10_x0' :
+                self.param_name = ['log10_x0', 'x1', 'c']
             else: 
                 self.param_name = ['x0', 'x1', 'c']
         else:
