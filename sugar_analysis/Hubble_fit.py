@@ -324,11 +324,14 @@ class read_input_data_SNf(object):
                 self.Xgr_to_Mgr()
             elif self.standard == 'mb':
                 self.Xgr_to_mb()
-            else:
-                 raise ValueError( 'Warning: with sugar standard have to be Mgr or mb')
+            elif self.standard is not 'Xgr':
+                 raise ValueError( 'Warning: with sugar standard have to be Mgr, mb or Xgr')
         if self.model_name=='salt2':
             if self.standard == 'mb':
                 self.x0_to_mb()
+            elif self.standard is not  'x0':
+                raise ValueError( 'Warning: with sugar standard have to be mb or x0')
+                
         self.cov_save = np.array(self.cov) 
         self.cov_list = list(self.cov)
         self.cov = block_diag(*self.cov_list)
