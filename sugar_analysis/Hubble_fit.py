@@ -63,18 +63,30 @@ class read_input_data_SNf(object):
         self.standard = standard
         self.step_data = step_data
         self.transformed = False
-    
-    def delete_fit_fail(self):
+        if model_name == 'sugar' :
+            if standard == 'mb' :
+                self.param_name = ['mb', 'q1', 'q2', 'q3', 'Av']
+            elif standard == 'Mgr':
+                self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'Av']
+            else:
+                self.param_name = ['Xgr', 'q1', 'q2', 'q3', 'Av']
+            
+        elif model_name == 'salt2':
+            self.param_name = ['mb', 'x1', 'c']
+        else:
+            raise ValueError('Model name have to be salt2 or sugar')
+            
+    def delete_fit_fail(self, dic):
         """
         """
         self.fit_fail = []
         dic_del = {}
-        for sn_name in self.dic_res.keys():
-            if self.dic_res[sn_name]['res'] != 'fit fail':
-                dic_del[sn_name] = self.dic_res[sn_name]
+        for sn_name in dic.keys():
+            if dic[sn_name]['res'] != 'fit fail':
+                dic_del[sn_name] = dic[sn_name]
             else:
                 self.fit_fail.append(sn_name)
-        self.dic_res = dic_del 
+        return dic_del 
     
     def selection(self):
         
@@ -90,7 +102,7 @@ class read_input_data_SNf(object):
             self.dic_res = dic
                    
     def trans_data_form(self):
-        self.delete_fit_fail()
+        self.dic_res = self.delete_fit_fail(self.dic_res)
         self.selection()
         list_param = []
         list_cov = []
@@ -328,6 +340,9 @@ class read_input_data_SNf(object):
         yaml.dump(dico, open(outfile,'w'))
 
 def generate_fake_data(N=200, slopes=None, stds=None, stds_err=None, sigma_int=None, step=None, SEED=42):
+    """
+    En chantier (Work in progress)
+    """
     np.random.seed(SEED)
     # mu = m - M
     Mb = -19.3
