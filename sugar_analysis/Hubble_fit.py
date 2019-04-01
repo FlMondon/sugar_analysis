@@ -329,6 +329,10 @@ class read_input_data_SNf(object):
         if self.model_name=='salt2':
             if self.standard == 'mb':
                 self.x0_to_mb()
+            elif self.standard == 'log10_x0' :
+                self.params[:,0] = -2.5*np.log10(self.params[:,0])
+                for i in range(len(self.sn_name)):
+                        self.cov[i,0,0] = self.cov[i,0,0]*1.0857362047581294 * self.params[:,0]
             elif self.standard is not  'x0':
                 raise ValueError( 'Warning: with sugar standard have to be mb or x0')
                 
