@@ -72,7 +72,10 @@ class read_input_data_SNf(object):
                 self.param_name = ['Xgr', 'q1', 'q2', 'q3', 'Av']
             
         elif model_name == 'salt2':
-            self.param_name = ['mb', 'x1', 'c']
+            if self.standard == 'mb' :
+                self.param_name = ['mb', 'x1', 'c']
+            else: 
+                self.param_name = ['x0', 'x1', 'c']
         else:
             raise ValueError('Model name have to be salt2 or sugar')
             
@@ -324,6 +327,7 @@ class read_input_data_SNf(object):
             else:
                  raise ValueError( 'Warning: with sugar standard have to be Mgr or mb')
         if self.model_name=='salt2':
+            if self.standard == 'mb':
                 self.x0_to_mb()
         self.cov_save = np.array(self.cov) 
         self.cov_list = list(self.cov)
