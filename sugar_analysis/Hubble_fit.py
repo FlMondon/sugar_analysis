@@ -64,9 +64,9 @@ class read_input_data_SNf(object):
         self.step_data = step_data
         self.transformed = False
         if model_name == 'sugar' :
-            if standard == 'mb' :
+            if self.standard == 'mb' :
                 self.param_name = ['mb', 'q1', 'q2', 'q3', 'Av']
-            elif standard == 'Mgr':
+            elif self.standard == 'Mgr':
                 self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'Av']
             else:
                 self.param_name = ['Xgr', 'q1', 'q2', 'q3', 'Av']
