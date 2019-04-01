@@ -334,7 +334,10 @@ class read_input_data_SNf(object):
             elif self.standard == 'log10_x0' :
                 self.params[:,0] = -2.5*np.log10(self.params[:,0])
                 for i in range(len(self.sn_name)):
-                        self.cov[i,0,0] = self.cov[i,0,0]*1.0857362047581294 * self.params[i,0]
+                        self.cov[i,0,0] = self.cov[i,0,0]*(1.0857362047581294 /self.params[i,0])**2
+                        self.cov[i,0,1] = self.cov[i,0,1]*(1.0857362047581294 /self.params[i,0])
+                        self.cov[i,0,2] = self.cov[i,0,2]*(1.0857362047581294 /self.params[i,0])
+                        self.cov[i,:,0] = self.cov[i,0,:]
             elif self.standard is not  'x0':
                 raise ValueError( 'Warning: with sugar standard have to be mb, log10_x0 or x0')
                 
