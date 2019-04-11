@@ -62,7 +62,7 @@ class SUGARSource(sncosmo.Source):
                  m4file='sugar_template_4.dat',
                  mod_errfile='model_err_sug.dat',
                  name=None, version=None):
-
+        print 'c est :' , mod_errfile , version
         self.name = name
         self.version = version
         self._model = {}
@@ -87,8 +87,8 @@ class SUGARSource(sncosmo.Source):
                                         27.,  30.,  33.,  36.,  39.,  42.,
                                         45.,  48.])
                 self._wave = wave
-
-#        phase, wave, values = sncosmo.read_griddata_ascii(modeldir+mod_errfile)
+        self.mod_errfile = mod_errfile
+        phase, wave, values = sncosmo.read_griddata_ascii(modeldir+mod_errfile)
         self._model['mod_err'] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
         
     def _flux(self, phase, wave):
@@ -113,7 +113,7 @@ class SUGARSource(sncosmo.Source):
         mod_err = self._model['mod_err'](phase, band.wave_eff)[:, 0]
         
         # v is supposed to be variance but can go negative
-        # due to interpolation.  Correct negative values to some small
+        # due to interpolation. Correct negative values to some small
         # number. (at present, use prescription of snfit : set
         # negatives to 0.0001)
         mod_err[mod_err < 0.0] = 0.0001
@@ -124,6 +124,7 @@ class SUGARSource(sncosmo.Source):
         """
         model error in comming
         """
+        print self.mod_errfile
         # construct covariance array with relative variance on diagonal
         diagonal = np.zeros(phase.shape, dtype=np.float64)
         for b in set(band):
@@ -133,16 +134,19 @@ class SUGARSource(sncosmo.Source):
         
         return result
     
-
-# Sugar model
-def load_sugarmodel(relpath, name=None, version=None):
-    return SUGARSource(modeldir=relpath, name=name, version=version)
-
-def register_SUGAR(modeldir='../../sugar_model/'):
+def register_SUGAR(modeldir='../../sugar_model/', mod_errfile='model_err_sug.dat', version='1.0'):
     website = 'http://no'
     PF16ref = ('PF16', 'PF et al. 2016 '
               '<http://arxiv.org/>')
-    for topdir, ver, ref in [('SUGAR_model', '1.0', PF16ref)]:
+    for topdir, ver, ref in [('SUGAR_model', version, PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-        _SOURCES.register_loader('sugar', load_sugarmodel, args=([modeldir]), version=ver, meta=meta, force=True)
+        print 'ca devrait etre :' , mod_errfile, version
+
+        _SOURCES.register_loader('sugar', lambda relpath, mod_errfile,
+        name=None, version=None : SUGARSource(modeldir=relpath,
+                                              mod_errfile=mod_errfile,
+                                              name=name, version=version)
+        , args=([modeldir, mod_errfile]), version=ver, meta=meta, force=True)
+
+        
