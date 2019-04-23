@@ -10,6 +10,7 @@ import sncosmo
 import numpy as np
 import os
 from scipy.linalg import block_diag
+from scipy.interpolate import interp2d
 
 from iminuit import Minuit
 try:
@@ -23,14 +24,14 @@ from .load_sugar import register_SUGAR
 from .Hubble_fit import read_input_data_SNf 
 from astropy.extern import six
 
-def build_sig_par(nb_bin=9):
-    bands = ['cspg', 'cspb', 'cspv', 'cspr', 'cspi']
+def build_sig_par(nb_node=9):
+    bands = ['cspb', 'cspg', 'cspv', 'cspr', 'cspi']
     sigmas2 = []
     for band in bands:
-        for j in range(nb_bin):
+        for j in range(nb_node):
             sigmas2.append(band+'_'+str(j))
     
-    return sigmas2
+    return sigmas2, band
     
     
 def make_method(obj):
@@ -52,17 +53,17 @@ def make_method(obj):
 
 
 def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_bin=9, reml=False, fit_iter=True):
+                 modeldir='../../sugar_model/', nb_node=9, fit_spline=True, reml=False, fit_iter=True):
     """
     Parameters
     ----------
     """
     class build_sugar_error_model_case(build_sugar_error_model):
-        freeparameters = build_sig_par(nb_bin=nb_bin)
+        freeparameters, bands = build_sig_par(nb_node=nb_node)
     
 
     reml = build_sugar_error_model_case(output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_bin=nb_bin, reml=reml, fit_iter=fit_iter)
+                 modeldir='../../sugar_model/', nb_node=nb_node, reml=reml, fit_iter=fit_iter, fit_spline=True)
     return reml
 
 class build_sugar_error_model(object):
@@ -83,12 +84,16 @@ class build_sugar_error_model(object):
     
     
     def __init__(self, output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_bin=9, reml=False, fit_iter=True):
+                 modeldir='../../sugar_model/', nb_node=9, reml=False,
+                 fit_iter=True, bands=['cspb', 'cspg', 'cspv', 'cspr', 'cspi'],
+                 fit_spline=True):
         register_SUGAR(modeldir=modeldir, version='0.0')
         self.output_path = output_path
+        self.bands = bands
         self.source = sncosmo.get_source('sugar', version='0.0')
-        self.nb_bin = nb_bin
+        self.nb_node = nb_node
         self.reml = reml
+        self.fit_spline = fit_spline
         self.fit_iter = fit_iter
         dust = sncosmo.CCM89Dust()
         self.model = sncosmo.Model(source=self.source, 
@@ -138,47 +143,81 @@ class build_sugar_error_model(object):
         residuals = data_mag - model_mag
         return residuals
     
+    def weight_matrix_bin(self, sigmas2):
+        
+        band = self.dic[self.sn_name]['data_table']['band'][self.Filtre]
+        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][self.Filtre]
+        data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
+        cm_diag = np.zeros_like(data_fluxerr)
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node+1)
+        
+        
+        
+        for i in range(self.nb_node):
+            for j, b in enumerate(band):
+                  phase_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
+                  phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])    
+                  if b == 'cspg':
+                     if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+                         cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i]**2)
+                         
+                  elif b == 'cspb': 
+                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node]**2)    
+                          
+                  elif b == 'cspv3014' or b == 'cspv9844' : 
+                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*2]**2)
+                          
+                  elif b == 'cspr': 
+                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*3]**2)         
+                          
+                  elif b == 'cspi': 
+                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j])**2 + sigmas2[i+self.nb_node*4]**2)
+                  else:
+                      raise ValueError('filter have to be in this set [i, r, v3014, v9844, b, g]')
+                  
+        w = np.diag(cm_diag)
+        det_cov = np.sum(np.log(cm_diag))
+        return w, det_cov
+    
     def weight_matrix(self, sigmas2):
         
         band = self.dic[self.sn_name]['data_table']['band'][self.Filtre]
         data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][self.Filtre]
         data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
         cm_diag = np.zeros_like(data_fluxerr)
-        phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_bin+1)
-        
-        
-        
-        for i in range(self.nb_bin):
-            for j, b in enumerate(band):
-                  phase_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
-                  phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])    
-                  if b == 'cspg':
-                     if phase >= phase_bin[i] and phase <= phase_bin[i+1]:
-                         cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i])
-                         
-                  elif b == 'cspb': 
-                      if phase >= phase_bin[i] and phase <= phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_bin])    
-                          
-                  elif b == 'cspv3014' or b == 'cspv9844' : 
-                      if phase >= phase_bin[i] and phase <= phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_bin*2])
-                          
-                  elif b == 'cspr': 
-                      if phase >= phase_bin[i] and phase <= phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_bin*3])         
-                          
-                  elif b == 'cspi': 
-                      if phase >= phase_bin[i] and phase <= phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_bin*4])
-                  else:
-                      raise ValueError ('filter have to be in this set [i, r, v3014, v9844, b, g]')
+        self.phase_bin = np.linspace(t_min_sug-5, t_max_sug+5, self.nb_node)
+        self.wave_bin = np.zeros(len(self.bands))
+        node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
+        for l in range(len(self.phase_bin)):   
+            for i in range(len(self.wave_bin)):
+                
+                if l ==0:
+                    if self.bands[i] == 'cspv':
+                        f = sncosmo.get_bandpass('cspv9844')
+                    else :
+                        f = sncosmo.get_bandpass(self.bands[i])
+                    self.wave_bin[i] = float(f.wave_eff)
+                node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
+        self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
+        for j, b in enumerate(band):
+              phase_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
+              phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])   
+              if b == 'cspv3014' or b == 'cspv9844':
+                    f = sncosmo.get_bandpass('cspv9844')
+              else :
+                    f = sncosmo.get_bandpass(b)
+              
+              weff = f.wave_eff              
+              cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + self.intrinsic_dispertion(phase, weff)**2)
                   
         w = np.diag(cm_diag)
         det_cov = np.sum(np.log(cm_diag))
         return w, det_cov
     
-
     def likelihood(self, sigmas2):
         res = np.array([])
         w_m = []
@@ -198,7 +237,10 @@ class build_sugar_error_model(object):
 
             self.Filtre = self.dic[self.sn_name]['res']['data_mask']    
             res = np.concatenate((res, self.residuals()), axis=None)
-            w_i, log_det_cov_i = self.weight_matrix(sigmas2)
+            if self.fit_spline:
+                w_i, log_det_cov_i = self.weight_matrix(sigmas2)
+            else:
+                w_i, log_det_cov_i = self.weight_matrix_bin(sigmas2)
             w_m.append(w_i)
             log_det_cov += log_det_cov_i
         self.w = block_diag(*w_m)
@@ -261,7 +303,7 @@ class build_sugar_error_model(object):
 
         # -- Finally if no values have been set, let's do it
         for name in self.freeparameters:
-                self.param_input[name+"_guess"] = 0.003
+                self.param_input[name+"_guess"] = 0.04
                 self.param_input[name+"_boundaries"] = (0.,2.)
                 
     def fit(self, **kwargs):
@@ -290,7 +332,7 @@ class build_sugar_error_model(object):
         lcf.write_result(specific_file=self.output_path+self.param_sug_path)
         self.setup_guesses(**kwargs)
         self._fit_minuit_()
-        self.err_mod_path = 'train_intres_path_0.dat'
+        self.err_mod_path = 'train_intres_0.dat'
         self.write_res(self.err_mod_path)
         l = self._migrad_output_[0].fval / len(self.res)
         i = 0
@@ -298,7 +340,7 @@ class build_sugar_error_model(object):
         
         if self.fit_iter :
             while l < l_p and i <= 10 :
-#                l_p = self._migrad_output_[0].fval / len(self.res)
+                #l_p = self._migrad_output_[0].fval / len(self.res)
                 lcf = LC_Fitter(model_name='sugar', sample='csp',
                                 modelcov=True, qual_crit=True, 
                                 mod_errfile='../sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
@@ -312,34 +354,42 @@ class build_sugar_error_model(object):
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
                 i += 1
+                self.err_mod_path = 'train_intres_%s.dat'%str(i)
+                self.write_res(self.err_mod_path)
             self._migrad_output_ = m_p
             self.resultsfit = res_p
-            self.err_mod_path = 'train_intres_path_%s.dat'%str(i+1)
+            self.err_mod_path = 'err_mod.dat'%str(i)
             self.write_res(self.err_mod_path)
             
     def write_res(self, train_intres_path):
         
         train_err_mod = open(self.output_path+train_intres_path, 'w')
-        csp_bands = ['cspb', 'cspg', 'cspv', 'cspr', 'cspi']
-        for j, band in enumerate(csp_bands):
-            if band == 'cspv':
-                sncosmo_cspv9844 = sncosmo.get_bandpass('cspv9844')
-                weff = sncosmo_cspv9844.wave_eff
-                Warning('to complete cspv3014')
-            else:
-                sncosmo_band = sncosmo.get_bandpass(band)
-                weff = sncosmo_band.wave_eff
-
-            phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_bin+1)
-            for i in range(self.nb_bin):
-                    p_bin = np.min([phase_bin[i], phase_bin[i+1]])
-                    value = self._migrad_output_[1][i+self.nb_bin*j]['value']
+        if self.fit_spline:
+            for i, p_bin in enumerate(self.phase_bin):
+                for j, weff in enumerate(self.wave_bin):
+                    value = self._migrad_output_[1][i+self.nb_node*j]['value']
+                    train_err_mod.write('%f %f %f \n'%(p_bin, weff, value))   
+        else:
+            for i in range(self.nb_node):
+                p_bin = np.mean([self.phase_bin[i], self.phase_bin[i+1]])
+                for j, band in enumerate(self.bands):
+                    if band == 'cspv':
+                        sncosmo_cspv9844 = sncosmo.get_bandpass('cspv9844')
+                        weff = sncosmo_cspv9844.wave_eff
+                        Warning('to complete cspv3014')
+                    else:
+                        sncosmo_band = sncosmo.get_bandpass(band)
+                        weff = sncosmo_band.wave_eff
+                    value = self._migrad_output_[1][i+self.nb_node*j]['value']
                     train_err_mod.write('%f %f %f \n'%(p_bin, weff, value))
+                
+
+                    
                     
     
-#    def intrinsic_dispertion(self, sigmas2):
-#        return 
-#    
+    def intrinsic_dispertion(self, p, wl):
+        return self.spline(p, wl)[0]
+    
                 
     def _setup_minuit_(self):
         """
