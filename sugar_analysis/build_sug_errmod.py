@@ -62,8 +62,9 @@ def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
         freeparameters, bands = build_sig_par(nb_node=nb_node)
     
 
-    reml = build_sugar_error_model_case(output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_node=nb_node, reml=reml, fit_iter=fit_iter, fit_spline=True)
+    reml = build_sugar_error_model_case(output_path=output_path,
+                 modeldir=modeldir, nb_node=nb_node,
+                 reml=reml, fit_iter=fit_iter, fit_spline=True)
     return reml
 
 class build_sugar_error_model(object):
