@@ -275,7 +275,7 @@ class build_sugar_error_model(object):
                 H[n] = self.model_comp(band, phase, self.dic[self.sn_name]['res']['parameters'][0])
                 n +=1
         return H
-    
+       
     def setup_guesses(self,**kwargs):
         """ Defines the guesses, boundaries and fixed values
         that will be passed to the given model.
@@ -415,4 +415,5 @@ class build_sugar_error_model(object):
         self.resultsfit = np.asarray([self.minuit.values[k]
                               for k in self.freeparameters])
 
-                
+   
+    

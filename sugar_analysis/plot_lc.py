@@ -70,7 +70,7 @@ def plot_lc_res(sn_name,
         model.set(q3 = float(dic['data'][sn_name]['res']['parameters'][5]))
         model.set(A = float(dic['data'][sn_name]['res']['parameters'][6]))
         model.set(mwebv = float(dic['data'][sn_name]['res']['parameters'][7]))
-        model_title = 'SUGAR'
+        
         
     if sed_model is 'salt2':
         source = sncosmo.get_source('salt2')
@@ -86,8 +86,8 @@ def plot_lc_res(sn_name,
         model.set(x1 = float(dic['data'][sn_name]['res']['parameters'][3]))
         model.set(c = float(dic['data'][sn_name]['res']['parameters'][4]))
         model.set(mwebv = float(dic['data'][sn_name]['res']['parameters'][5]))
-        model_title = 'SALT2'
-
+    
+    model_title = sed_model
     time = np.linspace(-12,48,50)
     t0 = float(dic['data'][sn_name]['res']['parameters'][1])
     
@@ -198,11 +198,11 @@ def plot_lc_res(sn_name,
         if f == filt[len(filt)-1]: 
             YMAX = np.max(mag_obs+dic_color[f]['cst']) + 1.
             if type(YMAX) != float: 
-                YMAX = 14.
+                YMAX = 22.
         if f == filt[0]:
             YMIN = np.min(mag_obs+dic_color[f]['cst']) - 1.
             if type(YMIN) != float: 
-                YMIN = 6.
+                YMIN = 15.
             
         plt.subplot(dic_color[f]['gs'])
         plt.scatter(time_obs, mag_obs - mag_phase_obs, c=dic_color[f]['color'])

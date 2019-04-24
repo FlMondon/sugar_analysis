@@ -603,7 +603,7 @@ class Hubble_fit(object):
         minuit_kwargs = {}
         for param in self.freeparameters:
             minuit_kwargs[param] = self.param_input["%s_guess"%param]
-
+            
 
         self.minuit = minuit.Minuit(self._minuit_chi2_, **minuit_kwargs)
     

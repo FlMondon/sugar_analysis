@@ -10,7 +10,7 @@ import numpy as np
 import os
 from astropy.extern import six
 from sncosmo.models import _SOURCES
-
+from scipy.interpolate import interp2d
 
 class SUGARSource(sncosmo.Source):
     """
@@ -89,7 +89,7 @@ class SUGARSource(sncosmo.Source):
                 self._wave = wave
         self.mod_errfile = mod_errfile
         phase, wave, values = sncosmo.read_griddata_ascii(modeldir+mod_errfile)
-        self._model['mod_err'] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
+        self._model['mod_err'] = interp2d(wave, phase, values) 
         
     def _flux(self, phase, wave):
 
@@ -110,7 +110,7 @@ class SUGARSource(sncosmo.Source):
                              'outside spectral range [{3:.6g}, .., {4:.6g}]'
                              .format(band.name, band.wave[0], band.wave[-1],
                                      self._wave[0], self._wave[-1]))
-        mod_err = self._model['mod_err'](phase, band.wave_eff)[:, 0]
+        mod_err = self._model['mod_err'](band.wave_eff, phase)[:, 0]
         
         # v is supposed to be variance but can go negative
         # due to interpolation. Correct negative values to some small
@@ -129,7 +129,7 @@ class SUGARSource(sncosmo.Source):
         diagonal = np.zeros(phase.shape, dtype=np.float64)
         for b in set(band):
             mask = band == b
-            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
+            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])**2
         result = np.diagflat(diagonal)
         
         return result
