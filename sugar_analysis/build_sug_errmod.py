@@ -88,11 +88,13 @@ class build_sugar_error_model(object):
                  fit_iter=True, bands=['cspb', 'cspg', 'cspv', 'cspr', 'cspi'],
                  fit_spline=True):
         register_SUGAR(modeldir=modeldir, version='0.0')
+        self.modeldir = modeldir
         self.output_path = output_path
         self.bands = bands
         self.source = sncosmo.get_source('sugar', version='0.0')
         self.nb_node = nb_node
         self.reml = reml
+        self.like_val_it = [] #values of likelihood/N after each iteration
         self.fit_spline = fit_spline
         self.fit_iter = fit_iter
         dust = sncosmo.CCM89Dust()
@@ -189,7 +191,7 @@ class build_sugar_error_model(object):
         data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][self.Filtre]
         data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
         cm_diag = np.zeros_like(data_fluxerr)
-        self.phase_bin = np.linspace(t_min_sug-5, t_max_sug+5, self.nb_node)
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug+3, self.nb_node)
         self.wave_bin = np.zeros(len(self.bands))
         node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
         for l in range(len(self.phase_bin)):   
@@ -326,7 +328,8 @@ class build_sugar_error_model(object):
         """
         #First step
         lcf = LC_Fitter(model_name='sugar', sample='csp',
-                        modelcov=False, qual_crit=True, version_sug='0.0')
+                        modelcov=False, qual_crit=True, version_sug='0.0',
+                        modeldir = self.modeldir)
         lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
         lcf.write_result(specific_file=self.output_path+self.param_sug_path)
@@ -335,6 +338,7 @@ class build_sugar_error_model(object):
         self.err_mod_path = 'train_intres_0.dat'
         self.write_res(self.err_mod_path)
         l = self._migrad_output_[0].fval / len(self.res)
+        self.like_val_it.append(l)
         i = 0
         l_p = 0
         
@@ -344,13 +348,14 @@ class build_sugar_error_model(object):
                 lcf = LC_Fitter(model_name='sugar', sample='csp',
                                 modelcov=True, qual_crit=True, 
                                 mod_errfile='../sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
-                                version_sug='%s.0'%str(i+1))
+                                version_sug='%s.0'%str(i+1),  modeldir = self.modeldir )
                 lcf.fit_sample()
                 self.param_sug_path = 'param_sugerrmod_%s.pkl'%str(i+1)
                 lcf.write_result(specific_file=self.output_path+self.param_sug_path)
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
                 l = self._migrad_output_[0].fval / len(self.res)
+                self.like_val_it.append(l)
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
                 i += 1
