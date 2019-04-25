@@ -53,7 +53,8 @@ def make_method(obj):
 
 
 def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_node=9, fit_spline=True, reml=False, fit_iter=True):
+                 modeldir='../../sugar_model/', nb_node=9, sad_path = '../../',
+                 fit_spline=True, reml=False, fit_iter=True):
     """
     Parameters
     ----------
@@ -63,7 +64,7 @@ def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
     
 
     reml = build_sugar_error_model_case(output_path=output_path,
-                 modeldir=modeldir, nb_node=nb_node,
+                 modeldir=modeldir, nb_node=nb_node, sad_path=sad_path, 
                  reml=reml, fit_iter=fit_iter, fit_spline=True)
     return reml
 
@@ -85,11 +86,12 @@ class build_sugar_error_model(object):
     
     
     def __init__(self, output_path='../../sugar_analysis_data/err_mod_training/',
-                 modeldir='../../sugar_model/', nb_node=9, reml=False,
+                 modeldir='../../sugar_model/', nb_node=9, reml=False, sad_path = '../../',
                  fit_iter=True, bands=['cspb', 'cspg', 'cspv', 'cspr', 'cspi'],
                  fit_spline=True):
         register_SUGAR(modeldir=modeldir, version='0.0')
         self.modeldir = modeldir
+        self.sad_path = sad_path
         self.output_path = output_path
         self.bands = bands
         self.source = sncosmo.get_source('sugar', version='0.0')
@@ -328,7 +330,7 @@ class build_sugar_error_model(object):
         [None,None] for _boundaries
         """
         #First step
-        lcf = LC_Fitter(model_name='sugar', sample='csp',
+        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                         modelcov=False, qual_crit=True, version_sug='0.0',
                         modeldir = self.modeldir)
         lcf.fit_sample()
@@ -346,7 +348,7 @@ class build_sugar_error_model(object):
         if self.fit_iter :
             while l < l_p and i <= 10 :
                 #l_p = self._migrad_output_[0].fval / len(self.res)
-                lcf = LC_Fitter(model_name='sugar', sample='csp',
+                lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
                                 mod_errfile='../sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
                                 version_sug='%s.0'%str(i+1),  modeldir = self.modeldir )
