@@ -112,8 +112,8 @@ class LC_Fitter(object):
                     self.dic_jla_zbias['lc-' + line[0] + '.list'] = float(line[1]), float(line[3]), float(line[20])
         
         elif sample=='csp':
-            builtins_jla_bandpasses()
-            mag_sys_jla()
+            builtins_jla_bandpasses(sad_path=self.sad_path)
+            mag_sys_jla(sad_path=self.sad_path)
             self.rcsp = read_csp()
             datos = os.listdir(self.sad_path+'sugar_analysis_data/DR3/')
             self.data = []
