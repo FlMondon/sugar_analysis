@@ -114,7 +114,7 @@ class LC_Fitter(object):
         elif sample=='csp':
             builtins_jla_bandpasses(sad_path=self.sad_path)
             mag_sys_jla(sad_path=self.sad_path)
-            self.rcsp = read_csp()
+            self.rcsp = read_csp(sad_path=self.sad_path)
             datos = os.listdir(self.sad_path+'sugar_analysis_data/DR3/')
             self.data = []
             csp_type_file = open(self.sad_path+'sugar_analysis_data/DR3/krisciunas17_table2.org')
@@ -165,7 +165,7 @@ class LC_Fitter(object):
             self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV']
 
         elif self.sample == 'csp':
-            self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name, drop=self.filter_drop_csp, sad_path=self.sad_path)
+            self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name, drop=self.filter_drop_csp)
             self.mwebv, self.zcmb = self.rcsp.get_mwebv(self.dic_csp_radec[sn_name][0], self.dic_csp_radec[sn_name][1], self.zhl)
             self.zerr = 0.
         else:
