@@ -350,7 +350,7 @@ class build_sugar_error_model(object):
                 #l_p = self._migrad_output_[0].fval / len(self.res)
                 lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
-                                mod_errfile='../sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
+                                mod_errfile=self.sad_path+'/sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
                                 version_sug='%s.0'%str(i+1),  modeldir = self.modeldir )
                 lcf.fit_sample()
                 self.param_sug_path = 'param_sugerrmod_%s.pkl'%str(i+1)
