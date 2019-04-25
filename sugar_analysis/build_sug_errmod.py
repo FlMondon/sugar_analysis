@@ -219,7 +219,7 @@ class build_sugar_error_model(object):
               weff = f.wave_eff              
               cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + self.intrinsic_dispertion(phase, weff)**2)
                   
-        w = np.diag(cm_diag)
+        w = cm_diag
         det_cov = np.sum(np.log(cm_diag))
         return w, det_cov
     
@@ -248,7 +248,7 @@ class build_sugar_error_model(object):
             else:
                 w_i, log_det_cov_i = self.weight_matrix_bin(sigmas2)
             log_det_cov += log_det_cov_i
-            chi2 += np.dot(res, np.dot(w_i, res))
+            chi2 += np.sum(res**2/w_i)
         if self.reml:
             self.H = self.build_H()
             raise ValueError('Change self.w')
@@ -256,7 +256,7 @@ class build_sugar_error_model(object):
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
-#        print L / self.nb_point
+        print L / self.nb_point
         return L
 
     def model_comp(self, band, phase, z):
@@ -362,11 +362,11 @@ class build_sugar_error_model(object):
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
                 i += 1
-                self.err_mod_path = 'train_intres_%s.dat'%str(i)
+                self.err_mod_path = 'train_intres_%s_%snode.dat'%(str(i), str(self.nb_node))
                 self.write_res(self.err_mod_path)
             self._migrad_output_ = m_p
             self.resultsfit = res_p
-            self.err_mod_path = 'err_mod.dat'%str(i)
+            self.err_mod_path = 'err_mod_%snode.dat'%str(self.nb_node)
             self.write_res(self.err_mod_path)
             
     def write_res(self, train_intres_path):
