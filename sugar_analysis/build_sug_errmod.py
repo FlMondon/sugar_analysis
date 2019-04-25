@@ -224,9 +224,9 @@ class build_sugar_error_model(object):
         return w, det_cov
     
     def likelihood(self, sigmas2):
-        res = np.array([])
-        w_m = []
+        chi2 = 0.
         log_det_cov = 0.
+        self.nb_point = 0.
         try:
             self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
         except:
@@ -241,22 +241,22 @@ class build_sugar_error_model(object):
         
 
             self.Filtre = self.dic[self.sn_name]['res']['data_mask']    
-            res = np.concatenate((res, self.residuals()), axis=None)
+            res = self.residuals()      
+            self.nb_point += len(res)
             if self.fit_spline:
                 w_i, log_det_cov_i = self.weight_matrix(sigmas2)
             else:
                 w_i, log_det_cov_i = self.weight_matrix_bin(sigmas2)
-            w_m.append(w_i)
             log_det_cov += log_det_cov_i
-        self.w = block_diag(*w_m)
-        self.res = res
+            chi2 += np.dot(res, np.dot(w_i, res))
         if self.reml:
             self.H = self.build_H()
+            raise ValueError('Change self.w')
             counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
         else:
             counter_term = 0
-        L = - log_det_cov + np.dot(self.res, np.dot(self.w, self.res)) + counter_term
-        print L / len(self.res)
+        L = - log_det_cov + chi2 + counter_term
+#        print L / self.nb_point
         return L
 
     def model_comp(self, band, phase, z):
@@ -330,24 +330,24 @@ class build_sugar_error_model(object):
         [None,None] for _boundaries
         """
         #First step
-        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
-                        modelcov=False, qual_crit=True, version_sug='0.0',
-                        modeldir = self.modeldir)
-        lcf.fit_sample()
+#        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
+#                        modelcov=False, qual_crit=True, version_sug='0.0',
+#                        modeldir = self.modeldir)
+#        lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
-        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+#        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
         self.setup_guesses(**kwargs)
         self._fit_minuit_()
         self.err_mod_path = 'train_intres_0.dat'
         self.write_res(self.err_mod_path)
-        l = self._migrad_output_[0].fval / len(self.res)
+        l = self._migrad_output_[0].fval / self.nb_point
         self.like_val_it.append(l)
         i = 0
         l_p = 0
         
         if self.fit_iter :
             while l < l_p and i <= 10 :
-                #l_p = self._migrad_output_[0].fval / len(self.res)
+                l_p = self._migrad_output_[0].fval / self.nb_point
                 lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
                                 mod_errfile=self.sad_path+'/sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
@@ -357,7 +357,7 @@ class build_sugar_error_model(object):
                 lcf.write_result(specific_file=self.output_path+self.param_sug_path)
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
-                l = self._migrad_output_[0].fval / len(self.res)
+                l = self._migrad_output_[0].fval / self.nb_point
                 self.like_val_it.append(l)
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
