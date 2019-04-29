@@ -126,97 +126,96 @@ class build_sugar_error_model(object):
             phase, wave, values = sncosmo.read_griddata_ascii(names_or_objs[key])
             self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
     
-    def residuals(self):
-        
-        self.model.set(z=float(self.dic[self.sn_name]['res']['parameters'][0]))
-        self.model.set(mwebv=self.dic[self.sn_name]['mwebv'])
-        self.model.set(q1=float(self.dic[self.sn_name]['res']['parameters'][3]))
-        self.model.set(q2=float(self.dic[self.sn_name]['res']['parameters'][4]))
-        self.model.set(q3=float(self.dic[self.sn_name]['res']['parameters'][5]))
-        self.model.set(A=float(self.dic[self.sn_name]['res']['parameters'][6]))
-        self.model.set(Xgr=float(self.dic[self.sn_name]['res']['parameters'][2]))
-        self.model.set(t0=float(self.dic[self.sn_name]['res']['parameters'][1]))
-        band = self.dic[self.sn_name]['data_table']['band'][self.Filtre]
-        time_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre]
-#        zp = self.dic[self.sn_name]['data_table']['zp'][self.Filtre]
-        data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
+    def residuals(self, sn_name):
+        Filtre = self.dic[sn_name]['res']['data_mask'] 
+        self.model.set(z=float(self.dic[sn_name]['res']['parameters'][0]))
+        self.model.set(mwebv=self.dic[sn_name]['mwebv'])
+        self.model.set(q1=float(self.dic[sn_name]['res']['parameters'][3]))
+        self.model.set(q2=float(self.dic[sn_name]['res']['parameters'][4]))
+        self.model.set(q3=float(self.dic[sn_name]['res']['parameters'][5]))
+        self.model.set(A=float(self.dic[sn_name]['res']['parameters'][6]))
+        self.model.set(Xgr=float(self.dic[sn_name]['res']['parameters'][2]))
+        self.model.set(t0=float(self.dic[sn_name]['res']['parameters'][1]))
+        band = self.dic[sn_name]['data_table']['band'][Filtre]
+        time_obs = self.dic[sn_name]['data_table']['time'][Filtre]
+        data_flux = self.dic[sn_name]['data_table']['flux'][Filtre]
         data_mag = np.zeros_like(data_flux)
         for j, flux in enumerate(data_flux):
             data_mag[j] = self.sys.band_flux_to_mag(flux, band[j])
         model_mag = self.model.bandmag(band, 'csp', time_obs)
-        
         residuals = data_mag - model_mag
         return residuals
     
-    def weight_matrix_bin(self, sigmas2):
-        
-        band = self.dic[self.sn_name]['data_table']['band'][self.Filtre]
-        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][self.Filtre]
-        data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
-        cm_diag = np.zeros_like(data_fluxerr)
-        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node+1)
-        
-        
-        
-        for i in range(self.nb_node):
-            for j, b in enumerate(band):
-                  phase_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
-                  phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])    
-                  if b == 'cspg':
-                     if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-                         cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i]**2)
-                         
-                  elif b == 'cspb': 
-                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node]**2)    
-                          
-                  elif b == 'cspv3014' or b == 'cspv9844' : 
-                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*2]**2)
-                          
-                  elif b == 'cspr': 
-                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*3]**2)         
-                          
-                  elif b == 'cspi': 
-                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j])**2 + sigmas2[i+self.nb_node*4]**2)
-                  else:
-                      raise ValueError('filter have to be in this set [i, r, v3014, v9844, b, g]')
-                  
-        w = np.diag(cm_diag)
-        det_cov = np.sum(np.log(cm_diag))
-        return w, det_cov
+#    def weight_matrix_bin(self, sigmas2):
+#        Filtre = self.dic[self.sn_name]['res']['data_mask'] 
+#        band = self.dic[self.sn_name]['data_table']['band'][Filtre]
+#        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
+#        data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
+#        cm_diag = np.zeros_like(data_fluxerr)
+#        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node+1)
+#        
+#        
+#        
+#        for i in range(self.nb_node):
+#            for j, b in enumerate(band):
+#                  phase_obs = self.dic[self.sn_name]['data_table']['time'][Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
+#                  phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])    
+#                  if b == 'cspg':
+#                     if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+#                         cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i]**2)
+#                         
+#                  elif b == 'cspb': 
+#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node]**2)    
+#                          
+#                  elif b == 'cspv3014' or b == 'cspv9844' : 
+#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*2]**2)
+#                          
+#                  elif b == 'cspr': 
+#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*3]**2)         
+#                          
+#                  elif b == 'cspi': 
+#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
+#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j])**2 + sigmas2[i+self.nb_node*4]**2)
+#                  else:
+#                      raise ValueError('filter have to be in this set [i, r, v3014, v9844, b, g]')
+#                  
+#        w = np.diag(cm_diag)
+#        det_cov = np.sum(np.log(cm_diag))
+#        return w, det_cov
     
     def weight_matrix(self, sigmas2):
-        
-        band = self.dic[self.sn_name]['data_table']['band'][self.Filtre]
-        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][self.Filtre]
-        data_flux = self.dic[self.sn_name]['data_table']['flux'][self.Filtre]
+        Filtre = self.dic[self.sn_name]['res']['data_mask'] 
+        band = self.dic[self.sn_name]['data_table']['band'][Filtre]
+        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
+        data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
         cm_diag = np.zeros_like(data_fluxerr)
         self.phase_bin = np.linspace(t_min_sug, t_max_sug+3, self.nb_node)
         self.wave_bin = np.zeros(len(self.bands))
         node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
         for l in range(len(self.phase_bin)):   
             for i in range(len(self.wave_bin)):
-                
                 if l ==0:
                     if self.bands[i] == 'cspv':
                         f = sncosmo.get_bandpass('cspv9844')
                     else :
                         f = sncosmo.get_bandpass(self.bands[i])
                     self.wave_bin[i] = float(f.wave_eff)
+                    
                 node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
         self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
         for j, b in enumerate(band):
-              phase_obs = self.dic[self.sn_name]['data_table']['time'][self.Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
+              phase_obs = self.dic[self.sn_name]['data_table']['time'][Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
               phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])   
               if b == 'cspv3014' or b == 'cspv9844':
                     f = sncosmo.get_bandpass('cspv9844')
               else :
                     f = sncosmo.get_bandpass(b)
               
-              weff = f.wave_eff              
+            
+              weff = f.wave_eff/(1 + self.dic[self.sn_name]['res']['parameters'][0])    
               cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + self.intrinsic_dispertion(phase, weff)**2)
                   
         w = cm_diag
@@ -226,33 +225,20 @@ class build_sugar_error_model(object):
     def likelihood(self, sigmas2):
         chi2 = 0.
         log_det_cov = 0.
-        self.nb_point = 0.
-        try:
-            self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
-        except:
-            self.dic = pkl.load(open(self.output_path+self.param_sug_path,
-                                     'rb'), encoding='latin1')
-            
-        self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.param_sug_path)
-        self.dic = self.rids.delete_fit_fail(self.dic['data'])
-
-        for sn_name in self.dic.keys():
-            self.sn_name = sn_name
         
-
-            self.Filtre = self.dic[self.sn_name]['res']['data_mask']    
-            res = self.residuals()      
-            self.nb_point += len(res)
+        for sn_name in self.dic.keys():
+            self.sn_name = sn_name   
+            
             if self.fit_spline:
                 w_i, log_det_cov_i = self.weight_matrix(sigmas2)
             else:
                 w_i, log_det_cov_i = self.weight_matrix_bin(sigmas2)
             log_det_cov += log_det_cov_i
-            chi2 += np.sum(res**2/w_i)
+            chi2 += np.sum(self.res_dic[self.sn_name]**2*w_i)
         if self.reml:
             self.H = self.build_H()
             raise ValueError('Change self.w')
-            counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
+#            counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
@@ -336,6 +322,18 @@ class build_sugar_error_model(object):
 #        lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
 #        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+        self.res_dic = {}
+        try:
+            self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
+        except:
+            self.dic = pkl.load(open(self.output_path+self.param_sug_path,
+                                     'rb'), encoding='latin1')
+        self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.param_sug_path)
+        self.dic = self.rids.delete_fit_fail(self.dic['data'])
+        self.nb_point = 0.
+        for sn_name in self.dic.keys():
+            self.res_dic[sn_name] = self.residuals(sn_name)
+            self.nb_point += len(self.res_dic[sn_name])
         self.setup_guesses(**kwargs)
         self._fit_minuit_()
         self.err_mod_path = 'train_intres_0.dat'
@@ -355,6 +353,18 @@ class build_sugar_error_model(object):
                 lcf.fit_sample()
                 self.param_sug_path = 'param_sugerrmod_%s.pkl'%str(i+1)
                 lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+                self.res_dic = {}
+                try:
+                    self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
+                except:
+                    self.dic = pkl.load(open(self.output_path+self.param_sug_path,
+                                             'rb'), encoding='latin1')
+                self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.param_sug_path)
+                self.dic = self.rids.delete_fit_fail(self.dic['data'])
+                self.nb_point = 0.
+                for sn_name in self.dic.keys():
+                    self.res_dic[sn_name] = self.residuals(sn_name)
+                    self.nb_point += len(self.res_dic[sn_name])
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
                 l = self._migrad_output_[0].fval / self.nb_point
