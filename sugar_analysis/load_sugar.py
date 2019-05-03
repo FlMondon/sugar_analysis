@@ -60,9 +60,8 @@ class SUGARSource(sncosmo.Source):
             		m2file='sugar_template_2.dat',
             		m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat',
-                 mod_errfile='model_err_sug.dat',
+                 mod_errfile='../../sugar_model/model_err_sug.dat',
                  name=None, version=None):
-        print 'c est :' , mod_errfile , version
         self.name = name
         self.version = version
         self._model = {}
@@ -88,7 +87,7 @@ class SUGARSource(sncosmo.Source):
                                         45.,  48.])
                 self._wave = wave
         self.mod_errfile = mod_errfile
-        phase, wave, values = sncosmo.read_griddata_ascii(modeldir+mod_errfile)
+        phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
         self._model['mod_err'] = interp2d(wave, phase, values) 
         
     def _flux(self, phase, wave):
@@ -124,7 +123,6 @@ class SUGARSource(sncosmo.Source):
         """
         model error in comming
         """
-        print self.mod_errfile
         # construct covariance array with relative variance on diagonal
         diagonal = np.zeros(phase.shape, dtype=np.float64)
         for b in set(band):
@@ -134,7 +132,9 @@ class SUGARSource(sncosmo.Source):
         
         return result
     
-def register_SUGAR(modeldir='../../sugar_model/', mod_errfile='model_err_sug.dat', version='1.0'):
+def register_SUGAR(modeldir='../../sugar_model/',
+                   mod_errfile='../../sugar_model/model_err_sug.dat',
+                   version='1.0'):
     website = 'http://no'
     PF16ref = ('PF16', 'PF et al. 2016 '
               '<http://arxiv.org/>')
