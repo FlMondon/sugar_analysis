@@ -141,7 +141,6 @@ def register_SUGAR(modeldir='../../sugar_model/',
     for topdir, ver, ref in [('SUGAR_model', version, PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-        print 'ca devrait etre :' , mod_errfile, version
 
         _SOURCES.register_loader('sugar', lambda relpath, mod_errfile,
         name=None, version=None : SUGARSource(modeldir=relpath,
