@@ -338,7 +338,7 @@ class build_sugar_error_model(object):
             self.nb_point += len(self.res_dic[sn_name])
         self.setup_guesses(**kwargs)
         self._fit_minuit_()
-        self.err_mod_path = 'train_intres_0_%snode.dat'
+        self.err_mod_path = 'train_intres_0_%snode.dat'%str(self.nb_node)
         self.write_res(self.err_mod_path)
         l = self._migrad_output_[0].fval / self.nb_point
         self.like_val_it.append(l)
@@ -353,7 +353,7 @@ class build_sugar_error_model(object):
                                 mod_errfile=self.sad_path+'/sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
                                 version_sug='%s.0'%str(i+1),  modeldir = self.modeldir, sub_sample=self.val_sample)
                 lcf.fit_sample()
-                self.param_sug_path = 'param_sugerrmod_%s_%snode.pkl'%str(i+1)
+                self.param_sug_path = 'param_sugerrmod_%s_%snode.pkl'%(str(i+1), str(self.nb_node))
                 lcf.write_result(specific_file=self.output_path+self.param_sug_path)
                 self.res_dic = {}
                 try:
