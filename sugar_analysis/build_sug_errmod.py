@@ -346,7 +346,7 @@ class build_sugar_error_model(object):
         l_p = 0
         
         if self.fit_iter :
-            while i <= 10 :
+            while l < l_p and i <= 10 :
                 l_p = self._migrad_output_[0].fval / self.nb_point
                 lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
