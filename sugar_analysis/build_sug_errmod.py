@@ -102,6 +102,7 @@ class build_sugar_error_model(object):
         self.like_val_it = [] #values of likelihood/N after each iteration
         self.fit_spline = fit_spline
         self.fit_iter = fit_iter
+        self.v = 0.0
         dust = sncosmo.CCM89Dust()
         self.model = sncosmo.Model(source=self.source, 
                           effects=[dust], 
@@ -148,53 +149,13 @@ class build_sugar_error_model(object):
         residuals = data_mag - model_mag
         return residuals
     
-#    def weight_matrix_bin(self, sigmas2):
-#        Filtre = self.dic[self.sn_name]['res']['data_mask'] 
-#        band = self.dic[self.sn_name]['data_table']['band'][Filtre]
-#        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
-#        data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
-#        cm_diag = np.zeros_like(data_fluxerr)
-#        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node+1)
-#        
-#        
-#        
-#        for i in range(self.nb_node):
-#            for j, b in enumerate(band):
-#                  phase_obs = self.dic[self.sn_name]['data_table']['time'][Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
-#                  phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])    
-#                  if b == 'cspg':
-#                     if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-#                         cm_diag[j] = 1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i]**2)
-#                         
-#                  elif b == 'cspb': 
-#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node]**2)    
-#                          
-#                  elif b == 'cspv3014' or b == 'cspv9844' : 
-#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*2]**2)
-#                          
-#                  elif b == 'cspr': 
-#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j] )**2 + sigmas2[i+self.nb_node*3]**2)         
-#                          
-#                  elif b == 'cspi': 
-#                      if phase >= self.phase_bin[i] and phase <= self.phase_bin[i+1]:
-#                          cm_diag[j] =  1/((data_fluxerr[j]*1.0857362047581294/data_flux[j])**2 + sigmas2[i+self.nb_node*4]**2)
-#                  else:
-#                      raise ValueError('filter have to be in this set [i, r, v3014, v9844, b, g]')
-#                  
-#        w = np.diag(cm_diag)
-#        det_cov = np.sum(np.log(cm_diag))
-#        return w, det_cov
-    
     def weight_matrix(self, sigmas2):
         Filtre = self.dic[self.sn_name]['res']['data_mask'] 
         band = self.dic[self.sn_name]['data_table']['band'][Filtre]
         data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
         data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
         cm_diag = np.zeros_like(data_fluxerr)
-        self.phase_bin = np.linspace(t_min_sug, t_max_sug+3, self.nb_node)
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node)
         self.wave_bin = np.zeros(len(self.bands))
         node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
         for l in range(len(self.phase_bin)):   
@@ -319,8 +280,8 @@ class build_sugar_error_model(object):
         """
         #First step
         lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
-                        modelcov=False, qual_crit=True, version_sug='0.0',
-                        modeldir = self.modeldir, sub_sample=self.val_sample)
+                        modelcov=False, qual_crit=True, version_sug=str(self.v),
+                        modeldir = self.modeldir, sub_sample=self.training_sample)
         lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
         lcf.write_result(specific_file=self.output_path+self.param_sug_path)
@@ -342,18 +303,18 @@ class build_sugar_error_model(object):
         self.write_res(self.err_mod_path)
         l = self._migrad_output_[0].fval / self.nb_point
         self.like_val_it.append(l)
-        i = 0
         l_p = 0
-        
+        i = 0
+    
         if self.fit_iter :
             while l < l_p and i <= 10 :
                 l_p = self._migrad_output_[0].fval / self.nb_point
                 lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
-                                mod_errfile=self.sad_path+'/sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
-                                version_sug='%s.0'%str(i+1),  modeldir = self.modeldir, sub_sample=self.val_sample)
+                                mod_errfile=self.sad_path+'sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
+                                version_sug=str(self.v),  modeldir = self.modeldir, sub_sample=self.training_sample)
                 lcf.fit_sample()
-                self.param_sug_path = 'param_sugerrmod_%s_%snode.pkl'%(str(i+1), str(self.nb_node))
+                self.param_sug_path = 'param_sugerrmod_%sit_%snode.pkl'%(str(i+1), str(self.nb_node))
                 lcf.write_result(specific_file=self.output_path+self.param_sug_path)
                 self.res_dic = {}
                 try:
@@ -373,7 +334,8 @@ class build_sugar_error_model(object):
                 self.like_val_it.append(l)
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
-                i += 1
+                self.v += 1
+                i +=1
                 self.err_mod_path = 'train_intres_%s_%snode.dat'%(str(i), str(self.nb_node))
                 self.write_res(self.err_mod_path)
             self._migrad_output_ = m_p
@@ -403,6 +365,42 @@ class build_sugar_error_model(object):
                     value = self._migrad_output_[1][i+self.nb_node*j]['value']
                     train_err_mod.write('%f %f %f \n'%(p_bin, weff, value))
                 
+    def best_nb_node(self):
+        
+        best_node = None
+        best_likelihood = 0.
+        list_err_mod = os.listdir(self.output_path)
+        for err_mod in list_err_mod:
+            if err_mod.startswith('err_mod_'):
+                err_mod_file = open(self.output_path+err_mod)
+                self.nb_node = err_mod.replace('err_mod_', '')
+                self.nb_node = int(self.nb_node.replace('node.dat',''))
+                mod = np.genfromtxt(err_mod_file)
+                arg_sort = np.argsort(mod[:,1])
+                val = mod[:,2][arg_sort]
+                lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
+                                modelcov=True, qual_crit=True, version_sug=str(self.v),
+                                modeldir = self.output_path+err_mod, sub_sample=self.val_sample)
+                lcf.fit_sample()
+                self.param_sug_path = 'param_sugerrmod_val_'+err_mod+'.pkl'
+                lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+                self.res_dic = {}
+                try:
+                    self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
+                except:
+                    self.dic = pkl.load(open(self.output_path+self.param_sug_path,
+                                             'rb'), encoding='latin1')
+                self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.param_sug_path)
+                self.dic = self.rids.delete_fit_fail(self.dic['data'])
+                self.nb_point = 0.
+                for sn_name in self.dic.keys():
+                    self.res_dic[sn_name] = self.residuals(sn_name)
+                    self.nb_point += len(self.res_dic[sn_name])
+                likelihood = self.likelihood(val)/self.nb_point
+                if likelihood < best_likelihood:
+                    best_likelihood = likelihood
+                    best_node = err_mod
+        print('The best error model is %s'%str(best_node))
 
                     
                     
@@ -426,7 +424,7 @@ class build_sugar_error_model(object):
         """
         """
         self._setup_minuit_()
-        self._migrad_output_ = self.minuit.migrad(ncall=10000)
+        self._migrad_output_ = self.minuit.migrad(ncall=20000)
         
         if self._migrad_output_[0]["is_valid"] is False:
             print("migrad is not valid")
