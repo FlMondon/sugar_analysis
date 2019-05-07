@@ -95,6 +95,10 @@ class build_sugar_error_model(object):
         self.output_path = output_path
         self.bands = bands
         self.source = sncosmo.get_source('sugar', version='0.0')
+        if nb_node > 3:
+            self.nb_node = nb_node
+        else:
+            raise ValueError('For cubic spline nb node must be > 3')
         self.nb_node = nb_node
         self.reml = reml
         self.val_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/validation')
@@ -155,20 +159,7 @@ class build_sugar_error_model(object):
         data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
         data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
         cm_diag = np.zeros_like(data_fluxerr)
-        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node)
-        self.wave_bin = np.zeros(len(self.bands))
-        node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
-        for l in range(len(self.phase_bin)):   
-            for i in range(len(self.wave_bin)):
-                if l ==0:
-                    if self.bands[i] == 'cspv':
-                        f = sncosmo.get_bandpass('cspv9844')
-                    else :
-                        f = sncosmo.get_bandpass(self.bands[i])
-                    self.wave_bin[i] = float(f.wave_eff)
-                    
-                node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
-        self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
+
         for j, b in enumerate(band):
               phase_obs = self.dic[self.sn_name]['data_table']['time'][Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
               phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])   
@@ -184,11 +175,30 @@ class build_sugar_error_model(object):
         w = cm_diag
         det_cov = np.sum(np.log(cm_diag))
         return w, det_cov
+                    
+                    
+    
+    def intrinsic_dispertion(self, p, wl):
+        return self.spline(p, wl)[0]
     
     def likelihood(self, sigmas2):
         chi2 = 0.
         log_det_cov = 0.
         
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node)
+        self.wave_bin = np.zeros(len(self.bands))
+        node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
+        for l in range(len(self.phase_bin)):   
+            for i in range(len(self.wave_bin)):
+                if l ==0:
+                    if self.bands[i] == 'cspv':
+                        f = sncosmo.get_bandpass('cspv9844')
+                    else :
+                        f = sncosmo.get_bandpass(self.bands[i])
+                    self.wave_bin[i] = float(f.wave_eff)
+                    
+                node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
+        self.spline = interp2d(self.phase_bin, self.wave_bin, node_array, kind='cubic') 
         for sn_name in self.dic.keys():
             self.sn_name = sn_name   
             
@@ -279,12 +289,12 @@ class build_sugar_error_model(object):
         [None,None] for _boundaries
         """
         #First step
-        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
-                        modelcov=False, qual_crit=True, version_sug=str(self.v),
-                        modeldir = self.modeldir, sub_sample=self.training_sample)
-        lcf.fit_sample()
+#        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
+#                        modelcov=False, qual_crit=True, version_sug=str(self.v),
+#                        modeldir = self.modeldir, sub_sample=self.training_sample)
+#        lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
-        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+#        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
         self.res_dic = {}
         try:
             self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
@@ -402,11 +412,7 @@ class build_sugar_error_model(object):
                     best_node = err_mod
         print('The best error model is %s'%str(best_node))
 
-                    
-                    
-    
-    def intrinsic_dispertion(self, p, wl):
-        return self.spline(p, wl)[0]
+
     
                 
     def _setup_minuit_(self):
