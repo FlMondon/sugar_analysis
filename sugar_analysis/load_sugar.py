@@ -88,7 +88,7 @@ class SUGARSource(sncosmo.Source):
                 self._wave = wave
         self.mod_errfile = mod_errfile
         phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
-        self._model['mod_err'] = interp2d(wave, phase, values) 
+        self._model['mod_err'] = interp2d(wave, phase, values, kind='cubic') 
         
     def _flux(self, phase, wave):
 

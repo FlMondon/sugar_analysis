@@ -153,7 +153,7 @@ class build_sugar_error_model(object):
         residuals = data_mag - model_mag
         return residuals
     
-    def weight_matrix(self, sigmas2):
+    def weight_matrix(self):
         Filtre = self.dic[self.sn_name]['res']['data_mask'] 
         band = self.dic[self.sn_name]['data_table']['band'][Filtre]
         data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
@@ -185,7 +185,7 @@ class build_sugar_error_model(object):
         chi2 = 0.
         log_det_cov = 0.
         
-        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node)
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug+5, self.nb_node)
         self.wave_bin = np.zeros(len(self.bands))
         node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
         for l in range(len(self.phase_bin)):   
@@ -203,9 +203,9 @@ class build_sugar_error_model(object):
             self.sn_name = sn_name   
             
             if self.fit_spline:
-                w_i, log_det_cov_i = self.weight_matrix(sigmas2)
+                w_i, log_det_cov_i = self.weight_matrix()
             else:
-                w_i, log_det_cov_i = self.weight_matrix_bin(sigmas2)
+                w_i, log_det_cov_i = self.weight_matrix_bin()
             log_det_cov += log_det_cov_i
             chi2 += np.sum(self.res_dic[self.sn_name]**2*w_i)
         if self.reml:
@@ -289,12 +289,12 @@ class build_sugar_error_model(object):
         [None,None] for _boundaries
         """
         #First step
-#        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
-#                        modelcov=False, qual_crit=True, version_sug=str(self.v),
-#                        modeldir = self.modeldir, sub_sample=self.training_sample)
-#        lcf.fit_sample()
+        lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
+                        modelcov=False, qual_crit=True, version_sug=str(self.v),
+                        modeldir = self.modeldir, sub_sample=self.training_sample)
+        lcf.fit_sample()
         self.param_sug_path = 'param_sugerrmod_0.pkl'
-#        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
+        lcf.write_result(specific_file=self.output_path+self.param_sug_path)
         self.res_dic = {}
         try:
             self.dic =  pkl.load(open(self.output_path+self.param_sug_path))
