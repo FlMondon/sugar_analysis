@@ -88,7 +88,7 @@ class SUGARSource(sncosmo.Source):
                 self._wave = wave
         self.mod_errfile = mod_errfile
         phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
-        self._model['mod_err'] = interp2d(wave, phase, values, kind='cubic') 
+        self._model['mod_err'] = interp2d(wave, phase, values) 
         
     def _flux(self, phase, wave):
 
@@ -116,7 +116,7 @@ class SUGARSource(sncosmo.Source):
         # number. (at present, use prescription of snfit : set
         # negatives to 0.0001)
         mod_err[mod_err < 0.0] = 0.0001
-        result = (mod_err * self.bandflux(band, phase)) / 1.0857362047581294
+        result = mod_err**2
         return result
     
     def bandflux_rcov(self, band, phase):

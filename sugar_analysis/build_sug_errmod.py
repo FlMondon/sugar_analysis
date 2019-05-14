@@ -95,10 +95,10 @@ class build_sugar_error_model(object):
         self.output_path = output_path
         self.bands = bands
         self.source = sncosmo.get_source('sugar', version='0.0')
-        if nb_node > 3:
+        if nb_node > 2:
             self.nb_node = nb_node
         else:
-            raise ValueError('For cubic spline nb node must be > 3')
+            raise ValueError('For linear spline nb node must be > 2')
         self.nb_node = nb_node
         self.reml = reml
         self.val_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/validation')
@@ -185,7 +185,7 @@ class build_sugar_error_model(object):
         chi2 = 0.
         log_det_cov = 0.
         
-        self.phase_bin = np.linspace(t_min_sug, t_max_sug+5, self.nb_node)
+        self.phase_bin = np.linspace(t_min_sug, t_max_sug, self.nb_node)
         self.wave_bin = np.zeros(len(self.bands))
         node_array =  np.zeros((len(self.wave_bin),len(self.phase_bin)))
         for l in range(len(self.phase_bin)):   
@@ -198,7 +198,7 @@ class build_sugar_error_model(object):
                     self.wave_bin[i] = float(f.wave_eff)
                     
                 node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
-        self.spline = interp2d(self.phase_bin, self.wave_bin, node_array, kind='cubic') 
+        self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
         for sn_name in self.dic.keys():
             self.sn_name = sn_name   
             
@@ -215,7 +215,7 @@ class build_sugar_error_model(object):
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
-        print L / self.nb_point
+        print L+np.log(self.nb_point)
         return L
 
     def model_comp(self, band, phase, z):
@@ -293,7 +293,7 @@ class build_sugar_error_model(object):
                         modelcov=False, qual_crit=True, version_sug=str(self.v),
                         modeldir = self.modeldir, sub_sample=self.training_sample)
         lcf.fit_sample()
-        self.param_sug_path = 'param_sugerrmod_0.pkl'
+        self.param_sug_path = 'param_sugerrmod_0it_%snode.pkl'%str(self.nb_node)
         lcf.write_result(specific_file=self.output_path+self.param_sug_path)
         self.res_dic = {}
         try:
@@ -311,14 +311,14 @@ class build_sugar_error_model(object):
         self._fit_minuit_()
         self.err_mod_path = 'train_intres_0_%snode.dat'%str(self.nb_node)
         self.write_res(self.err_mod_path)
-        l = self._migrad_output_[0].fval / self.nb_point
+        l = self._migrad_output_[0].fval +np.log(self.nb_point)
         self.like_val_it.append(l)
         l_p = 0
         i = 0
     
         if self.fit_iter :
             while l < l_p and i <= 10 :
-                l_p = self._migrad_output_[0].fval / self.nb_point
+                l_p = l
                 lcf = LC_Fitter(model_name='sugar', sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, 
                                 mod_errfile=self.sad_path+'sugar_analysis_data/err_mod_training/'+self.err_mod_path, 
@@ -340,7 +340,7 @@ class build_sugar_error_model(object):
                     self.nb_point += len(self.res_dic[sn_name])
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
-                l = self._migrad_output_[0].fval / self.nb_point
+                l = self._migrad_output_[0].fval +np.log(self.nb_point)
                 self.like_val_it.append(l)
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
@@ -406,7 +406,7 @@ class build_sugar_error_model(object):
                 for sn_name in self.dic.keys():
                     self.res_dic[sn_name] = self.residuals(sn_name)
                     self.nb_point += len(self.res_dic[sn_name])
-                likelihood = self.likelihood(val)/self.nb_point
+                likelihood = self.likelihood(val)+np.log(self.nb_point)
                 if likelihood < best_likelihood:
                     best_likelihood = likelihood
                     best_node = err_mod
