@@ -31,23 +31,27 @@ class LC_Fitter(object):
                  t0_fix=False, sub_sample=None, modelcov=False,
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
                  filter_drop_csp = None, sad_path = '../../',
-                 modeldir='../../sugar_model/',
-                 width=10, param_sug_fix =[]):
+                 modeldir='../../sugar_model/', mod_errfile='model_err_sug.dat',
+                 width=10, param_sug_fix =[], qual_crit=True, 
+                 version_sug='1.0'):
         
         
         self.fitting_sample =  False
         self.model_name = model_name
         self.t0_fix = t0_fix
         self.sad_path = sad_path
+        self.version_sug = version_sug
         self.filter_drop_csp = filter_drop_csp
         self.dic_res = None
         self.sub_sample = sub_sample
         self.sample = sample
+        self.qual_crit = qual_crit
         self.modeldir = modeldir
         self.modelcov = modelcov
         self.filters = filters
         self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
-        register_SUGAR(modeldir=self.modeldir)
+        register_SUGAR(modeldir=self.modeldir, mod_errfile=mod_errfile,
+                       version=self.version_sug)
         self.param_sug = ['q1', 'q2', 'q3']
         for psf in param_sug_fix:
             self.param_sug.remove(psf)
@@ -108,9 +112,9 @@ class LC_Fitter(object):
                     self.dic_jla_zbias['lc-' + line[0] + '.list'] = float(line[1]), float(line[3]), float(line[20])
         
         elif sample=='csp':
-            builtins_jla_bandpasses()
-            mag_sys_jla()
-            self.rcsp = read_csp()
+            builtins_jla_bandpasses(sad_path=self.sad_path)
+            mag_sys_jla(sad_path=self.sad_path)
+            self.rcsp = read_csp(sad_path=self.sad_path)
             datos = os.listdir(self.sad_path+'sugar_analysis_data/DR3/')
             self.data = []
             csp_type_file = open(self.sad_path+'sugar_analysis_data/DR3/krisciunas17_table2.org')
@@ -181,7 +185,98 @@ class LC_Fitter(object):
         """
         """
         if not self.fitting_sample :
-            self.source = sncosmo.get_source('sugar')
+            self.source = sncosmo.get_source('sugar', version=self.version_sug)
+            dust = sncosmo.CCM89Dust()
+            self.model = sncosmo.Model(source=self.source, 
+                              effects=[dust], 
+                              effect_names=['mw'], 
+                              effect_frames=['obs']) 
+            self.mwebv = mwebv
+            self.zhl = zhl
+            #If you don't have zcmb we used only zhl to compute the distance
+            #modulus for the guess of Xgr
+            if zcmb == None:
+                self.zcmb = zhl
+            else:
+                self.zcmb = zcmb
+            if mwebv == None:
+                self.model.set(mwebv=0.)
+            else: 
+                self.model.set(mwebv=self.mwebv)
+            if zhl==None:
+                self.model.set(z=0.)
+                Xgr_init = 1.e-15
+            else:
+                self.model.set(z=self.zhl)
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
+        else:
+            self.model.set(z=self.zhl)
+            self.model.set(mwebv=self.mwebv)
+            if self.zcmb==None:
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zhl,self.zhl)))
+            else:
+                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
+
+        self.model.set(Xgr=Xgr_init)
+        if self.t0_fix:
+            self.model.set(t0=self.daymax)
+            res, fitted_model = sncosmo.fit_lc(data, 
+                                               self.model, 
+                                               self.param_sug+['A', 'Xgr'], 
+                                               modelcov  = self.modelcov,
+                                               phase_range=(t_min_sug, 
+                                                            t_max_sug))
+        else:
+            res, fitted_model = sncosmo.fit_lc(data, self.model, 
+                                            ['t0']+self.param_sug+['A', 'Xgr'], 
+                                            modelcov  = self.modelcov,
+                                               phase_range=(t_min_sug, 
+                                                            t_max_sug))
+        return res, fitted_model 
+    
+    
+
+        
+    def fit_lc_salt2(self, data, zhl=None,  mwebv=None ):
+        """
+        """
+        if not self.fitting_sample :
+            self.source = sncosmo.get_source('salt2', version='2.4')
+            dust = sncosmo.CCM89Dust()
+            self.model = sncosmo.Model(source=self.source, 
+                              effects=[dust], 
+                              effect_names=['mw'], 
+                              effect_frames=['obs'])     
+            if zhl==None:
+                try:
+                    self.model.set(z=self.zhl)
+                except:
+                    self.model.set(z=0.)
+            else:
+                self.model.set(z=zhl)
+            if mwebv==None:
+                self.model.set(mwebv=0.)
+            else:
+                self.model.set(mwebv=mwebv)
+        else:
+            self.model.set(z=self.zhl)
+            self.model.set(mwebv=self.mwebv)
+        res, fitted_model = sncosmo.fit_lc(data, self.model, 
+                                               ['t0', 
+                                                'x1',
+                                                'c', 
+                                                'x0'], 
+                                               modelcov  = True,
+                                               phase_range=(t_min_salt2, 
+                                                            t_max_salt2))
+    
+        return res, fitted_model
+    
+    def fit_lc_sugar_old(self, data, zhl=None, zcmb=None, mwebv=None):
+        """
+        """
+        if not self.fitting_sample :
+            self.source = sncosmo.get_source('sugar', version=self.version_sug)
             dust = sncosmo.CCM89Dust()
             self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
@@ -330,76 +425,109 @@ class LC_Fitter(object):
             print ('successful recovery retry to fit')
         
         return res.chisq
-            
-    def fit_lc_salt2(self, data, zhl=None,  mwebv=None ):
-        """
-        """
-        if not self.fitting_sample :
-            self.source = sncosmo.get_source('salt2', version='2.4')
-            dust = sncosmo.CCM89Dust()
-            self.model = sncosmo.Model(source=self.source, 
-                              effects=[dust], 
-                              effect_names=['mw'], 
-                              effect_frames=['obs'])         
-        self.model.set(mwebv=self.mwebv)
-        self.model.set(z=self.zhl)
-        print ('initialisation')            
-        res, fitted_model = sncosmo.fit_lc(data, 
-                                           self.model, 
-                                           ['t0','c','x0'], 
-                                           modelcov=False)
-
-        print (res.parameters[1])
-        print ('first iteration')
-        chi2 = res.chisq
-        print (chi2)
-        chi2p = chi2*2
-        m=0
-    
-    
-        while chi2 < chi2p and m < 20:
-
-            print (m)
-            if m > 0:
-                resp = res
-                fitted_modelp = fitted_model
-            m += 1
-            t_peak = fitted_model.parameters[1]
-            #print t_peak,fitted_model.parameters[4]
-
-            t1 = t_peak + t_min_salt2*(1 + self.model.get('z'))
-            t2 = t_peak + t_max_salt2*(1 + self.model.get('z'))
+    def selection_new_criteria(self, data, zhl, mwebv):
+        
+        if len(data) >= 4.:
+            if self.model_name == 'sugar':
+                paran_sug_init = copy.deepcopy(self.param_sug)
+                self.param_sug = []
+                try:
+                    zcmb = self.zcmb
+                except:
+                    zcmb = None
+                try:
+                    res, fitted_model = self.fit_lc_sugar(data, zhl=zhl, 
+                                                      mwebv=mwebv,
+                                                      zcmb=zcmb)
+                    fit_sucess = True
+                    
+                except:
+                    bool_sectect = False
+                    fit_sucess = False
+                if fit_sucess:
+                    t_peak = fitted_model.parameters[1]
+                    t1 = t_peak -12*(1 + self.model.get('z'))
+                    t2 = t_peak + 5*(1 + self.model.get('z'))
+                    t3 = t_peak + 20*(1 + self.model.get('z'))     
+                    t4 = t_peak -8*(1 + self.model.get('z'))
+                    t5 = t_peak + 10*(1 + self.model.get('z'))
+                    
+                    crit1 = False
+                    crit2 = False
+                    crit3 = False
+                    nb_filter1 = 0
+                    prev_filter = []
+                    for j, time in enumerate(data['time']):
+                        if time >= t1 and time <=t2:
+                                crit1 = True
+                        if time >= t2 and time <=t3:
+                            crit2 = True
+                        if time >= t4 and time <=t5:
+                            if nb_filter1 >= 1 and data['band'][j] not in prev_filter:
+                                crit3 = True
+                            else:
+                                nb_filter1 += 1 
+                                prev_filter.append(data['band'][j])
                         
-            A=[]
-            data_new = copy.deepcopy(data)
-            for i in range(len(data_new)):                    
-                if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                    A.append(i)
-            A=np.array(A)
-            for i in range(len(A)):
-                data_new.remove_row(A[i])
-                A-=1   
-
-            self.model.set(x1=res.parameters[3])
-            self.model.set(c=res.parameters[4])
-            self.model.set(x0=res.parameters[2])
-            self.model.set(t0=res.parameters[1])                        
-            res, fitted_model = sncosmo.fit_lc(data_new, 
-                                               self.model, 
-                                               ['t0', 
-                                                'x1',
-                                                'c', 
-                                                'x0'], 
-                                               modelcov  = True,
-                                               bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
+                    
+                    bool_sectect = crit1 and crit2 and crit3
+                self.param_sug = paran_sug_init
+            elif self.model_name == 'salt2':
+                if not self.fitting_sample :
+                    self.source = sncosmo.get_source('salt2', version='2.4')
+                    dust = sncosmo.CCM89Dust()
+                    self.model = sncosmo.Model(source=self.source, 
+                                      effects=[dust], 
+                                      effect_names=['mw'], 
+                                      effect_frames=['obs'])         
+                self.model.set(mwebv=mwebv)
+                self.model.set(z=zhl)
+                try:
+                    res, fitted_model = sncosmo.fit_lc(data, self.model, 
+                                                       ['t0', 
+                                                        'c', 
+                                                        'x0'], 
+                                                       modelcov  = True,
+                                                       phase_range=(t_min_salt2, 
+                                                                    t_max_salt2))
+                    fit_sucess = True
+                    
+                except:
+                    bool_sectect = False
+                    fit_sucess = False
+                if fit_sucess:
+                    t_peak = fitted_model.parameters[1]
+                    t1 = t_peak -10*(1 + self.model.get('z'))
+                    t2 = t_peak + -3*(1 + self.model.get('z'))
+                    t3 = t_peak + 20*(1 + self.model.get('z'))     
+                    t4 = t_peak -8*(1 + self.model.get('z'))
+                    t5 = t_peak + 10*(1 + self.model.get('z'))
+                    
+                    crit1 = False
+                    crit2 = False
+                    crit3 = False
+                    nb_filter = 0
+                    prev_filter = []
+                    for j, time in enumerate(data['time']):
+                        if time >= t1 and time <=t2:
+                            crit1 = True
+                        if time >= t2 and time <=t3:
+                            crit2 = True
+                        if time >= t4 and time <=t5:
+                            if nb_filter >= 1 and data['band'][j] not in prev_filter:
+                                crit3 = True
+                            else:
+                                nb_filter += 1 
+                                prev_filter.append(data['band'][j])
+                        
+                    
+                    bool_sectect = crit1 and crit2 and crit3
+            else:
+                raise ValueError ('model_name have to be sugar or salt2')
+        else:
+            bool_sectect = False
             
-            chi2p = chi2
-            chi2 = res.chisq
-            print (chi2p, chi2)
-        #final results
-        res = resp
-        fitted_model = fitted_modelp
-        return res, fitted_model
+        return bool_sectect
     
     def fit_sample(self):
         """
@@ -415,10 +543,10 @@ class LC_Fitter(object):
         self.fit_fail = []
         self.fitted_model = []
         self.fitting_sample = True
-        if self.model_name== 'salt2':
+        if self.model_name == 'salt2':
             self.source = sncosmo.get_source(self.model_name, version='2.4')
         else:
-            self.source = sncosmo.get_source(self.model_name)
+            self.source = sncosmo.get_source(self.model_name, version=self.version_sug)
         dust = sncosmo.CCM89Dust()
         self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
@@ -427,6 +555,23 @@ class LC_Fitter(object):
         for sn_name in self.data:
             self.sn_data(sn_name)
             print (sn_name)
+            self.dic_res['data'][sn_name] = {}
+            if self.qual_crit:
+                bool_selct = self.selection_new_criteria(self.table_sn,
+                                                         self.zhl, self.mwebv)
+                if bool_selct:
+                    self.dic_res['data'][sn_name]['selection'] = True
+                else:
+                    res_sn, fitted_model_sn = 'fit fail', np.nan
+                    self.dic_res['data'][sn_name]['selection'] = False
+                    self.dic_res['data'][sn_name]['data_table'] = np.array(self.table_sn)
+                    self.dic_res['data'][sn_name]['res'] = res_sn
+                    self.dic_res['data'][sn_name]['zhl'] = self.zhl
+                    self.dic_res['data'][sn_name]['mwebv'] = self.mwebv 
+                    self.dic_res['data'][sn_name]['zerr'] = self.zerr
+                    self.dic_res['data'][sn_name]['zcmb'] = self.zcmb   
+                    continue
+                            
             if self.model_name == 'sugar':
                 try:
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn)
@@ -450,8 +595,6 @@ class LC_Fitter(object):
                 raise ValueError('Error model_name have to be salt2 or sugar')
 
             self.fitted_model.append(fitted_model_sn)
-            self.dic_res['data'][sn_name] = {}
-#            self.dic_res['data'][sn_name]['fitted_model'] = fitted_model_sn
             self.dic_res['data'][sn_name]['data_table'] = np.array(self.table_sn)
             self.dic_res['data'][sn_name]['res'] = res_sn
             self.dic_res['data'][sn_name]['zhl'] = self.zhl

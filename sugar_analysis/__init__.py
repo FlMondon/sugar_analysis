@@ -20,3 +20,4 @@ from .fitting_lc import LC_Fitter
 from .sugar_generator import sugar_simulation
 from .data_table import build_data
 from .plot_lc import plot_lc_res
+from .build_sug_errmod import get_reml

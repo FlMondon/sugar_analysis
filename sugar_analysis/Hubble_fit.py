@@ -74,6 +74,8 @@ class read_input_data_SNf(object):
         elif model_name == 'salt2':
             if self.standard == 'mb' :
                 self.param_name = ['mb', 'x1', 'c']
+            elif self.standard == 'log10_x0' :
+                self.param_name = ['log10_x0', 'x1', 'c']
             else: 
                 self.param_name = ['x0', 'x1', 'c']
         else:
@@ -332,7 +334,10 @@ class read_input_data_SNf(object):
             elif self.standard == 'log10_x0' :
                 self.params[:,0] = -2.5*np.log10(self.params[:,0])
                 for i in range(len(self.sn_name)):
-                        self.cov[i,0,0] = self.cov[i,0,0]*1.0857362047581294 * self.params[i,0]
+                        self.cov[i,0,0] = self.cov[i,0,0]*(1.0857362047581294 /self.params[i,0])**2
+                        self.cov[i,0,1] = self.cov[i,0,1]*(1.0857362047581294 /self.params[i,0])
+                        self.cov[i,0,2] = self.cov[i,0,2]*(1.0857362047581294 /self.params[i,0])
+                        self.cov[i,:,0] = self.cov[i,0,:]
             elif self.standard is not  'x0':
                 raise ValueError( 'Warning: with sugar standard have to be mb, log10_x0 or x0')
                 
@@ -598,7 +603,7 @@ class Hubble_fit(object):
         minuit_kwargs = {}
         for param in self.freeparameters:
             minuit_kwargs[param] = self.param_input["%s_guess"%param]
-
+            
 
         self.minuit = minuit.Minuit(self._minuit_chi2_, **minuit_kwargs)
     
