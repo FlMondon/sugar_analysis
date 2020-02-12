@@ -19,7 +19,7 @@ def mag_to_flux(mag,band,width):
    
 
         
-def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',errorscale=True, width=10):
+def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'], model='sugar',errorscale=True, width=10):
     """
     """
 
@@ -94,6 +94,7 @@ def read_meta_SNF(meta,sn_name,filters=['BSNf','VSNf','RSNf'],model='sugar',erro
     
     
 
+    
     
     
     

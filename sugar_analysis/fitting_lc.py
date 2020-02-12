@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Sep  5 10:33:31 2018
@@ -10,29 +10,26 @@ import sncosmo
 import copy
 import numpy as np
 import os
-try:
-   import cPickle as pkl
-except ModuleNotFoundError:
-   import pickle as pkl
+import pickle as pkl
    
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
+#from .load_sugar import register_SUGAR
 from .read_jla import read_lc_jla
 from .cosmo_tools import distance_modulus_th
 from .constant import t_min_sug, t_max_sug, t_min_salt2, t_max_salt2
 from .data_table import build_data
 from .data_table import read_csp
-
-
+from .load_salt2_newerr import register_salt2_newerr
+from .load_sugext import register_SUGAR_ext
    
 class LC_Fitter(object):
     
     def __init__(self, model_name='sugar', sample='SNf', data=None, 
-                 t0_fix=False, sub_sample=None, modelcov=False,
+                 t0_fix=False, sub_sample=None, modelcov=True,
                  filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10'], 
                  filter_drop_csp = None, sad_path = '../../',
                  modeldir='../../sugar_model/', mod_errfile='model_err_sug.dat',
-                 width=10, param_sug_fix =[], qual_crit=True, 
+                 width=10, param_sug =['q1', 'q2', 'q3'], qual_crit=False, 
                  version_sug='1.0'):
         
         
@@ -50,17 +47,18 @@ class LC_Fitter(object):
         self.modelcov = modelcov
         self.filters = filters
         self.strfilters = str(len(filters))+filters[0]+filters[len(filters)-1]
-        register_SUGAR(modeldir=self.modeldir, mod_errfile=mod_errfile,
+#        register_SUGAR(modeldir=self.modeldir, mod_errfile=mod_errfile,
+#                       version=self.version_sug)
+        if model_name == 'salt2_newerr':
+            register_salt2_newerr(modeldir=modeldir, mod_errfile=mod_errfile,
                        version=self.version_sug)
-        self.param_sug = ['q1', 'q2', 'q3']
-        for psf in param_sug_fix:
-            self.param_sug.remove(psf)
+        self.param_sug = param_sug
 
                 
         
         if self.sample=='SNf':
             self.bd = build_data(sad_path=self.sad_path, modeldir=self.modeldir)
-            self.meta = pkl.load(open(self.sad_path+'sugar_analysis_data/META-CABALLO2.pkl'))
+            self.meta = pkl.load(open(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl','rb'), encoding="latin1")
             self.data = []
             if sub_sample==None:
                 for sn_name in self.meta.keys():
@@ -69,12 +67,11 @@ class LC_Fitter(object):
             else :
                 for sn_name in self.sub_sample:
                     self.data.append(sn_name)
-                    
-            
+
             self.errorscale = True
             self.width= width
-            register_SNf_bands_width(width=self.width)
-            mag_sys_SNF_width(width=self.width)
+            register_SNf_bands_width(width=self.width, sad_path=self.sad_path)
+            mag_sys_SNF_width(width=self.width, sad_path=self.sad_path)
             
         elif sample=='jla':
             builtins_jla_bandpasses(sad_path=self.sad_path)
@@ -216,22 +213,20 @@ class LC_Fitter(object):
                 Xgr_init = 10**(-0.4*(distance_modulus_th(self.zhl,self.zhl)))
             else:
                 Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
-
         self.model.set(Xgr=Xgr_init)
         if self.t0_fix:
             self.model.set(t0=self.daymax)
             res, fitted_model = sncosmo.fit_lc(data, 
                                                self.model, 
                                                self.param_sug+['A', 'Xgr'], 
-                                               modelcov  = self.modelcov,
-                                               phase_range=(t_min_sug, 
-                                                            t_max_sug))
+                                               modelcov  = self.modelcov)
         else:
             res, fitted_model = sncosmo.fit_lc(data, self.model, 
                                             ['t0']+self.param_sug+['A', 'Xgr'], 
                                             modelcov  = self.modelcov,
                                                phase_range=(t_min_sug, 
                                                             t_max_sug))
+            
         return res, fitted_model 
     
     
@@ -241,7 +236,10 @@ class LC_Fitter(object):
         """
         """
         if not self.fitting_sample :
-            self.source = sncosmo.get_source('salt2', version='2.4')
+            if self.model_name == 'salt2' :
+                self.source = sncosmo.get_source(self.model_name, version='2.4')
+            else:
+                self.source = sncosmo.get_source(self.model_name, version=self.version_sug)
             dust = sncosmo.CCM89Dust()
             self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
@@ -261,174 +259,29 @@ class LC_Fitter(object):
         else:
             self.model.set(z=self.zhl)
             self.model.set(mwebv=self.mwebv)
-        res, fitted_model = sncosmo.fit_lc(data, self.model, 
-                                               ['t0', 
-                                                'x1',
-                                                'c', 
-                                                'x0'], 
-                                               modelcov  = True,
-                                               phase_range=(t_min_salt2, 
-                                                            t_max_salt2))
-    
-        return res, fitted_model
-    
-    def fit_lc_sugar_old(self, data, zhl=None, zcmb=None, mwebv=None):
-        """
-        """
-        if not self.fitting_sample :
-            self.source = sncosmo.get_source('sugar', version=self.version_sug)
-            dust = sncosmo.CCM89Dust()
-            self.model = sncosmo.Model(source=self.source, 
-                              effects=[dust], 
-                              effect_names=['mw'], 
-                              effect_frames=['obs']) 
-            self.mwebv = mwebv
-            self.zhl = zhl
-            #If you don't have zcmb we used only zhl to compute the distance
-            #modulus for the guess of Xgr
-            if zcmb == None:
-                self.zcmb = zhl
-            else:
-                self.zcmb = zcmb
-            if mwebv == None:
-                self.model.set(mwebv=0.)
-            else: 
-                self.model.set(mwebv=self.mwebv)
-            if zhl==None:
-                self.model.set(z=0.)
-                Xgr_init = 1.e-15
-            else:
-                self.model.set(z=self.zhl)
-                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
-        else:
-            self.model.set(z=self.zhl)
-            self.model.set(mwebv=self.mwebv)
-            if self.zcmb==None:
-                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zhl,self.zhl)))
-            else:
-                Xgr_init = 10**(-0.4*(distance_modulus_th(self.zcmb,self.zhl)))
-
-        print ('initialisation')            
-
-        self.model.set(q1=0.0)
-        self.model.set(q2=0.0)
-        self.model.set(q3=0.0)
-        self.model.set(A=0.1)
-        self.model.set(Xgr=Xgr_init)
         if self.t0_fix:
             self.model.set(t0=self.daymax)
-            res, fitted_model = sncosmo.fit_lc(data, 
-                                               self.model, 
-                                               self.param_sug+['A', 'Xgr'], 
-                                               modelcov  = self.modelcov)
-            print (res.chisq)
+            res, fitted_model = sncosmo.fit_lc(data, self.model, 
+                                                   ['x1',
+                                                    'c', 
+                                                    'x0'], 
+                                                   modelcov  = self.modelcov)
         else:
-            res, fitted_model = sncosmo.fit_lc(data, 
-                                               self.model, 
-                                               ['t0','A','Xgr'], 
-                                               modelcov=False)
-    
-            chi2 = res.chisq
-            chi2p = chi2*2
-            m=0
-            recovery = True
-            t0_init = res.parameters[1] 
-            Xgr_init = res.parameters[2]
-            self.model.set(A=res.parameters[6])
-            self.model.set(Xgr=res.parameters[2])
-            self.model.set(t0=res.parameters[1]) 
-            res, fitted_model = sncosmo.fit_lc(data, 
-                                               self.model, 
-                                               self.param_sug, 
-                                               modelcov=False)
-            
-            print ('first iteration')
-            while chi2 < chi2p and m < 10:
-    
-                print (m)
-                if m > 0:
-                    resp = res
-                    fitted_modelp = fitted_model
-                t_peak = fitted_model.parameters[1]
-                t1 = t_peak + t_min_sug*(1 + self.model.get('z'))
-                t2 = t_peak + t_max_sug*(1 + self.model.get('z'))
-                            
-                A=[]
-                data_new = copy.deepcopy(data)
-                for i in range(len(data_new)):                    
-                    if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                        A.append(i)
-                A=np.array(A)
-                for i in range(len(A)):
-                    data_new.remove_row(A[i])
-                    A-=1   
-    
-    
-                Warning("Sugar don't have model covariance for the moment")
-                
-                self.model.set(q1=res.parameters[3])
-                self.model.set(q2=res.parameters[4])
-                self.model.set(q3=res.parameters[5])
-                self.model.set(A=res.parameters[6])
-                self.model.set(Xgr=res.parameters[2])
-                self.model.set(t0=res.parameters[1])                        
-                res, fitted_model = sncosmo.fit_lc(data_new, 
-                                                   self.model, 
-                                                   ['t0']+self.param_sug+['A', 'Xgr'], 
+            res, fitted_model = sncosmo.fit_lc(data, self.model, 
+                                                   ['t0',
+                                                    'x1',
+                                                    'c', 
+                                                    'x0'], 
                                                    modelcov  = self.modelcov,
-                                                   bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
-            
-                chi2p = chi2
-                chi2 = res.chisq
-                print (chi2p, chi2)
-                if m == 0 and chi2 > chi2p :
-                    if recovery:
-                        print ('First iteration fail try to recovery :')
-                        chi2 = self.recovery_sugar(data, t0_init, Xgr_init, res, chi2p)
-                        recovery = False 
-                    else:
-                        raise ValueError('Error initial value better than first iteration')
-                else:
-                    m += 1
-            
-            #final results
-            res = resp
-            fitted_model = fitted_modelp
-        return res, fitted_model 
-    
-    def recovery_sugar(self, data, t0_init, Xgr_init, res, chi2p):
-        n=0
-        t0_iter=t0_init-5
-        while res.chisq > chi2p and n < 10:
-            print (n)
-            n+=1
-    
-            self.model.set(Xgr=Xgr_init)
-            self.model.set(q1=0.0)
-            self.model.set(q2=0.0)
-            self.model.set(q3=0.0)
-            self.model.set(A=0.2)
-            self.model.set(t0=t0_iter)   
-            try:
-                res, fitted_model = sncosmo.fit_lc(data, 
-                                           self.model, 
-                                           ['t0']+self.param_sug+['A', 'Xgr'], 
-                                           modelcov  = self.modelcov,
-                                           bounds = {'t0' : [res.parameters[1]-5,res.parameters[1]+5]}) 
-            except:
-                'Fit fail in recovery iteration %f! Next iteration'%n
-            t0_iter += 1
-            print (res.chisq)
-        if n == 10:
-            raise ValueError('recovery fail')
-        else:
-            print ('successful recovery retry to fit')
+                                                   phase_range=(t_min_salt2, 
+                                                                t_max_salt2))
         
-        return res.chisq
+        return res, fitted_model
+        
     def selection_new_criteria(self, data, zhl, mwebv):
         
         if len(data) >= 4.:
-            if self.model_name == 'sugar':
+            if self.model_name == 'sugar' or self.model_name == 'sugar_ext':
                 paran_sug_init = copy.deepcopy(self.param_sug)
                 self.param_sug = []
                 try:
@@ -472,9 +325,12 @@ class LC_Fitter(object):
                     
                     bool_sectect = crit1 and crit2 and crit3
                 self.param_sug = paran_sug_init
-            elif self.model_name == 'salt2':
+            elif self.model_name == 'salt2' or self.model_name == 'salt2_newerr' :
                 if not self.fitting_sample :
-                    self.source = sncosmo.get_source('salt2', version='2.4')
+                    if self.model_name == 'salt2' :
+                        self.source = sncosmo.get_source(self.model_name, version='2.4')
+                    else:
+                        self.source = sncosmo.get_source(self.model_name, version=self.version_sug)
                     dust = sncosmo.CCM89Dust()
                     self.model = sncosmo.Model(source=self.source, 
                                       effects=[dust], 
@@ -555,33 +411,35 @@ class LC_Fitter(object):
         for sn_name in self.data:
             self.sn_data(sn_name)
             print (sn_name)
+            
             self.dic_res['data'][sn_name] = {}
-            if self.qual_crit:
-                bool_selct = self.selection_new_criteria(self.table_sn,
-                                                         self.zhl, self.mwebv)
-                if bool_selct:
-                    self.dic_res['data'][sn_name]['selection'] = True
-                else:
-                    res_sn, fitted_model_sn = 'fit fail', np.nan
-                    self.dic_res['data'][sn_name]['selection'] = False
-                    self.dic_res['data'][sn_name]['data_table'] = np.array(self.table_sn)
-                    self.dic_res['data'][sn_name]['res'] = res_sn
-                    self.dic_res['data'][sn_name]['zhl'] = self.zhl
-                    self.dic_res['data'][sn_name]['mwebv'] = self.mwebv 
-                    self.dic_res['data'][sn_name]['zerr'] = self.zerr
-                    self.dic_res['data'][sn_name]['zcmb'] = self.zcmb   
-                    continue
-                            
-            if self.model_name == 'sugar':
+#            if self.qual_crit:
+#                bool_selct = self.selection_new_criteria(self.table_sn,
+#                                                         self.zhl, self.mwebv)
+#                if bool_selct:
+#                    self.dic_res['data'][sn_name]['selection'] = True
+#                else:
+#                    res_sn, fitted_model_sn = 'fit fail', np.nan
+#                    self.dic_res['data'][sn_name]['selection'] = False
+#                    self.dic_res['data'][sn_name]['data_table'] = np.array(self.table_sn)
+#                    self.dic_res['data'][sn_name]['res'] = res_sn
+#                    self.dic_res['data'][sn_name]['zhl'] = self.zhl
+#                    self.dic_res['data'][sn_name]['mwebv'] = self.mwebv 
+#                    self.dic_res['data'][sn_name]['zerr'] = self.zerr
+#                    self.dic_res['data'][sn_name]['zcmb'] = self.zcmb   
+#                    continue
+            if self.model_name == 'sugar' or self.model_name == 'sugar_ext':
                 try:
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn)
                     success = True
+                    if self.model_name == 'sugar_ext':
+                        self.dic_res['data'][sn_name]['salt2_ext'] = self.source.compute_salt2_params_ext(res_sn['parameters'][2:-2])                 
                 except :
                     success = False
                     print ('fit fail for '+sn_name)
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
-            elif self.model_name == 'salt2':
+            elif self.model_name == 'salt2' or self.model_name == 'salt2_newerr':
                 try :
                     res_sn, fitted_model_sn = self.fit_lc_salt2(self.table_sn)
                     success = True
@@ -612,30 +470,32 @@ class LC_Fitter(object):
             if self.dic_res == None:
                 raise ValueError('fitted sample needed to write result')
             elif self.sample =='SNf':
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.strfilters+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.strfilters+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)            
             elif self.sample =='csp': 
                 if type(self.filter_drop_csp) == str:
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+self.filter_drop_csp+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+self.filter_drop_csp+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)
                 elif type(self.filter_drop_csp) == list:
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+str(self.filter_drop_csp)+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_drop'+str(self.filter_drop_csp)+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)                
                 else: 
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)
             else:
                 if self.sub_sample == None:
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)
                 elif type(self.sub_sample) == str :
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sub_sample+'_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sub_sample+'_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File)       
                 elif type(self.sub_sample) == list :
-                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'list_'+self.model_name+'.pkl','w')
+                    File = open(self.sad_path+'sugar_analysis_data/resfitlc_'+self.sample+'list_'+self.model_name+'.pkl','wb')
                     pkl.dump(self.dic_res, File) 
         else:
-            pkl.dump(self.dic_res, open(specific_file, 'w'))
+            File = open(specific_file, 'wb')
+            pkl.dump(self.dic_res, File)
+        File.close()
 
 
     

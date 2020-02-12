@@ -158,10 +158,13 @@ def mag_sys_SNF_width(width=10, sad_path='../../'):
     bands_snf ={'fU_'+str(width): ('vega_snf_0_'+str(width), 9.787),
     'new_fU_'+str(width): ('vega_snf_0_'+str(width), 9.807),
     'new_fI_'+str(width): ('vega_snf_0_'+str(width),8.786 ),
-	'fB_'+str(width): ('vega_snf_0_'+str(width), 9.791),
-	'fV_'+str(width): ('vega_snf_0_'+str(width), 9.353),
-	'fR_'+str(width): ('vega_snf_0_'+str(width), 9.011),
+	'fB_'+str(width): ('vega_snf_0_'+str(width), 0.),
+	'fV_'+str(width): ('vega_snf_0_'+str(width), 0.),
+	'fR_'+str(width): ('vega_snf_0_'+str(width), 0.),
     'ISNf': ('vega_snf_0_'+str(width), 9.011),
+    'BSNf': ('vega_snf_0_'+str(width), 9.791),
+    'VSNf': ('vega_snf_0_'+str(width), 9.353),
+    'RSNf': ('vega_snf_0_'+str(width), 9.011),
     'fI_'+str(width): ('vega_snf_0_'+str(width), 8.768)}
 
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_snf),'vega_snf_'+str(width), force=True) 

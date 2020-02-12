@@ -16,7 +16,6 @@ except ModuleNotFoundError:
 
 
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
 
 def plot_lc_res(sn_name, 
             dic_path='../../sugar_analysis_data/resfitlc_csp_sugar.pkl', 
@@ -54,7 +53,6 @@ def plot_lc_res(sn_name,
     sys = sncosmo.get_magsystem(sample)
     
     if sed_model is 'sugar':
-        register_SUGAR()
         source = sncosmo.get_source('sugar')
         dust = sncosmo.CCM89Dust()
         model = sncosmo.Model(source=source,

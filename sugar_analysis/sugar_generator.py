@@ -34,9 +34,8 @@ class sugar_simulation():
                     m3file='sugar_template_3.dat',
                  m4file='sugar_template_4.dat', 
                  parameters_init=np.array([37., 0., 0., 0., 0.]),
-                 name=None, version=None, sugar_model = '../../sugar_model/', sad_path = '../../'):
-        
-        self.sad_path = sad_path
+                 name=None, version=None, sugar_model = '../../sugar_model/'):
+
         self.sugar_model = sugar_model
         self._SCALE_FACTOR = 1.
         self._param_names = ['grey', 'q1', 'q2', 'q3', 'Av']

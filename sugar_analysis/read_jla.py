@@ -206,35 +206,35 @@ def read_lc_jla(sn_name, model = None, sad_path = '../../'):
     sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_ab),'jla_AB_B12', force=True)
 
 
-    f_in = {}
-    f_out = {}
-    for i in dic.keys():
-        if model == 'salt2':
-            res = wl_cut_salt2(i, head['@MWEBV'], head['@Z_HELIO'])
-            if res[0] == 'True':
-                f_in[i] = res[1]
-            else:
-                f_out[i] = res[1]
-                print('We excluded passband %s (%d points) because restframewavelength = %7.3f does not belong to the interval [%d,%d]' % (i,dic[i],res[1],wl_min_sal,wl_max_sal))
-        elif model == 'sugar':
-            res = wl_cut_sugar(i, head['@Z_HELIO'])
-            if res[0] == 'True':
-                f_in[i] = res[1]
-            else:
-                f_out[i] = res[1]
-                print('We excluded passband %s (%d points) because more than 10 percent of the filter area it does not belong to the interval [%d,%d]' % (i,dic[i],wl_min_sug,wl_max_sug))
-        else:
-            print('ERROR: model name has to be salt2 or sugar')
+#    f_in = {}
+#    f_out = {}
+#    for i in dic.keys():
+#        if model == 'salt2':
+#            res = wl_cut_salt2(i, head['@MWEBV'], head['@Z_HELIO'])
+#            if res[0] == 'True':
+#                f_in[i] = res[1]
+#            else:
+#                f_out[i] = res[1]
+#                print('We excluded passband %s (%d points) because restframewavelength = %7.3f does not belong to the interval [%d,%d]' % (i,dic[i],res[1],wl_min_sal,wl_max_sal))
+#        elif model == 'sugar':
+#            res = wl_cut_sugar(i, head['@Z_HELIO'])
+#            if res[0] == 'True':
+#                f_in[i] = res[1]
+#            else:
+#                f_out[i] = res[1]
+#                print('We excluded passband %s (%d points) because more than 10 percent of the filter area it does not belong to the interval [%d,%d]' % (i,dic[i],wl_min_sug,wl_max_sug))
+#        else:
+#            print('ERROR: model name has to be salt2 or sugar')
+#
+#    mask = []
+#    for row in data:
+#        if row[1] in f_in.keys():
+#            mask.append(True)
+#        else:
+#            mask.append(False)
+#    mask = np.array(mask)
+#
+#    data_cut = sncosmo.select_data(data, mask)
 
-    mask = []
-    for row in data:
-        if row[1] in f_in.keys():
-            mask.append(True)
-        else:
-            mask.append(False)
-    mask = np.array(mask)
-
-    data_cut = sncosmo.select_data(data, mask)
-
-    return head, data_cut
+    return head, data
 

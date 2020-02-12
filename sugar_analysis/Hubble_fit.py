@@ -13,15 +13,15 @@ import numpy as np
 from scipy.linalg import block_diag
 from numpy.linalg import inv
 from scipy import optimize
+
 try:
    import cPickle as pkl
 except ModuleNotFoundError:
    import pickle as pkl
 import iminuit as minuit
 
-
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
+#from .load_sugar import register_SUGAR
 from .cosmo_tools import distance_modulus_th
 from .math_toolbox import comp_rms
 
@@ -50,27 +50,34 @@ class read_input_data_SNf(object):
                  model_name='sugar', 
                  select=None, 
                  standard='mb',
-                 step_data=None):
+                 step_data=None,
+                 update=False,
+                 modeldir='../../sugar_model/'):
         
         self.model_name = model_name
-        try:
-            dic =  pkl.load(open(res_dict_path))
-        except:
-            dic = pkl.load(open(res_dict_path,'rb'),encoding='latin1')
+        dic = pkl.load(open(res_dict_path,'rb'))
         self.dic_res = dic['data']
         self.t0_fix = dic['info']['t0 fix']
         self.select = select
+        self.update = update
+        self.modeldir = modeldir
         self.standard = standard
         self.step_data = step_data
         self.transformed = False
         if model_name == 'sugar' :
-            if self.standard == 'mb' :
-                self.param_name = ['mb', 'q1', 'q2', 'q3', 'Av']
-            elif self.standard == 'Mgr':
-                self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'Av']
+            if update: 
+                if self.standard == 'mb' :
+                    self.param_name = ['mb', 'q1', 'q2', 'q3', 'q4', 'Av']
+                else: 
+                    self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'q4', 'Av']
             else:
-                self.param_name = ['Xgr', 'q1', 'q2', 'q3', 'Av']
-            
+                if self.standard == 'mb' :
+                    self.param_name = ['mb', 'q1', 'q2', 'q3', 'Av']
+                elif self.standard == 'Mgr':
+                    self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'Av']
+                else:
+                    self.param_name = ['Xgr', 'q1', 'q2', 'q3', 'Av']
+                
         elif model_name == 'salt2':
             if self.standard == 'mb' :
                 self.param_name = ['mb', 'x1', 'c']
@@ -87,8 +94,13 @@ class read_input_data_SNf(object):
         self.fit_fail = []
         dic_del = {}
         for sn_name in dic.keys():
-            if dic[sn_name]['res'] != 'fit fail':
-                dic_del[sn_name] = dic[sn_name]
+            if dic[sn_name]['res'] != 'fit fail' :       
+#                if dic[sn_name]['res']['success'] == False:
+#                    print(sn_name)
+                if type(dic[sn_name]['res']['covariance']) == np.ndarray:
+                     dic_del[sn_name] = dic[sn_name]
+                else:
+                    self.fit_fail.append(sn_name)
             else:
                 self.fit_fail.append(sn_name)
         return dic_del 
@@ -148,61 +160,101 @@ class read_input_data_SNf(object):
         builtins_jla_bandpasses()
         mag_sys_jla()
         # Calculation of m_b
-        register_SUGAR()
         source = sncosmo.get_source('sugar')
         model = sncosmo.Model(source=source)
         self.mb = np.zeros(len(self.dic_res.keys()))
         cov_copy = copy.deepcopy(self.cov)
         for i, sn_name in enumerate (self.dic_res.keys()):
             parameters = self.dic_res[sn_name]['res']['parameters']
-            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                       q2=parameters[4], q3=parameters[5], A=parameters[6])
-            self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
             h = 10**-9
-            #dmbxgr
-            model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
-                       q2=parameters[4], q3=parameters[5], A=parameters[6])
-            dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-            #dmbq1
-            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
-                       q2=parameters[4], q3=parameters[5], A=parameters[6])
-            dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-            #dmbq2
-            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                       q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
-            dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-            #dmbq3
-            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                       q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
-            dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-            #dmbA
-            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                       q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
-            dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-            
-            if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
-                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
-            elif sum(self.params[:,2]) != 0. :
-                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
-            elif sum(self.params[:,3]) != 0. :
-                dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
-            else :
-                dray = np.array([dmbxgr, dmbq1,  dmbA])
-              
-            for j in range(len(dray)):
-                if j ==0:
-                    self.cov[i,0,j] = np.dot(np.dot(dray.T,cov_copy[i]),dray)
-                else:
-                    self.cov[i,0,j] = np.dot(cov_copy[i,j,:],dray)
-                    self.cov[i,j,0] = self.cov[i,0,j]
+            if self.update:
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
+                self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
+                
+                #dmbxgr
+                model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
+                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
+                dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq1
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
+                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
+                dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq2
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4]+h, q3=parameters[5], q4=parameters[6], A=parameters[7])
+                dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq3
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4], q3=parameters[5]+h, q4=parameters[6], A=parameters[7])
+                dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                
+                #dmb4
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4], q3=parameters[5], q4=parameters[6]+h, A=parameters[7])
+                dmbq4 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h                                      
+                #dmbA
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7]+h)            
+                dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbq4, dmbA])
+                if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
+                elif sum(self.params[:,2]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
+                elif sum(self.params[:,3]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
+                else :
+                    dray = np.array([dmbxgr, dmbq1,  dmbA])
 
-        if sum(self.params[:,3]) == 0. and sum(self.params[:,2]) == 0.:
-            self.params = np.delete(self.params, 3,1)
-            self.params = np.delete(self.params, 2,1)
-        elif  sum(self.params[:,3]) == 0.:
-            self.params = np.delete(self.params, 3,1)        
-        elif  sum(self.params[:,2]) == 0.:
-            self.params = np.delete(self.params, 2,1)           
+
+            else:
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], A=parameters[6])
+                self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
+                #dmbxgr
+                model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
+                           q2=parameters[4], q3=parameters[5], A=parameters[6])
+                dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq1
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
+                           q2=parameters[4], q3=parameters[5], A=parameters[6])
+                dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq2
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
+                dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbq3
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
+                dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                #dmbA
+                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                           q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
+                dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+                if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
+                elif sum(self.params[:,2]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
+                elif sum(self.params[:,3]) != 0. :
+                    dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
+                else :
+                    dray = np.array([dmbxgr, dmbq1,  dmbA])
+
+#            for j in range(len(dray)):
+#                if j ==0:
+#                    self.cov[i,0,j] = np.dot(np.dot(dray.T,cov_copy[i]),dray)
+#                else:
+#                    self.cov[i,0,j] = np.dot(cov_copy[i,j,:],dray)
+#                    self.cov[i,j,0] = self.cov[i,0,j]
+#
+#        if sum(self.params[:,3]) == 0. and sum(self.params[:,2]) == 0.:
+#            self.params = np.delete(self.params, 3,1)
+#            self.params = np.delete(self.params, 2,1)
+#        elif  sum(self.params[:,3]) == 0.:
+#            self.params = np.delete(self.params, 3,1)        
+#        elif  sum(self.params[:,2]) == 0.:
+#            self.params = np.delete(self.params, 2,1)           
         self.params[:,0] = self.mb
 
     def x0_to_mb(self):
@@ -353,7 +405,7 @@ class read_input_data_SNf(object):
                 'z_cmb' : self.zcmb,
                 'sn_name' : self.sn_name,
                 'z_helio' : self.zhl}
-        yaml.dump(dico, open(outfile,'w'))
+        yaml.dump(dico, open(outfile,'wb'))
 
 def generate_fake_data(N=200, slopes=None, stds=None, stds_err=None, sigma_int=None, step=None, SEED=42):
     """
@@ -401,7 +453,10 @@ def generate_fake_data(N=200, slopes=None, stds=None, stds_err=None, sigma_int=N
         return z, mb, mb_err          
 
 
-def get_hubblefit(x, cov_x, zhl, zcmb, zerr, PARAM_NAME=np.asarray(['alpha1','alpha2',"alpha3","beta","delta", "delta2", "delta3"]), lssfr=None, sn_name=None):
+def get_hubblefit(x, cov_x, zhl, zcmb, zerr, 
+                  PARAM_NAME=np.asarray(['alpha1','alpha2',"alpha3","beta","delta", "delta2", "delta3"]),
+                  lssfr=None, sn_name=None, fit_cosmo=False, guess=None,
+                        blind_cosmo=True):
     """
     Parameters
     ----------
@@ -424,7 +479,10 @@ def get_hubblefit(x, cov_x, zhl, zcmb, zerr, PARAM_NAME=np.asarray(['alpha1','al
         freeparameters = ["Mb"]+PARAM_NAME[:n_corr].tolist()
         
 
-    h = hubble_fit_case(x, cov_x, zhl, zcmb, zerr, lssfr=lssfr, sn_name=sn_name)
+    h = hubble_fit_case(x, cov_x, zhl, zcmb, zerr,
+                        lssfr=lssfr, sn_name=sn_name, guess=guess,
+                        fit_cosmo=fit_cosmo,
+                        blind_cosmo=blind_cosmo)
     return h
 
 
@@ -432,22 +490,22 @@ class Hubble_fit(object):
     """
     """
     
-    def __new__(cls,*arg,**kwargs):
+    def __new__(cls, *arg, **kwargs):
         """ Upgrade of the New function to enable the
         the _minuit_ black magic
         """
-        obj = super(Hubble_fit,cls).__new__(cls)
-        
-        exec ("@make_method(Hubble_fit)\n"+\
-             "def _minuit_chi2_(self,%s): \n"%(", ".join(obj.freeparameters))+\
-             "    parameters = %s \n"%(", ".join(obj.freeparameters))+\
-             "    return self.get_chi2(parameters)\n")
+        obj = super(Hubble_fit, cls).__new__(cls)
 
+        exec("@make_method(Hubble_fit)\n" +
+             "def _minuit_chi2_(self,%s): \n" % (", ".join(obj.freeparameters)+', omgM, omgK, w') +
+             "    parameters = %s \n" % (", ".join(obj.freeparameters)) +
+             "    return self.get_chi2(parameters, omgM, omgK, w)\n")
 
         return obj
-    
 
-    def __init__(self, X, cov_X, zhl, zcmb, zerr,  guess=None, lssfr=None, sn_name=None):
+    def __init__(self, X, cov_X, zhl, zcmb, zerr,  guess=None, lssfr=None, sn_name=None,
+                        fit_cosmo=False,
+                        blind_cosmo=True):
         self.variable = X
         self.cov = cov_X
         self.zcmb = zcmb
@@ -455,6 +513,8 @@ class Hubble_fit(object):
         self.zerr = zerr
         self.dmz = 5/np.log(10) * np.sqrt(self.zerr**2 + 0.001**2) / self.zcmb #adding peculiar velocity
         self.sn_name = sn_name
+        self.fit_cosmo= fit_cosmo
+        self.blind_cosmo=blind_cosmo
         self.dof = len(X)-len(self.freeparameters)  
 
         if lssfr is not None:
@@ -472,7 +532,7 @@ class Hubble_fit(object):
 
         return  np.sum(np.concatenate([[1],params[1:]]).T * self.variable, axis=1) - params[0]     
     
-    def get_chi2(self, params):
+    def get_chi2(self, params, omgM, omgK, w):
         """
         """
         self.Cmu = np.zeros_like(self.cov[::len(params),::len(params)])
@@ -486,7 +546,7 @@ class Hubble_fit(object):
         self.Cmu[np.diag_indices_from(self.Cmu)] += self.sig_int**2 + self.dmz**2 
         self.C = inv(self.Cmu)
         self.distance_modulus_table =  self.distance_modulus(params)
-        L = self.distance_modulus_table - distance_modulus_th(self.zcmb, self.zhl)
+        L = self.distance_modulus_table - distance_modulus_th(self.zcmb, self.zhl, omgM=omgM, omgK=omgK, w=w)
         self.residuals = L
         self.var = np.diag(self.Cmu)
         return np.dot(L, np.dot(self.C,L))        
@@ -503,7 +563,8 @@ class Hubble_fit(object):
         """
         def get_intrinsic_chi2dof(intrinsic):
             self.sig_int = intrinsic
-            return np.abs(self.get_chi2(self.resultsfit) / self.dof -1)
+            return np.abs(self.get_chi2(self.resultsfit, self.minuit.values['omgM'],
+                                        self.minuit.values['omgK'], self.minuit.values['w']) / self.dof -1)
         
         return optimize.fmin(get_intrinsic_chi2dof,
                              intrinsic_guess)
@@ -562,7 +623,8 @@ class Hubble_fit(object):
             if name+"_boundaries" not in self.param_input.keys():
                 self.param_input[name+"_boundaries"] = [None,None]
     
-    def fit(self, fit_intrinsic=True, **kwargs):
+    def fit(self, fit_intrinsic=True, fix_omgM=False,
+            fix_omgK=True, fix_w=True, add_minuit_kwargs=None):
         """
         How to use kwargs 
         For each variable `v` of the model (see freeparameters)
@@ -581,8 +643,14 @@ class Hubble_fit(object):
         [None,None] for _boundaries
         """
         self._loopcount = 0
-        self.sig_int = 0.
-        self.setup_guesses(**kwargs)
+        self.sig_int = 0.05
+        self.fix_omgM = fix_omgM
+        self.fix_omgK = fix_omgK
+        self.fix_w = fix_w
+        if add_minuit_kwargs == None:
+            self.add_minuit_kwargs = {}
+        else :
+            self.add_minuit_kwargs = add_minuit_kwargs
         
         self.first_iter = self._fit_minuit_()
         # - Intrinsic disposerion Fit?
@@ -600,17 +668,35 @@ class Hubble_fit(object):
         """
         """
         # == Minuit Keys == #
-        minuit_kwargs = {}
-        for param in self.freeparameters:
-            minuit_kwargs[param] = self.param_input["%s_guess"%param]
-            
+        minuit_kwargs = self.add_minuit_kwargs
+        minuit_kwargs['Mb'] = -19.05
+        minuit_kwargs['omgM'] = 0.3
+        minuit_kwargs['omgK'] = 0.
+        minuit_kwargs['w'] = -1.
+        minuit_kwargs['limit_omgM'] =(0.,1.)
 
-        self.minuit = minuit.Minuit(self._minuit_chi2_, **minuit_kwargs)
+        if self.fit_cosmo == False:
+            minuit_kwargs['fix_omgM'] = True
+            minuit_kwargs['fix_omgK'] = True
+            minuit_kwargs['fix_w'] = True
+        else: 
+            minuit_kwargs['fix_omgM'] = self.fix_omgM
+            minuit_kwargs['fix_omgK'] = self.fix_omgK
+            minuit_kwargs['fix_w'] = self.fix_w            
+            
+        if self.blind_cosmo:
+            pl = 0
+        else:
+            pl = 1                   
+        self.minuit = minuit.Minuit(self._minuit_chi2_, 
+                                    pedantic=False, print_level=pl,
+                                    **minuit_kwargs)
     
     def _fit_minuit_(self):
         """
         """
         self._setup_minuit_()
+
         self._migrad_output_ = self.minuit.migrad()
         
         if self._migrad_output_[0]["is_valid"] is False:
@@ -619,6 +705,7 @@ class Hubble_fit(object):
             
         self.resultsfit = np.asarray([self.minuit.values[k]
                               for k in self.freeparameters])
+
         self.chi2_per_dof = self.minuit.fval/self.dof
         
     def _fit_readout_(self):
@@ -694,7 +781,280 @@ class Hubble_fit(object):
                
             
                 
-        pkl.dump(HD_results, open(outpath, 'w'))
+        pkl.dump(HD_results, open(outpath, 'wb'))
+    
+    def compute_contour(self, varx, vary, nsigma=1, nbinX=7, quick=True):
+        '''
+        Function which computes contours fromp a converged imnuit object
+        inputs:
+            - mobject: the converges minuit object
+            - varX : the X variable for the contour. Should be included in mobject.parameters
+            - varY : the Y variable for the contour. Should be included in mobject.parameters
+            - quick : False is the real version of contour but it's take very long time to run
+                    a quick version of contour (quick=True) can give a first idea of the contour
+        returns:
+            - contourline to be used with matplotlib.fill_between
+        '''
+        self.fit(fit_intrinsic=False, **{'fix_'+vary:False})
         
+        assert varx in self.minuit.parameters
+        assert vary in self.minuit.parameters
+        import scipy.optimize as opt
+        # prepare intermediate minuit results    
+        
+        chi2min = self.minuit.fval
+        marg = copy.copy(self.minuit.fitarg)
+        m = self.minuit
+        #fix or unfix all parameters
+        for p in self.minuit.parameters:
+            marg['fix_'+p] = True
+        
+        #fix w when using omgK and fix omgK when using w
+        if vary =='w':
+            marg['fix_omgK'] = True
+        elif vary=='omgK':
+            marg['fix_w'] = True
+        else:
+            raise ValueError('Error: this function need w or omgK in vary')
+    ##        
+    #    #Fix alpha and beta accelerates this function      
+    #    marg['fix_alpha']=True
+    #    marg['fix_beta']=True
+    ##    
+    #    initialisation 
+        yplus = list()
+        yminus = list()
+        xlist = list()
+        x_cent = m.values[varx]
+        y_cent = m.values[vary]
+        xmin = m.values[varx]
+
+    #
+    #    
+        # prepare functions to be zeroed
+        if quick==False :    #real version of contour
+            def f(y):
+                # var x and var y should already be fixed
+                # other should be left free
+                # value of x is already set before looking for the 0 of f
+                for p in self.minuit.parameters:
+                    marg['fix_'+p] = False
+                m.values[vary] = y
+                marg[vary] = y
+                marg['fix_omgK'] = True
+                marg['fix_'+varx] = True
+                marg['fix_w'] = True
+                m2 = minuit.Minuit(self.minuit.fcn,**marg)
+                m2.migrad()
+                for p in self.minuit.parameters:
+                    marg['fix_'+p] = True        
+                # this part to be switched off if fast approach is used
+                return m2.fcn(**m2.values) - chi2min - nsigma**2
+            def g(x):    
+                # var x and var y should already be fixed
+                # other should be left free
+                # value of x is already set before looking for the 0 of f
+                for p in self.minuit.parameters:
+                    marg['fix_'+p]= False
+                m.values[varx] = x
+                marg[varx] = x
+                marg['fix_omgK'] = True
+                marg['fix_'+varx] = True
+                marg['fix_w'] = True
+                m2=minuit.Minuit(self.minuit.fcn,**marg)
+                m2.migrad()
+                for p in self.minuit.parameters:
+                    marg['fix_'+p] = True        
+                # this part to be switched off if fast approach is used
+                return m.fcn(**m2.values) - chi2min - nsigma**2
+        else:
+            def f(y):
+                m.values[vary] = y
+                return m.fcn(**m.values) - chi2min - nsigma**2
+            def g(x):
+                m.values[varx] = x
+                return m.fcn(**m.values) - chi2min - nsigma**2
+            
+        #initiate the convergence to the ellipse extremum
+        ydif = 1
+    
+    ##
+        xplus = opt.brentq(g, xmin, xmin+m.errors[varx]*nsigma*2)
+        xplusinit = xplus
+    
+        xminus = opt.brentq(g, xmin-m.errors[varx]*nsigma, xmin)
+        xminusinit = xminus
+
+    #
+        t = 0
+        #converge to the contour max
+        while ydif >= 0.01 and t<=12:
+   
+            marg['fix_'+varx] = True
+            marg['fix_'+vary] = False
+            marg[varx]=xplus       
+            m = minuit.Minuit(self.minuit.fcn,**marg)
+            m.migrad()        
+            ymin = m.values[vary]
+    
+            try:
+                yp = opt.brentq(f, ymin, ymin+m.errors[vary]*nsigma*2)
+                ym = opt.brentq(f, ymin-m.errors[vary]*nsigma*2, ymin)
+                xlist.append(xplus)
+                yplus.append(yp)
+                yminus.append(ym)
+                ydif = yp-ym
+                ymid = (yp+ym)/2
+                marg[vary] = ymid
+                marg['fix_'+varx] = False
+                marg['fix_'+vary] = True
+                m = minuit.Minuit(self.minuit.fcn,**marg)
+                m.migrad()
+                xmin = m.values[varx]
+                xplus = opt.brentq(g, xmin, xmin+m.errors[varx]*nsigma*2)
+                xminus = opt.brentq(g, xmin-m.errors[varx]*nsigma*2, xmin)
+            except:
+                marg[varx] = marg[varx]+0.01            
+                t+= 1        
+            t+= 1
+    
+        #if the first while don't converge to the ellypse max this one find the max
+        #but warning this can be very slow 
+        t =True
+        xplus = xplus-0.1
+        while ydif >= 0.01 and t==True:
+            marg['fix_'+varx] = True
+            marg['fix_'+vary] = False
+            marg[varx] = xplus+0.001*nsigma
+            m = minuit.Minuit(self.minuit.fcn,**marg)
+            m.migrad()        
+            ymin = m.values[vary]
+    
+            # *2 : safety margin
+            try:
+                yp = opt.brentq(f, ymin, ymin+m.errors[vary]*nsigma*2)
+                ym = opt.brentq(f, ymin-m.errors[vary]*nsigma*2, ymin)   
+                xlist.append(marg[varx])
+                xplus = marg[varx]        
+                yplus.append(yp)
+                yminus.append(ym)
+                ydif = yp-ym
+
+            except:
+                t=False
+    
+    
+        
+        #initialisation of the next while
+        xplus = xplusinit
+        xminus = xminusinit
+        ydif = 1
+        t = 0
+       
+    #   converge to the contour min
+        while ydif >= 0.01 and t<=12 and xminus >= -0.05:
+            marg['fix_'+varx] = True
+            marg['fix_'+vary] = False
+            marg[varx] = xminus 
+            m = minuit.Minuit(self.minuit.fcn,**marg)
+            m.migrad()        
+            ymin=m.values[vary]
+            try:
+                # *2 : safety margin
+                yp=opt.brentq(f, ymin, ymin+m.errors[vary]*nsigma*2)
+                ym=opt.brentq(f, ymin-m.errors[vary]*nsigma*2, ymin)
+                xlist.append(xminus)
+                yplus.append(yp)
+                yminus.append(ym)
+                ydif = yp-ym
+                ymid = (yp+ym)/2
+                marg[vary] = ymid
+                marg['fix_'+varx] = False
+                marg['fix_'+vary] = True
+                m = minuit.Minuit(self.minuit.fcn,**marg)
+                m.migrad()
+                xmin = m.values[varx]
+                xplus = opt.brentq(g, xmin, xmin+m.errors[varx]*nsigma*2)
+                xminus = opt.brentq(g, xmin-m.errors[varx]*nsigma*2, xmin)  
+            except:
+                marg[varx] = marg[varx]+0.01            
+                t+= 1          
+            t+= 1
+
+        #if the first while don't converge to the contour min this one find the min
+        #but warnig this can be very slow 
+        t=True
+     
+        while ydif >= 0.01 and t==True and xminus >= -0.05:
+            marg['fix_'+varx]=True
+            marg['fix_'+vary]=False
+            marg[varx] = xminus-0.001*nsigma
+            m = minuit.Minuit(self.minuit.fcn,**marg)
+            m.migrad()        
+            ymin = m.values[vary]
+    
+            # *2 : safety margin
+            try:
+                yp = opt.brentq(f, ymin, ymin+m.errors[vary]*nsigma*2)
+                ym = opt.brentq(f, ymin-m.errors[vary]*nsigma*2, ymin)   
+                xlist.append(marg[varx])
+                xminus = marg[varx]        
+                yplus.append(yp)
+                yminus.append(ym)
+                ydif = yp-ym
+            except:
+                t=False        
+    ##        
+            
+            
+        #make more bins in t    
+        xvals= np.linspace(self.minuit.values[varx]-nsigma*self.minuit.errors[varx],
+                           self.minuit.values[varx]+self.minuit.errors[varx]*nsigma,
+                           nbinX)
+    #    xvals=N.linspace(0.1,0.3,nbinX)
+
+
+        for x in xvals:
+            #find y which realizes chi2 min
+            marg['fix_'+varx]=True
+            marg['fix_'+vary]=False    
+            marg[varx] = x
+            xlist.append(x)
+            m = minuit.Minuit(self.minuit.fcn,**marg)
+            m.migrad()
+            ymin  =m.values[vary]       
+            if f(ymin)<0:
+                # *2 : safety margin
+                yp = opt.brentq(f, ymin, ymin + m.errors[vary]*nsigma*2)
+                yplus.append(yp)
+                ym = opt.brentq(f, ymin-m.errors[vary]*nsigma*2, ymin)
+                yminus.append(ym)            
+            else:
+                yplus.append(np.nan)
+                yminus.append(np.nan)
+        
+        #transform the list in array
+        xlist = np.array(xlist)
+        yplus = np.array(yplus)
+        yminus = np.array(yminus)
+        
+        #make order between the differents elements on the array    
+        argso = np.argsort(xlist)
+        xlist = xlist[argso]
+        yplus = yplus[argso]
+        yminus = yminus[argso]
+        
+        if self.blind_cosmo:
+            x_blind = 0.3-x_cent
+            if vary == 'w':
+                y_blind = -1 - y_cent
+            elif vary == 'omgK':
+                y_blind = 0. -y_cent
+            else:
+                raise ValueError('vary should be w or omgK')
+        else:
+            x_blind = 0.
+            y_blind = 0.
+        return xlist[np.isfinite(yplus)]+x_blind, yminus[np.isfinite(yplus)]+y_blind, yplus[np.isfinite(yplus)]+y_blind
         
         

@@ -17,28 +17,83 @@ except ModuleNotFoundError:
    import pickle as pkl
    
 from .constant import CLIGHT, HPLANCK
+from .cosmo_tools import zhelio2zcmb 
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-from .load_sugar import register_SUGAR
+#from .load_sugar import register_SUGAR
 
 
+RAD2DEG = 57.295779513082323            # 180/pi
+def rec2pol(x, y, deg=False):
+    """Conversion of rectangular *(x,y)* to polar *(r,theta)*
+    coordinates"""
+
+    r = np.hypot(x,y)
+    t = np.arctan2(y,x)
+    if deg:                             # Convert to radians
+        t *= RAD2DEG
+
+    return r,t    
+def radec2gcs(ra, dec, deg=True):
+    """Convert *(ra,dec)* equatorial coordinates (J2000, in degrees if
+    *deg*) to Galactic Coordinate System coordinates *(lII,bII)* (in
+    degrees if *deg*).
+
+    Sources:
+
+    - http://www.dur.ac.uk/physics.astrolab/py_source/conv.py_source
+    - Rotation matrix from
+      http://www.astro.rug.nl/software/kapteyn/celestialbackground.html
+
+    .. Note:: This routine is only roughly accurate, probably at the
+              arcsec level, and therefore not to be used for
+              astrometric purposes. For most accurate conversion, use
+              dedicated `kapteyn.celestial.sky2sky` routine.
+
+    >>> radec2gal(123.456, 12.3456)
+    (210.82842704243518, 23.787110745502183)
+    """
+    
+    if deg:
+        ra  =  ra / RAD2DEG
+        dec = dec / RAD2DEG
+
+    rmat = np.array([[-0.054875539396, -0.873437104728, -0.48383499177 ],
+                    [ 0.494109453628, -0.444829594298,  0.7469822487  ],
+                    [-0.867666135683, -0.198076389613,  0.455983794521]])
+    cosd = np.cos(dec)
+    v1 = np.array([np.cos(ra)*cosd,
+                  np.sin(ra)*cosd,
+                  np.sin(dec)])
+    v2 = np.dot(rmat, v1)
+    x,y,z = v2
+
+    c,l = rec2pol(x,y)
+    r,b = rec2pol(c,z)
+    
+    assert np.allclose(r,1), "Precision error"
+
+    if deg:
+        l *= RAD2DEG
+        b *= RAD2DEG
+    
+    return l, b
     
 class build_data(object):
 
 
     def __init__(self,sad_path = '../../', modeldir='../../sugar_model/'):
         self.sad_path = sad_path
-        self.meta = self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'
         register_SNf_bands_width(width=10, sad_path=self.sad_path)
         mag_sys_SNF_width(width=10 , sad_path=self.sad_path)
-        register_SUGAR(modeldir=modeldir)  
+#        register_SUGAR(modeldir=modeldir)  
 
         self.noTH = True
         pkl_file = os.path.join(self.sad_path, 'sugar_analysis_data/SNF-0203-CABALLO2/meta_spectra.pkl')
-        self.spec = pkl.load(open(pkl_file))
-        self.meta= pkl.load(open(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl'))
+        self.spec = pkl.load(open(pkl_file, 'rb'), encoding="latin1")
+        self.meta= pkl.load(open(self.sad_path+'sugar_analysis_data/SNF-0203-CABALLO2/META.pkl', 'rb'), encoding="latin1")
       
     def integral_to_phot(self, wave, flux, var=None):
-
+        
         self.start = min(wave)
         self.end =  max(wave)
         # Interpolate filter over spectrum (natively regularly sampled)
@@ -54,8 +109,7 @@ class build_data(object):
             dphot = None
 #        for i in range(len(f)):
 #            if f[i] > 1:
-#                print '%e'%(f[i])
-#        print '############################################'
+#                print('%e'%(f[i]))
         return phot, dphot
     
     def interpolate(self, x):
@@ -113,7 +167,7 @@ class build_data(object):
 #        if self.band == 'RSNf':
 #            for i in range(len(f)):
 #                if f[i]>0.1:
-#                    print x[i], f[i]       
+#                    print(x[i], f[i])       
         return f
 
     def build_Astropy_Table(self, sn_name, band_used=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10']):
@@ -130,9 +184,9 @@ class build_data(object):
         
         for b in band_used:
             self.band = b
-            if b == 'fB_10' or b == 'new_fU_10':
+            if b == 'fB_10' or b == 'new_fU_10' or b == 'BSNf':
                 spectra = 'spectra_B'
-            elif b == 'fV_10' or  b == 'fR_10' or  b == 'new_fI_10':
+            elif b == 'fV_10' or  b == 'fR_10' or  b == 'new_fI_10'  or b == 'VSNf'or b == 'RSNf':
                 spectra = 'spectra_R'
             for p in self.spec[sn_name][spectra].keys():
                 phot_flux, dphot = self.integral_to_phot(
@@ -151,7 +205,17 @@ class build_data(object):
                      meta={'name': 'data'})
         return data
 
-
+    
+    def dump_pkl(self, path='../../sugar_analysis_data/', filters=['new_fU_10','fB_10','fV_10','fR_10','new_fI_10']):
+        pkl_path = path+'phot_SNF_'.join(filters)+'.pkl'
+        dic = {}
+        for sn_name in self.meta.keys():
+            print(sn_name)
+            if self.meta[sn_name]['idr.subset'] == 'training' or self.meta[sn_name]['idr.subset'] == 'validation':
+                dic[sn_name] = self.build_Astropy_Table(sn_name, band_used=filters)             
+        pkl.dump(dic, open(pkl_path, 'wb'))  
+        
+        
 class read_csp(object):
     def __init__(self, sad_path='../../'):
         self.sad_path = sad_path
@@ -198,14 +262,18 @@ class read_csp(object):
         
 
         return data, zhl
-    
+
     def get_mwebv(self, ra, dec, zhelio):
         """
         """
-        from ToolBox import Astro
         import sfdmap
-        c = SkyCoord(ra+' '+dec, unit=(u.hourangle, u.deg))
+        from astropy.coordinates import Galactic
+        c = SkyCoord(ra+' '+dec, unit=(u.deg, u.deg))
         m = sfdmap.SFDMap(self.sad_path+'sugar_analysis_data/sfddata-master', scaling=1.0)
-        galcoords = Astro.Coords.radec2gcs(c.ra.deg, c.dec.deg, deg=True)
-        return m.ebv(c.ra.deg, c.dec.deg), Astro.Coords.zhelio2zcmb(zhelio, galcoords)
-            
+        galcoords = c.transform_to(Galactic)
+        gc = galcoords.galactic.l.deg,  galcoords.galactic.b.deg
+        return m.ebv(c.ra.deg, c.dec.deg), zhelio2zcmb(zhelio,gc)
+
+    
+
+         
