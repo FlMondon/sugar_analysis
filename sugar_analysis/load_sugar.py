@@ -55,28 +55,30 @@ class SUGARSource(sncosmo.Source):
     param_names_latex = ['X_gr', 'q_1', 'q_2', 'q_3', 'A']
     
 
-    def __init__(self, modeldir='../../sugar_model/', m0file='sugar_template_0.dat',
-                 m1file='sugar_template_1.dat',
-            		m2file='sugar_template_2.dat',
-            		m3file='sugar_template_3.dat',
-                 m4file='sugar_template_4.dat',
+    def __init__(self, modeldir='../../sugar_model/', 
                  mod_errfile='../../sugar_model/model_err_sug.dat',
                  name=None, version=None):
         self.name = name
         self.version = version
         self._model = {}
-        self._parameters = np.array([1.0e10-15, 1., 1., 1., 0.])
-        self.M_keys = ['M0', 'M1', 'M2', 'M3', 'M4']    
-        names_or_objs = {'M0': m0file, 'M1': m1file, 'M2': m2file, 'M3': m3file, 'M4': m4file}
+#        self._parameters = np.array([1.0e10-15, 1., 1., 1., 0.])
+#        self.M_keys = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']    
+#        names_or_objs = {'M0': m0file, 'M1': m1file, 'M2': m2file, 'M3': m3file, 'M4': m4file}
 
-        # Make filenames into full paths.
-        if modeldir is not None:
-            for k in names_or_objs:
-                v = names_or_objs[k]
-                if (v is not None and isinstance(v, six.string_types)):
-                    names_or_objs[k] = os.path.join(modeldir, v)
-                    
-        for i, key in enumerate(self.M_keys):
+#        # Make filenames into full paths.
+#        if modeldir is not None:
+#            for k in names_or_objs.keys():
+#                v = names_or_objs[k]
+#                if (v is not None and isinstance(v, six.string_types)):
+#                    names_or_objs[k] = os.path.join(modeldir, v)
+
+        list_file = [f for f in os.listdir(modeldir) if f.startswith('sugar_template_')]
+        names_or_objs = {}
+        self._parameters = np.zeros(len(list_file))
+        self._parameters[0] = 1.0e10-15
+        for i in range(len(list_file)):
+            names_or_objs['M'+str(i)] = os.path.join(modeldir, 'sugar_template_'+str(i)+'.dat')
+        for i, key in enumerate(names_or_objs.keys()):
             phase, wave, values = sncosmo.read_griddata_ascii(names_or_objs[key])
             self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
             if key == 'M0':
@@ -87,17 +89,18 @@ class SUGARSource(sncosmo.Source):
                                         45.,  48.])
                 self._wave = wave
         self.mod_errfile = mod_errfile
+        self.M_keys = names_or_objs.keys()
         phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
         self._model['mod_err'] = interp2d(wave, phase, values) 
         
     def _flux(self, phase, wave):
 
         M_sug = 48.59
-        for i, key in enumerate(self.M_keys):
-            if i >= 1.: 
-                M_sug += self._model[key](phase, wave) * self._parameters[i]
+        for i in range(len(self.M_keys)):
+            if i == 0: 
+                M_sug += self._model['M'+str(i)](phase, wave) 
             else: 
-                M_sug += self._model[key](phase, wave)
+                M_sug += self._model['M'+str(i)](phase, wave) * self._parameters[i]
         wave2_factor = (wave ** 2 / 299792458. * 1.e-10)
         return (self._parameters[0] * 10. ** (-0.4 * M_sug) /  wave2_factor)
 
@@ -121,13 +124,13 @@ class SUGARSource(sncosmo.Source):
     
     def bandflux_rcov(self, band, phase):
         """
-        model error in comming
+        model error description in comming
         """
         # construct covariance array with relative variance on diagonal
         diagonal = np.zeros(phase.shape, dtype=np.float64)
         for b in set(band):
             mask = band == b
-            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])**2
+            diagonal[mask] = self._bandflux_rvar_single(b, phase[mask])
         result = np.diagflat(diagonal)
         
         return result
@@ -142,7 +145,7 @@ def register_SUGAR(modeldir='../../sugar_model/',
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
 
-        _SOURCES.register_loader('sugar', lambda relpath, mod_errfile,
+        _SOURCES.register_loader('sugar_flo', lambda relpath, mod_errfile,
         name=None, version=None : SUGARSource(modeldir=relpath,
                                               mod_errfile=mod_errfile,
                                               name=name, version=version)
