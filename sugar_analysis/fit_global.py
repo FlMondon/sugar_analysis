@@ -256,7 +256,30 @@ class fit_global_sample_lc(object):
         File_chi_sn = open(chisn_path, 'wb')
         pkl.dump(self.chi_sn, File_chi_sn)
         File_chi_sn.close()
-        
+
+if __name__ == '__main__':
+    from copy import deepcopy
+    from astropy.table import Table
+    data_sa = pkl.load(open("../../sugar_analysis_data/extension_training/tlimsug-8salt2-15/resfitlc_snls_ext.pkl", 'rb'))
+    data_sa = data_sa['data']
+    data = {}
+    for sn_name in data_sa.keys():
+        if data_sa[sn_name]['res'] != 'fit fail':
+            data[sn_name] = deepcopy(data_sa[sn_name])
+            data[sn_name]['data_table'] = sncosmo.select_data(Table(data[sn_name]['data_table']), 
+                data[sn_name]['res']['data_mask'])
+    A = pkl.load(open('../../sugar_model/trans_matrix_init.pkl', 'rb'))
+    init_A = np.zeros(15)
+    init_A[:3] = A[0]
+    init_A[3:6] = A[1]
+    init_A[6:9] = A[2]
+    init_A[9:12] = A[3]
+    init_A[12:] = A[4]
+    fg = sa.fit_global_sample_lc(data, fit_A=True, init_A=init_A, cov_band=True, 
+                                 radius="../../sugar_analysis_data/extension_training/radius_snls.pkl",
+                                 write_chi2=True)
+    fg.write_res(output_path='../../sugar_analysis_data/extension_training/global_fit_snls.pkl')
+    
 
 
         
