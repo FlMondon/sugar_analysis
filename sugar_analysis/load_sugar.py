@@ -56,7 +56,7 @@ class SUGARSource(sncosmo.Source):
     
 
     def __init__(self, modeldir='../../sugar_model/', 
-                 mod_errfile='../../sugar_model/model_err_sug.dat',
+                 mod_errfile=None,
                  name=None, version=None):
         self.name = name
         self.version = version
@@ -90,8 +90,9 @@ class SUGARSource(sncosmo.Source):
                 self._wave = wave
         self.mod_errfile = mod_errfile
         self.M_keys = names_or_objs.keys()
-        phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
-        self._model['mod_err'] = interp2d(wave, phase, values) 
+        if mod_errfile is not None:
+            phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
+            self._model['mod_err'] = interp2d(wave, phase, values) 
         
     def _flux(self, phase, wave):
 
@@ -113,7 +114,6 @@ class SUGARSource(sncosmo.Source):
                              .format(band.name, band.wave[0], band.wave[-1],
                                      self._wave[0], self._wave[-1]))
         mod_err = self._model['mod_err'](band.wave_eff, phase)[:, 0]
-        
         # v is supposed to be variance but can go negative
         # due to interpolation. Correct negative values to some small
         # number. (at present, use prescription of snfit : set
@@ -144,8 +144,8 @@ def register_SUGAR(modeldir='../../sugar_model/',
     for topdir, ver, ref in [('SUGAR_model', version, PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-
-        _SOURCES.register_loader('sugar_flo', lambda relpath, mod_errfile,
+        Warning('register sugar from sugar_analysis')
+        _SOURCES.register_loader('sugar', lambda relpath, mod_errfile,
         name=None, version=None : SUGARSource(modeldir=relpath,
                                               mod_errfile=mod_errfile,
                                               name=name, version=version)

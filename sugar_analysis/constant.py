@@ -19,10 +19,14 @@ wl_max_salt = 9200.000000
 #time coverage for sugar
 #t_min_sug = -12
 #t_max_sug = 48
-t_min_sug = -8
-t_max_sug = 48
+#t_min_sug = -8
+#t_max_sug = 48
 #time coverage for salt2
 t_min_salt2 = -15
 t_max_salt2 = 45
 #t_min_salt2 = -15
 #t_max_salt2 = 45
+#use with sugar chimere
+
+t_min_sug = -12
+t_max_sug = 48

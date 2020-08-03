@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 import iminuit as minuit
 
 from .builtins import register_SNf_bands_width, mag_sys_SNF_width,  builtins_jla_bandpasses, mag_sys_jla
-#from .load_sugar import register_SUGAR
+from .load_sugar import register_SUGAR
 from .cosmo_tools import distance_modulus_th
 from .math_toolbox import comp_rms
 
@@ -55,7 +55,7 @@ class read_input_data_SNf(object):
                  modeldir='../../sugar_model/'):
         
         self.model_name = model_name
-        dic = pkl.load(open(res_dict_path,'rb'))
+        dic = pkl.load(open(res_dict_path,'rb'), encoding='latin1')
         self.dic_res = dic['data']
         self.t0_fix = dic['info']['t0 fix']
         self.select = select
@@ -64,13 +64,8 @@ class read_input_data_SNf(object):
         self.standard = standard
         self.step_data = step_data
         self.transformed = False
+        register_SUGAR(modeldir=self.modeldir, mod_errfile=None)
         if model_name == 'sugar' :
-            if update: 
-                if self.standard == 'mb' :
-                    self.param_name = ['mb', 'q1', 'q2', 'q3', 'q4', 'Av']
-                else: 
-                    self.param_name = ['Mgr', 'q1', 'q2', 'q3', 'q4', 'Av']
-            else:
                 if self.standard == 'mb' :
                     self.param_name = ['mb', 'q1', 'q2', 'q3', 'Av']
                 elif self.standard == 'Mgr':
@@ -96,12 +91,15 @@ class read_input_data_SNf(object):
         for sn_name in dic.keys():
             if dic[sn_name]['res'] != 'fit fail' :       
 #                if dic[sn_name]['res']['success'] == False:
-#                    print(sn_name)
+                
                 if type(dic[sn_name]['res']['covariance']) == np.ndarray:
+                     
                      dic_del[sn_name] = dic[sn_name]
                 else:
+                    print(sn_name)
                     self.fit_fail.append(sn_name)
             else:
+#                print(sn_name)
                 self.fit_fail.append(sn_name)
         return dic_del 
     
@@ -142,6 +140,7 @@ class read_input_data_SNf(object):
             except:
                 list_zcmb.append(None)
                 list_zerr.append(None)
+        
         self.zhl = np.array(list_zhl)
         self.zcmb = np.array(list_zcmb)
         self.zerr = np.array(list_zerr)
@@ -167,94 +166,55 @@ class read_input_data_SNf(object):
         for i, sn_name in enumerate (self.dic_res.keys()):
             parameters = self.dic_res[sn_name]['res']['parameters']
             h = 10**-9
-            if self.update:
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                       q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
-                self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
-                
-                #dmbxgr
-                model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
-                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
-                dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq1
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
-                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7])
-                dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq2
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4]+h, q3=parameters[5], q4=parameters[6], A=parameters[7])
-                dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq3
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4], q3=parameters[5]+h, q4=parameters[6], A=parameters[7])
-                dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                
-                #dmb4
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4], q3=parameters[5], q4=parameters[6]+h, A=parameters[7])
-                dmbq4 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h                                      
-                #dmbA
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4], q3=parameters[5], q4=parameters[6], A=parameters[7]+h)            
-                dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbq4, dmbA])
-                if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
-                elif sum(self.params[:,2]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
-                elif sum(self.params[:,3]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
-                else :
-                    dray = np.array([dmbxgr, dmbq1,  dmbA])
 
 
-            else:
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                   q2=parameters[4], q3=parameters[5], A=parameters[6])
+            self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
+            #dmbxgr
+            model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
                        q2=parameters[4], q3=parameters[5], A=parameters[6])
-                self.mb[i] = model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) 
-                #dmbxgr
-                model.set(t0=parameters[1], Xgr=(parameters[2]+h*10**-15), q1=parameters[3],    #10**-15 oder scale of Xgr
-                           q2=parameters[4], q3=parameters[5], A=parameters[6])
-                dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq1
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
-                           q2=parameters[4], q3=parameters[5], A=parameters[6])
-                dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq2
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
-                dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbq3
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
-                dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                #dmbA
-                model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
-                           q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
-                dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
-                if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
-                elif sum(self.params[:,2]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
-                elif sum(self.params[:,3]) != 0. :
-                    dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
-                else :
-                    dray = np.array([dmbxgr, dmbq1,  dmbA])
+            dmbxgr = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+            #dmbq1
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3]+h,
+                       q2=parameters[4], q3=parameters[5], A=parameters[6])
+            dmbq1 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+            #dmbq2
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4]+h, q3=parameters[5], A=parameters[6])
+            dmbq2 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+            #dmbq3
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5]+h, A=parameters[6])
+            dmbq3 = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+            #dmbA
+            model.set(t0=parameters[1], Xgr=parameters[2], q1=parameters[3],
+                       q2=parameters[4], q3=parameters[5], A=parameters[6]+h)            
+            dmbA = (model.bandmag('jla_STANDARD::B', 'jla_VEGA2_mb', [parameters[1]]) - self.mb[i])/h
+            if sum(self.params[:,2]) != 0. and   sum(self.params[:,3]) != 0. :
+                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbq3, dmbA])
+            elif sum(self.params[:,2]) != 0. :
+                dray = np.array([dmbxgr, dmbq1, dmbq2, dmbA])
+            elif sum(self.params[:,3]) != 0. :
+                dray = np.array([dmbxgr, dmbq1, dmbq3, dmbA])      
+            else :
+                dray = np.array([dmbxgr, dmbq1,  dmbA])
 
-#            for j in range(len(dray)):
-#                if j ==0:
-#                    self.cov[i,0,j] = np.dot(np.dot(dray.T,cov_copy[i]),dray)
-#                else:
-#                    self.cov[i,0,j] = np.dot(cov_copy[i,j,:],dray)
-#                    self.cov[i,j,0] = self.cov[i,0,j]
-#
-#        if sum(self.params[:,3]) == 0. and sum(self.params[:,2]) == 0.:
-#            self.params = np.delete(self.params, 3,1)
-#            self.params = np.delete(self.params, 2,1)
-#        elif  sum(self.params[:,3]) == 0.:
-#            self.params = np.delete(self.params, 3,1)        
-#        elif  sum(self.params[:,2]) == 0.:
-#            self.params = np.delete(self.params, 2,1)           
+            for j in range(len(dray)):
+                if j ==0:
+                    self.cov[i][0,j] = np.dot(np.dot(dray.T,cov_copy[i]),dray)
+                else:
+                    self.cov[i][0,j] = np.dot(cov_copy[i][j,:],dray)
+                    self.cov[i][j,0] = self.cov[i][0,j]
+    
+
+        if sum(self.params[:,3]) == 0. and sum(self.params[:,2]) == 0.:
+            self.params = np.delete(self.params, 3,1)
+            self.params = np.delete(self.params, 2,1)
+        elif  sum(self.params[:,3]) == 0.:
+            self.params = np.delete(self.params, 3,1)        
+        elif  sum(self.params[:,2]) == 0.:
+            self.params = np.delete(self.params, 2,1)           
         self.params[:,0] = self.mb
 
     def x0_to_mb(self):
@@ -392,7 +352,6 @@ class read_input_data_SNf(object):
                         self.cov[i,:,0] = self.cov[i,0,:]
             elif self.standard is not  'x0':
                 raise ValueError( 'Warning: with sugar standard have to be mb, log10_x0 or x0')
-                
         self.cov_save = np.array(self.cov) 
         self.cov_list = list(self.cov)
         self.cov = block_diag(*self.cov_list)

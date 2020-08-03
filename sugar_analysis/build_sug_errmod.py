@@ -60,9 +60,10 @@ def make_method(obj):
     return decorate
 
 
-def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
+def get_reml(res_dict_path="../../sugar_analysis_data/resfitlc_csp_drop['cspu']_sugar_gold.pkl",
+             output_path='../../sugar_analysis_data/err_mod_training/',
                  modeldir='../../sugar_model/', nb_node=4, sad_path = '../../',
-                 fit_spline=True, reml=False, fit_iter=True, grid=None, model='sugar'):
+                 fit_spline=True, reml=False, fit_iter=True, grid=None, model='sugar', select=None):
     """
     Parameters
     ----------
@@ -72,9 +73,9 @@ def get_reml(output_path='../../sugar_analysis_data/err_mod_training/',
         freeparameters, bands = build_sig_par(nb_node=nb_node)
     
 
-    reml = build_sugar_error_model_case(output_path=output_path,
+    reml = build_sugar_error_model_case(res_dict_path=res_dict_path, output_path=output_path, 
                  modeldir=modeldir, nb_node=nb_node, sad_path=sad_path, 
-                 reml=reml, fit_iter=fit_iter, fit_spline=True, grid=grid, model=model)
+                 reml=reml, fit_iter=fit_iter, fit_spline=True, grid=grid, model=model, select=select)
     return reml
 
 class build_sugar_error_model(object):
@@ -94,10 +95,11 @@ class build_sugar_error_model(object):
         return obj
     
     
-    def __init__(self, output_path='../../sugar_analysis_data/err_mod_training/',
+    def __init__(self, res_dict_path="../../sugar_analysis_data/resfitlc_csp_drop['cspu']_sugar_gold.pkl",
+                 output_path='../../sugar_analysis_data/err_mod_training/',
                  modeldir='../../sugar_model/', nb_node=4, reml=False, sad_path = '../../',
                  fit_iter=True, bands=['cspb', 'cspg', 'cspv', 'cspr', 'cspi'],
-                 fit_spline=True, grid=None, model='sugar'):
+                 fit_spline=True, grid=None, model='sugar', select=None):
         
         self.modeldir = modeldir
         self.sad_path = sad_path
@@ -110,6 +112,7 @@ class build_sugar_error_model(object):
                 self.phase_bin = grid
         self.output_path = output_path
         self.bands = bands
+        dic = pkl.load(open(res_dict_path,'rb'), encoding='latin1')
         self.sys = sncosmo.get_magsystem('csp')
         if nb_node > 2:
             self.nb_node = nb_node
@@ -117,15 +120,28 @@ class build_sugar_error_model(object):
             raise ValueError('For linear spline nb node must be > 2')
         self.nb_node = nb_node
         self.reml = reml
-        self.val_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/validation')
-        self.training_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/trainning_all')
-        Warning('training is all sample')
+#        self.val_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/validation')
+#        self.training_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/trainning_all')
+#        Warning('training is all sample')
+        dic = pkl.load(open(res_dict_path,'rb'))
+        dic_res = dic['data']
+        if type(select) != type(None):
+            dic = {}
+            for sn_name in select:
+                dic[sn_name] = dic_res[sn_name]
+            if len(dic) != 0:
+                self.dic = dic
+            else:
+                raise ValueError('select not compatible with dic res')
+        else:
+            self.dic = dic_res
         self.like_val_it = [] #values of likelihood/N after each iteration
         self.fit_spline = fit_spline
         self.fit_iter = fit_iter
         self.v = 0.0
         print(model)
         self.model_name = model
+        register_SUGAR(modeldir=self.modeldir, mod_errfile=None)
         if self.model_name == 'sugar':
             self.source = sncosmo.get_source('sugar')
             dust = sncosmo.CCM89Dust()
@@ -181,34 +197,35 @@ class build_sugar_error_model(object):
             
     def residuals(self, sn_name):   
         self.change_model_params(sn_name)
-        Filtre = self.dic[sn_name]['res']['data_mask']               
+        Filtre = self.dic[sn_name]['res']['data_mask']         
         band = self.dic[sn_name]['data_table']['band'][Filtre]
         time_obs = self.dic[sn_name]['data_table']['time'][Filtre]
-        phase = (time_obs- self.dic[sn_name]['res']['parameters'][1]) / (1 + self.dic[self.sn_name]['res']['parameters'][0])  
+        phase = (time_obs- self.dic[sn_name]['res']['parameters'][1]) / (1 + self.dic[sn_name]['res']['parameters'][0])  
         data_flux = self.dic[sn_name]['data_table']['flux'][Filtre]
 
         model_flux = self.model.bandflux(band, time_obs)
         residuals = data_flux - model_flux
         return residuals,  band, phase
     
-    def weight_matrix(self):
-        Filtre = self.dic[self.sn_name]['res']['data_mask'] 
-        band = self.dic[self.sn_name]['data_table']['band'][Filtre]
-        data_fluxerr = self.dic[self.sn_name]['data_table']['fluxerr'][Filtre]
-        data_flux = self.dic[self.sn_name]['data_table']['flux'][Filtre]
-        self.change_model_params(self.sn_name)
+    def weight_matrix(self, sn_name):
+        Filtre = self.dic[sn_name]['res']['data_mask'] 
+        
+        band = self.dic[sn_name]['data_table']['band'][Filtre]
+        data_fluxerr = self.dic[sn_name]['data_table']['fluxerr'][Filtre]
+        data_flux = self.dic[sn_name]['data_table']['flux'][Filtre]
+        self.change_model_params(sn_name)
         cm_diag = np.zeros_like(data_fluxerr)
 
         for j, b in enumerate(band):
-              phase_obs = self.dic[self.sn_name]['data_table']['time'][Filtre][j] - self.dic[self.sn_name]['res']['parameters'][1]
-              phase = phase_obs / (1 + self.dic[self.sn_name]['res']['parameters'][0])   
+              phase_obs = self.dic[sn_name]['data_table']['time'][Filtre][j] - self.dic[sn_name]['res']['parameters'][1]
+              phase = phase_obs / (1 + self.dic[sn_name]['res']['parameters'][0])   
               if b == 'cspv3014' or b == 'cspv9844':
                     f = sncosmo.get_bandpass('cspv9844')
               else :
                     f = sncosmo.get_bandpass(b)
               
-              flux = self.model.bandflux(b, self.dic[self.sn_name]['data_table']['time'][Filtre][j])
-              weff = f.wave_eff/(1 + self.dic[self.sn_name]['res']['parameters'][0])    
+              flux = self.model.bandflux(b, self.dic[sn_name]['data_table']['time'][Filtre][j])
+              weff = f.wave_eff/(1 + self.dic[sn_name]['res']['parameters'][0])    
               cm_diag[j] = 1/((data_fluxerr[j])**2 + (self.intrinsic_dispertion(phase, weff)*flux)**2) #flux ???
                   
         w = cm_diag
@@ -236,14 +253,13 @@ class build_sugar_error_model(object):
                     
                 node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
         self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
-        for sn_name in self.dic.keys():
-            self.sn_name = sn_name   
+        for sn_name in self.dic.keys():  
             if self.fit_spline:
-                w_i, log_det_cov_i = self.weight_matrix()
+                w_i, log_det_cov_i = self.weight_matrix(sn_name)
             else:
-                w_i, log_det_cov_i = self.weight_matrix_bin()
+                w_i, log_det_cov_i = self.weight_matrix_bin(sn_name)
             log_det_cov += log_det_cov_i
-            chi2 += np.sum(self.res_dic[self.sn_name]['res']**2*w_i)
+            chi2 += np.sum(self.res_dic[sn_name]['res']**2*w_i)
         if self.reml:
             self.H = self.build_H()
             raise ValueError('Change self.w')
@@ -251,7 +267,7 @@ class build_sugar_error_model(object):
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
-        print(-L+np.log(self.nb_point))
+        print(-L)
         return L
 
     def model_comp(self, band, phase, z):
@@ -272,7 +288,7 @@ class build_sugar_error_model(object):
             for j, band in enumerate(self.dic[sn_name]['data_table']['band'][Filtre]):
                 phase_obs = self.dic[sn_name]['data_table']['time'][Filtre][j] - self.dic[sn_name]['res']['parameters'][1]
                 phase = phase_obs / (1 + self.dic[sn_name]['res']['parameters'][0])
-                H[n] = self.model_comp(band, phase, self.dic[self.sn_name]['res']['parameters'][0])
+                H[n] = self.model_comp(band, phase, self.dic[sn_name]['res']['parameters'][0])
                 n +=1
         return H
        
@@ -306,7 +322,7 @@ class build_sugar_error_model(object):
                 self.param_input[name+"_guess"] = 0.07
                 self.param_input[name+"_boundaries"] = (0.,2.)
                 
-    def fit(self, **kwargs):
+    def fit(self, csp_file="../../sugar_analysis_data/resfitlc_csp_drop['cspu']_sugar_gold.pkl", **kwargs):
         """
         How to use kwargs 
         For each variable `v` of the model (see freeparameters)
@@ -325,22 +341,8 @@ class build_sugar_error_model(object):
         [None,None] for _boundaries
         """
         #First step
-        lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
-                        modelcov=False, qual_crit=False,
-                        modeldir = self.modeldir, sub_sample=self.training_sample, 
-                        filter_drop_csp = ['cspu'])
-        lcf.fit_sample()
-        self.param_sug_path = 'param_errmod_0it_%snode.pkl'%str(self.nb_node)
-        lcf.write_result(specific_file=self.output_path+self.model_name+'/'+self.param_sug_path)
-        self.res_dic = {}
-        try:
-            self.dic =  pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path))
-        except:
-            self.dic = pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path,
-                                     'rb'), encoding='latin1')
-        self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.model_name+'/'+self.param_sug_path)
-        self.dic = self.rids.delete_fit_fail(self.dic['data'])
         self.nb_point = 0.
+        self.res_dic = {}
         for sn_name in self.dic.keys():
             self.res_dic[sn_name] = {}
             self.res_dic[sn_name]['res'], self.res_dic[sn_name]['band'], self.res_dic[sn_name]['p'] = self.residuals(sn_name)
@@ -349,19 +351,19 @@ class build_sugar_error_model(object):
         self._fit_minuit_()
         self.err_mod_path = 'train_intres_0_%snode.dat'%str(self.nb_node)
         self.write_res(self.err_mod_path)
-        l = self._migrad_output_[0].fval +np.log(self.nb_point)
+        l = self._migrad_output_[0].fval 
         self.like_val_it.append(l)
         l_p = 0
         i = 0
-    
+
         if self.fit_iter :
-            while i < 5 :
+            while l < l_p and i <= 10 :
                 l_p = l
                 lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=False, 
                                 mod_errfile=self.sad_path+'sugar_analysis_data/err_mod_training/'+self.model_name+'/'+self.err_mod_path, 
-                                version_sug=str(self.v),  modeldir = self.modeldir, sub_sample=self.training_sample, 
-                                filter_drop_csp = ['cspu'])
+                                version_sug=str(self.v+2),  modeldir = self.modeldir, sub_sample=list(self.dic.keys()), 
+                                filter_drop_csp = ['cspu'], t0_fix=True, csp_file=csp_file)
                 lcf.fit_sample()
                 self.param_sug_path = 'param_errmod_%sit_%snode.pkl'%(str(i+1), str(self.nb_node))
                 lcf.write_result(specific_file=self.output_path+self.model_name+'/'+self.param_sug_path)
@@ -371,8 +373,7 @@ class build_sugar_error_model(object):
                 except:
                     self.dic = pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path,
                                              'rb'), encoding='latin1')
-                self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.model_name+'/'+self.param_sug_path)
-                self.dic = self.rids.delete_fit_fail(self.dic['data'])
+                self.dic = self.dic['data']
                 self.nb_point = 0.
                 for sn_name in self.dic.keys():
                     self.res_dic[sn_name] = {}
@@ -380,7 +381,7 @@ class build_sugar_error_model(object):
                     self.nb_point += len(self.res_dic[sn_name])
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
-                l = self._migrad_output_[0].fval +np.log(self.nb_point)
+                l = self._migrad_output_[0].fval 
                 self.like_val_it.append(l)
                 m_p = self._migrad_output_
                 res_p = self.resultsfit
@@ -392,7 +393,7 @@ class build_sugar_error_model(object):
             self.resultsfit = res_p
             self.err_mod_path = 'err_mod_%snode.dat'%str(self.nb_node)
             self.write_res(self.err_mod_path)
-            
+            print(self.nb_point)
     def write_res(self, train_intres_path):
         
         train_err_mod = open(self.output_path+self.model_name+'/'+train_intres_path, 'w')
@@ -431,7 +432,7 @@ class build_sugar_error_model(object):
                 lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=True, version_sug=str(self.v),
                                 modeldir = self.output_path+self.model_name+'/'+err_mod, sub_sample=self.val_sample, 
-                                filter_drop_csp = ['cspu'])
+                                filter_drop_csp = ['cspu'], t0_fix=True)
                 lcf.fit_sample()
                 self.param_sug_path = 'param_errmod_val_'+err_mod+'.pkl'
                 lcf.write_result(specific_file=self.output_path+self.model_name+'/'+self.param_sug_path)
@@ -441,8 +442,7 @@ class build_sugar_error_model(object):
                 except:
                     self.dic = pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path,
                                              'rb'), encoding='latin1')
-                self.rids = read_input_data_SNf(res_dict_path=self.output_path+self.model_name+'/'+self.param_sug_path)
-                self.dic = self.rids.delete_fit_fail(self.dic['data'])
+                self.dic = self.dic['data']
                 self.nb_point = 0.
                 for sn_name in self.dic.keys():
                     self.res_dic[sn_name]['res'], 
