@@ -170,7 +170,7 @@ class LC_Fitter(object):
             self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv, self.daymax = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV'], self.dic_jla_zbias[sn_name][3]
             
         elif self.sample == 'csp':
-            self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name,
+            self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name, 
                                                                 drop=self.filter_drop_csp+['cspys', 'csphs','cspjs', 'cspjs', 'cspyd', 'cspjd',  'csphd'])
             self.mwebv, self.zcmb = self.rcsp.get_mwebv(self.dic_csp_radec[sn_name][0], self.dic_csp_radec[sn_name][1], self.zhl)
             self.zerr = 0.

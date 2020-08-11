@@ -114,10 +114,7 @@ class build_sugar_error_model(object):
         self.bands = bands
         dic = pkl.load(open(res_dict_path,'rb'), encoding='latin1')
         self.sys = sncosmo.get_magsystem('csp')
-        if nb_node > 2:
-            self.nb_node = nb_node
-        else:
-            raise ValueError('For linear spline nb node must be > 2')
+        self.nb_node = nb_node
         self.nb_node = nb_node
         self.reml = reml
 #        self.val_sample = os.listdir(sad_path+'sugar_analysis_data/DR3/validation')
@@ -163,8 +160,7 @@ class build_sugar_error_model(object):
             if modeldir is not None:
                 for k in names_or_objs:
                     v = names_or_objs[k]
-                    if (v is not None and isinstance(v, six.string_types)):
-                        names_or_objs[k] = os.path.join(modeldir, v)
+                    names_or_objs[k] = os.path.join(modeldir, v)
             self._model = {}        
             for i, key in enumerate(self.M_keys):
                 phase, wave, values = sncosmo.read_griddata_ascii(names_or_objs[key])
@@ -253,6 +249,9 @@ class build_sugar_error_model(object):
                     
                 node_array[i,l] = sigmas2[l+len(self.phase_bin)*i]
         self.spline = interp2d(self.phase_bin, self.wave_bin, node_array) 
+        if self.reml:
+            w_m = []
+            nb_p = 0
         for sn_name in self.dic.keys():  
             if self.fit_spline:
                 w_i, log_det_cov_i = self.weight_matrix(sn_name)
@@ -260,10 +259,13 @@ class build_sugar_error_model(object):
                 w_i, log_det_cov_i = self.weight_matrix_bin(sn_name)
             log_det_cov += log_det_cov_i
             chi2 += np.sum(self.res_dic[sn_name]['res']**2*w_i)
+            if self.reml:
+                w_m.append(np.diag(w_i))
+                nb_p += len(w_i)
         if self.reml:
-            self.H = self.build_H()
-            raise ValueError('Change self.w')
-#            counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
+            self.w = block_diag(*w_m)
+            self.H = self.build_H(nb_p)
+            counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
@@ -272,16 +274,18 @@ class build_sugar_error_model(object):
 
     def model_comp(self, band, phase, z):
         band = sncosmo.get_bandpass(band)
-        wave = band.wave / (1+z)
+        wave, dwave = sncosmo.utils.integration_grid(band.minwave(), band.maxwave(),
+                                       5.0)
+        wave = wave / (1+z)
         wave2_factor = (wave ** 2 / 299792458. * 1.e-10)
         comp_sug = {}
         for i, key in enumerate(self.M_keys):
-                comp_sug[key] = np.sum((10. ** (-0.4 *self._model[key](phase, wave))/  wave2_factor)*band(band.wave)*np.min(band.dwave))
+                comp_sug[key] = np.sum((10. ** (-0.4 *self._model[key](phase, wave))/  wave2_factor)*band(wave)*dwave)
                 comp_sug[key] = self.sys.band_flux_to_mag(comp_sug[key], band)
         return np.array([comp_sug['M0'], comp_sug['M1'], comp_sug['M2'], comp_sug['M3'], comp_sug['M4'], 1.])
         
-    def build_H(self):
-        H = np.ones((len(self.res), 6))
+    def build_H(self, nb_p):
+        H = np.ones((nb_p, 6))
         n = 0 
         for sn_name in self.dic.keys():
             Filtre = self.dic[sn_name]['res']['data_mask']    
@@ -378,7 +382,6 @@ class build_sugar_error_model(object):
                 for sn_name in self.dic.keys():
                     self.res_dic[sn_name] = {}
                     self.res_dic[sn_name]['res'], self.res_dic[sn_name]['band'], self.res_dic[sn_name]['p'] = self.residuals(sn_name)
-                    self.nb_point += len(self.res_dic[sn_name])
                 self.setup_guesses(**kwargs)
                 self._fit_minuit_()
                 l = self._migrad_output_[0].fval 
@@ -416,40 +419,39 @@ class build_sugar_error_model(object):
                     value = self._migrad_output_[1][i+self.nb_node*j]['value']
                     train_err_mod.write('%f %f %f \n'%(p_bin, weff, value))
                 
-    def best_nb_node(self):
+    def best_nb_node(self, err_path, csp_file=None, val_sample=None):
         
         best_node = None
         best_likelihood = 0.
-        list_err_mod = os.listdir(self.output_path)
+        list_err_mod = os.listdir(err_path)
+        self.v = 5
         for err_mod in list_err_mod:
             if err_mod.startswith('err_mod_'):
-                err_mod_file = open(self.output_path+self.model_name+'/'+err_mod)
-                self.nb_node = err_mod.replace('err_mod_', '')
-                self.nb_node = int(self.nb_node.replace('node.dat',''))
+                self.v +=1
+                err_mod_file = open(err_path+err_mod)
                 mod = np.genfromtxt(err_mod_file)
                 arg_sort = np.argsort(mod[:,1])
                 val = mod[:,2][arg_sort]
+                self.phase_bin = list(dict.fromkeys(mod[:,0]))
                 lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
-                                modelcov=True, qual_crit=True, version_sug=str(self.v),
-                                modeldir = self.output_path+self.model_name+'/'+err_mod, sub_sample=self.val_sample, 
-                                filter_drop_csp = ['cspu'], t0_fix=True)
+                                modelcov=True, qual_crit=True, version_sug=str(self.v),modeldir = self.modeldir,
+                                mod_errfile = err_path+err_mod, sub_sample=val_sample, 
+                                filter_drop_csp = ['cspu'], t0_fix=True, csp_file=csp_file)
                 lcf.fit_sample()
                 self.param_sug_path = 'param_errmod_val_'+err_mod+'.pkl'
-                lcf.write_result(specific_file=self.output_path+self.model_name+'/'+self.param_sug_path)
+                lcf.write_result(specific_file=self.output_path+'/'+self.param_sug_path)
                 self.res_dic = {}
                 try:
-                    self.dic =  pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path))
+                    self.dic =  pkl.load(open(self.output_path+'/'+self.param_sug_path))
                 except:
-                    self.dic = pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path,
+                    self.dic = pkl.load(open(self.output_path+'/'+self.param_sug_path,
                                              'rb'), encoding='latin1')
                 self.dic = self.dic['data']
-                self.nb_point = 0.
                 for sn_name in self.dic.keys():
-                    self.res_dic[sn_name]['res'], 
-                    self.res_dic[sn_name]['band'], 
-                    self.res_dic[sn_name]['p'] = self.residuals(sn_name)
-                    self.nb_point += len(self.res_dic[sn_name]['res'])
-                likelihood = self.likelihood(val)+np.log(self.nb_point)
+                    self.res_dic[sn_name] = {}
+                    self.res_dic[sn_name]['res'], self.res_dic[sn_name]['band'], self.res_dic[sn_name]['p'] = self.residuals(sn_name)
+                print(err_mod)
+                likelihood = self.likelihood(val)
                 if likelihood < best_likelihood:
                     best_likelihood = likelihood
                     best_node = err_mod
