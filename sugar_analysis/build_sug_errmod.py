@@ -198,9 +198,13 @@ class build_sugar_error_model(object):
         time_obs = self.dic[sn_name]['data_table']['time'][Filtre]
         phase = (time_obs- self.dic[sn_name]['res']['parameters'][1]) / (1 + self.dic[sn_name]['res']['parameters'][0])  
         data_flux = self.dic[sn_name]['data_table']['flux'][Filtre]
+        model_mag = self.model.bandmag(band, 'csp', time_obs)
+        mag = np.zeros_like(model_mag)
+        for i, d in enumerate(data_flux):
+            mag[i] = self.sys.band_flux_to_mag(d, band[i])
 
-        model_flux = self.model.bandflux(band, time_obs)
-        residuals = data_flux - model_flux
+#        residuals = data_flux - model_flux
+        residuals = (mag - model_mag)
         return residuals,  band, phase
     
     def weight_matrix(self, sn_name):
@@ -211,7 +215,7 @@ class build_sugar_error_model(object):
         data_flux = self.dic[sn_name]['data_table']['flux'][Filtre]
         self.change_model_params(sn_name)
         cm_diag = np.zeros_like(data_fluxerr)
-
+        c = np.zeros_like(data_fluxerr)
         for j, b in enumerate(band):
               phase_obs = self.dic[sn_name]['data_table']['time'][Filtre][j] - self.dic[sn_name]['res']['parameters'][1]
               phase = phase_obs / (1 + self.dic[sn_name]['res']['parameters'][0])   
@@ -219,13 +223,14 @@ class build_sugar_error_model(object):
                     f = sncosmo.get_bandpass('cspv9844')
               else :
                     f = sncosmo.get_bandpass(b)
-              
-              flux = self.model.bandflux(b, self.dic[sn_name]['data_table']['time'][Filtre][j])
+                    
               weff = f.wave_eff/(1 + self.dic[sn_name]['res']['parameters'][0])    
-              cm_diag[j] = 1/((data_fluxerr[j])**2 + (self.intrinsic_dispertion(phase, weff)*flux)**2) #flux ???
+              data_magerr = (data_fluxerr * 1.0857362047581294) / data_flux
+              c[j] = ((data_magerr[j])**2 + (self.intrinsic_dispertion(phase, weff)/ 1.0857362047581294)**2) #flux ???
+              cm_diag[j] = 1/c[j]
                   
         w = cm_diag
-        det_cov = np.sum(np.log(cm_diag))
+        det_cov = np.sum(np.log(c))
         return w, det_cov
                     
                     
@@ -269,7 +274,7 @@ class build_sugar_error_model(object):
         else:
             counter_term = 0
         L = - log_det_cov + chi2 + counter_term
-        print(-L)
+        print(-L, log_det_cov ,chi2 , counter_term)
         return L
 
     def model_comp(self, band, phase, z):
