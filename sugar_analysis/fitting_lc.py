@@ -149,9 +149,12 @@ class LC_Fitter(object):
 
             
         else:
-            self.width= width
-            register_SNf_bands_width(width=self.width)
-            mag_sys_SNF_width(width=self.width)
+            try :
+                self.width= width
+                register_SNf_bands_width(width=self.width)
+                mag_sys_SNF_width(width=self.width)
+            except:
+                Warning('SNf filters not available')   
             Warning('Mag sys and band used in your data have to be register in sncosmo our in builtins')                
             if type(data) is not dict and data is not None:
                 print (type(data))
