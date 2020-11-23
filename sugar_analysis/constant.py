@@ -14,8 +14,8 @@ wl_min_sug = 3254.01639
 #wl_min_sug = 4000.
 wl_max_sug = 8649.03871
 # wavelength limits for salt2 model
-wl_min_salt = 2000.000000
-wl_max_salt = 9200.000000
+wl_min_salt = 3000.000000
+wl_max_salt = 7000.000000
 #time coverage for sugar
 #t_min_sug = -12
 #t_max_sug = 48
@@ -28,5 +28,5 @@ t_max_salt2 = 45
 #t_max_salt2 = 45
 #use with sugar chimere
 
-t_min_sug = -12
-t_max_sug = 48
+t_min_sug = - 15
+t_max_sug = 45

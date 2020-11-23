@@ -30,7 +30,8 @@ class LC_Fitter(object):
                  filter_drop_csp = [], sad_path = '../../',
                  modeldir='../../sugar_model/', mod_errfile=None,
                  width=10, param_sug =['q1', 'q2', 'q3'], qual_crit=False, 
-                 version_sug='1.0', tcut=None, csp_file=None):
+                 version_sug='1.0', tcut=None, csp_file=None,
+                 transmat_path='trans_matrix_init.pkl'):
         
         
         self.fitting_sample =  False
@@ -56,7 +57,7 @@ class LC_Fitter(object):
                        version=self.version_sug)
         elif model_name == 'sugar_ext':
             register_SUGAR_ext(modeldir=self.modeldir, mod_errfile=mod_errfile,
-                       version=self.version_sug)
+                       version=self.version_sug, transmat_path=transmat_path)
 
                 
         self.param_sug = param_sug
@@ -101,7 +102,7 @@ class LC_Fitter(object):
                     if sn_name.startswith('lc-sn'):
                         self.data.append(sn_name) 
                 elif sub_sample=='HST':
-                    HST_name = ['lc-Vilas.list','lc-Torngasek.list',
+                    HST_name = ['lc-Vilas.list','lc-Torngasek.list', 'lc-Elvis.list',
                                 'lc-Ombo.list', 'lc-Patuxent.list',
                                 'lc-Lancaster.list', 'lc-Gabi.list',
                                 'lc-Gabi.list','lc-Eagle.list',
@@ -168,7 +169,13 @@ class LC_Fitter(object):
         elif self.sample == 'jla':
             self.head, self.table_sn = read_lc_jla(sn_name, sad_path=self.sad_path, model=self.model_name)
             self.zhl, self.zcmb, self.zerr, self.biascor, self.mwebv, self.daymax = self.head['@Z_HELIO'], self.dic_jla_zbias[sn_name][0], self.dic_jla_zbias[sn_name][1], self.dic_jla_zbias[sn_name][2], self.head['@MWEBV'], self.dic_jla_zbias[sn_name][3]
-            
+            if self.t0_fix == True and type(self.csp_file) != type(None):
+                dic = pkl.load(open(self.csp_file,'rb')) 
+                if dic['data'][sn_name]['res'] != 'fit fail':
+                    self.daymax = float(dic['data'][sn_name]['res']['parameters'][1])
+            elif self.t0_fix == True:
+                raise ValueError('Should specifie sub sample for t0 fix')       
+                
         elif self.sample == 'csp':
             self.table_sn, self.zhl = self.rcsp.build_csp_table(sn_name, 
                                                                 drop=self.filter_drop_csp+['cspys', 'csphs','cspjs', 'cspjs', 'cspyd', 'cspjd',  'csphd'])
@@ -236,7 +243,19 @@ class LC_Fitter(object):
                                                self.param_sug+['A', 'Xgr'], 
                                                modelcov  = self.modelcov,
                                                phase_range=(t_min_sug, 
-                                                            t_max_sug))
+                                                           t_max_sug))
+            data_pcut = copy.deepcopy(data)
+            data_pcut = sncosmo.select_data(data_pcut, resp['data_mask'])
+            time_obs = data_pcut['time']
+            phase = (time_obs- resp['parameters'][1]) / (1 + resp['parameters'][0])        
+            p_filtre = np.ones_like(phase, dtype=bool)
+            for i, p in enumerate(phase) :
+                if p < self.tcut or p > 45:
+                    p_filtre[i] = False
+
+            data_pcut = sncosmo.select_data(data_pcut, p_filtre)
+            self.chi_sn_m5 = sncosmo.fitting.chisq(data_pcut, fitted_modelp)
+            print(resp.chisq, resp.ndof, self.chi_sn_m5)
         else:
 #            res, fitted_model = sncosmo.fit_lc(data, self.model, 
 #                                            ['t0']+self.param_sug+['A', 'Xgr'], 
@@ -246,12 +265,12 @@ class LC_Fitter(object):
 #            return res, fitted_model
                 # First iteration (qi is fixed)
                 if len(self.param_sug) == 3 :
-                    self.model.set(q1=0)
+                    self.model.set(q1=0.0)
                     self.model.set(q2=0)
                     self.model.set(q3=0)
                     self.model.set(A=0)
                 elif len(self.param_sug) == 2 and 'q2' not in self.param_sug:
-                    self.model.set(q1=0.1)
+                    self.model.set(q1=0)
                     self.model.set(q3=0)
                     self.model.set(A=0)       
                 elif len(self.param_sug) == 2 and 'q3' not in self.param_sug:
@@ -268,7 +287,8 @@ class LC_Fitter(object):
                 chi2p = chi2*2
                 m = 0
                 data_new_p =  data
-                while chi2 < chi2p or m < 2:
+                print(chi2 ,chi2p)
+                while chi2 < chi2p and m < 10:
                     print(m)
                     resp = res
                     fitted_modelp = fitted_model
@@ -299,16 +319,22 @@ class LC_Fitter(object):
                     t1 = t_peak + t_min_sug*(1 + self.model.get('z'))
                     t2 = t_peak + t_max_sug*(1 + self.model.get('z'))
 
-                    A=[]
+#                    A=[]
                     data_new = copy.deepcopy(data)
-                    for i in range(len(data_new)):
+                    mask_data = np.ones_like(data_new, dtype=bool)
+                    for i in range(len(data_new)):                    
                         if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                            A.append(i)
-                    A=np.array(A)
-                    for i in range(len(A)):
-                        # print('We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2))
-                        data_new.remove_row(A[i])
-                        A-=1
+                                mask_data[i] = False
+                    data_new = sncosmo.select_data(data_new, mask_data)
+                    
+#                    for i in range(len(data_new)):
+#                        if data_new[i][0] <= t1 or data_new[i][0] >= t2:
+#                            A.append(i)
+#                    A=np.array(A)
+#                    for i in range(len(A)):
+#                        # print('We excluded the point %7.3f because it does not belong to the time interval [%7.2f,%7.2f]' % (data_new[A[i]][0],t1,t2))
+#                        data_new.remove_row(A[i])
+#                        A-=1
 
                     res, fitted_model = sncosmo.fit_lc(data_new, self.model, ['t0']+self.param_sug+['A', 'Xgr'],
                                                        modelcov=self.modelcov,
@@ -316,7 +342,7 @@ class LC_Fitter(object):
                     
                     chi2 = res.chisq
 
-                    print(chi2p, chi2)
+#                    print(chi2p, chi2)
                     self.table_sn = data_new_p
                     data_new_p = data_new
         return resp, fitted_modelp
@@ -329,6 +355,7 @@ class LC_Fitter(object):
         """
         if not self.fitting_sample :
             if self.model_name == 'salt2' :
+
                 self.source = sncosmo.get_source(self.model_name, version='2.4')
             else:
                 self.source = sncosmo.get_source(self.model_name, version=self.version_sug)
@@ -349,6 +376,14 @@ class LC_Fitter(object):
             else:
                 self.model.set(mwebv=mwebv)
         else:
+            dust = sncosmo.CCM89Dust()
+            self.source.EBV_snfit = self.mwebv
+            self.source.z_snfit = self.zhl
+            self.source.Rv_snfit = 3.1                
+            self.model = sncosmo.Model(source=self.source, 
+                                  effects=[dust], 
+                                  effect_names=['mw'], 
+                                  effect_frames=['obs'])
             self.model.set(z=self.zhl)
             self.model.set(mwebv=self.mwebv)
         if self.t0_fix:
@@ -357,7 +392,10 @@ class LC_Fitter(object):
                                                    ['x1',
                                                     'c', 
                                                     'x0'], 
-                                                   modelcov  = self.modelcov)
+                                                   modelcov  = self.modelcov,
+                                                   phase_range=( t_min_salt2, 
+                                                            t_max_salt2))
+            print(res.chisq, res.ndof, res.parameters[2], res.errors['x0'])
         else:
 #            res, fitted_model = sncosmo.fit_lc(data, self.model, 
 #                                                   ['t0',
@@ -369,25 +407,27 @@ class LC_Fitter(object):
 #                                                                t_max_salt2))
 #        
 #        return res, fitted_model
+
                 print('initialisation')         
-                self.model.set(x1=0)
-                self.model.set(c=0)
+#                self.model.set(x1=0.)
+#                self.model.set(c=0)
+
                 res, fitted_model = sncosmo.fit_lc(data, 
                                                    self.model, 
-                                                   ['t0','c','x0'], 
+                                                   ['t0','x0', 'c'],
+                                                   phase_range=( t_min_salt2, t_max_salt2), 
                                                    modelcov=False)
         
                 print('first iteration')
                 chi2 = res.chisq
                 chi2p = chi2*2
-                data_new_p = data
-                m=0
-                while chi2 < chi2p and m < 10:
-        
+                m = 0
+                data_new_p =  data
+                while chi2 < chi2p or m < 2:
                     print(m)
-                    if m > 0:
-                        resp = res
-                        fitted_modelp = fitted_model
+                    resp = res
+                    fitted_modelp = fitted_model
+                    chi2p = chi2
                     m += 1
                     t_peak = fitted_model.parameters[1]
                     #print t_peak,fitted_model.parameters[4]
@@ -395,15 +435,17 @@ class LC_Fitter(object):
                     t1 = t_peak + t_min_salt2*(1 + self.model.get('z'))
                     t2 = t_peak + t_max_salt2*(1 + self.model.get('z'))
         
-                    A=[]
+#                    A=[]
                     data_new = copy.deepcopy(data)
+                    mask_data = np.ones_like(data_new, dtype=bool)
                     for i in range(len(data_new)):                    
                         if data_new[i][0] <= t1 or data_new[i][0] >= t2:
-                            A.append(i)
-                    A=np.array(A)
-                    for i in range(len(A)):
-                        data_new.remove_row(A[i])
-                        A-=1   
+                                mask_data[i] = False
+                    data_new = sncosmo.select_data(data_new, mask_data)
+#                    A=np.array(A)
+#                    for i in range(len(A)):
+#                        data_new.remove_row(A[i])
+#                        A-=1   
                     self.model.set(x1=res.parameters[3])
                     self.model.set(c=res.parameters[4])
                     self.model.set(x0=res.parameters[2])
@@ -414,18 +456,16 @@ class LC_Fitter(object):
                                                         'x1',
                                                         'c', 
                                                         'x0'], 
-                                                       modelcov  = self.modelcov,
-                                                       bounds = {'t0' : [res.parameters[1]-30,res.parameters[1]+30]})
+                                                        phase_range=( t_min_salt2, t_max_salt2),
+                                                       modelcov  = self.modelcov)
         
-                    chi2p = chi2
                     chi2 = res.chisq
 
-                #final results
-                res = resp
-                fitted_model = fitted_modelp
-                self.table_sn = data_new_p
-                data_new_p = data_new
-        return res, fitted_model        
+                    print(chi2p, chi2)
+                    self.table_sn = data_new_p
+                    data_new_p = data_new
+        return resp, fitted_modelp
+          
     
     def fit_sample(self):
         """
@@ -447,6 +487,7 @@ class LC_Fitter(object):
             self.source = sncosmo.get_source(self.model_name, version=self.version_sug)
             if self.tcut is not None:
                 self.source.update_t_cut(self.tcut)
+                self.chi_m5 = []
         dust = sncosmo.CCM89Dust()
         self.model = sncosmo.Model(source=self.source, 
                               effects=[dust], 
@@ -462,7 +503,9 @@ class LC_Fitter(object):
                     res_sn, fitted_model_sn = self.fit_lc_sugar(self.table_sn, zhl=self.zhl, zcmb=self.zcmb)
                     success = True
                     if self.model_name == 'sugar_ext':
-                        self.dic_res['data'][sn_name]['salt2_ext'] = self.source.compute_salt2_params_ext(res_sn['parameters'][2:-2])                 
+                           if self.tcut is not None:
+                               self.chi_m5.append(self.chi_sn_m5)                   
+                           self.dic_res['data'][sn_name]['salt2_ext'] = self.source.compute_salt2_params_ext(res_sn['parameters'][2:-2])                 
                 except :
                     success = False
                     print ('fit fail for '+sn_name)
@@ -477,7 +520,7 @@ class LC_Fitter(object):
                     print ('fit fail for '+sn_name)
                     res_sn, fitted_model_sn = 'fit fail', np.nan
                     self.fit_fail.append(sn_name)
-                    
+#                    
             else :
                 raise ValueError('Error model_name have to be salt2 or sugar')
 

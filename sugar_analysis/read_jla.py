@@ -120,7 +120,7 @@ def wl_cut_sugar(fname, z):
         else:
             return ('False', r)
 
-def read_lc_jla(sn_name, model = None, sad_path = '../../'):
+def read_lc_jla(sn_name, model = None, sad_path = '../../', verbose=True):
     infile = open(sad_path+'sugar_analysis_data/data/jla_data/jla_light_curves/'+ sn_name, 'r') # download the sn data
     photometry = []
     time = []
@@ -184,57 +184,59 @@ def read_lc_jla(sn_name, model = None, sad_path = '../../'):
     if '@X_FOCAL_PLANE' in head.keys():
         radius = np.sqrt(head['@X_FOCAL_PLANE']**2. + head['@Y_FOCAL_PLANE']**2.)
 
-    for fname in dic.keys():
-        if fname.startswith('jla_MEGACAMPSF::'):
-            name = fname[4:]
-            filt = bandpass_interpolators(name,radius)
-            wlen = filt[0]
-            tran = filt[1]
-            band = sncosmo.Bandpass(wlen, tran, name=fname)
-            sncosmo.registry.register(band, force=True)
+        for fname in dic.keys():
+            if fname.startswith('jla_MEGACAMPSF::'):
+                name = fname[4:]
+                filt = bandpass_interpolators(name,radius)
+                wlen = filt[0]
+                tran = filt[1]
+                band = sncosmo.Bandpass(wlen, tran, name=fname)
+                sncosmo.registry.register(band, force=True)
+    
+        bands_ab = {'jla_SDSS::u': ('jla_AB_B12_0',  0.06791),
+                'jla_SDSS::g': ('jla_AB_B12_0', -0.02028),
+                'jla_SDSS::r': ('jla_AB_B12_0', -0.00493),
+                'jla_SDSS::i': ('jla_AB_B12_0', -0.01780),
+                'jla_SDSS::z': ('jla_AB_B12_0', -0.01015),
+                'jla_MEGACAMPSF::u': ('jla_AB_B12_0',  0),
+                'jla_MEGACAMPSF::g': ('jla_AB_B12_0', 0),
+                'jla_MEGACAMPSF::r': ('jla_AB_B12_0', 0),
+                'jla_MEGACAMPSF::i': ('jla_AB_B12_0', 0),
+                'jla_MEGACAMPSF::z': ('jla_AB_B12_0', 0)}
+        sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_ab),'jla_AB_B12', force=True)
 
-    bands_ab = {'jla_SDSS::u': ('jla_AB_B12_0',  0.06791),
-            'jla_SDSS::g': ('jla_AB_B12_0', -0.02028),
-            'jla_SDSS::r': ('jla_AB_B12_0', -0.00493),
-            'jla_SDSS::i': ('jla_AB_B12_0', -0.01780),
-            'jla_SDSS::z': ('jla_AB_B12_0', -0.01015),
-            'jla_MEGACAMPSF::u': ('jla_AB_B12_0',  0),
-            'jla_MEGACAMPSF::g': ('jla_AB_B12_0', 0),
-            'jla_MEGACAMPSF::r': ('jla_AB_B12_0', 0),
-            'jla_MEGACAMPSF::i': ('jla_AB_B12_0', 0),
-            'jla_MEGACAMPSF::z': ('jla_AB_B12_0', 0)}
-    sncosmo.registry.register(sncosmo.CompositeMagSystem(bands=bands_ab),'jla_AB_B12', force=True)
 
+    f_in = {}
+    f_out = {}
+    for i in dic.keys():
+        if model == 'salt2'or 'sugar_ext':
+            res = wl_cut_salt2(i, head['@MWEBV'], head['@Z_HELIO'])
+            if res[0] == 'True':
+                f_in[i] = res[1]
+            else:
+                f_out[i] = res[1]
+#                if verbose:
+#                    print('We excluded passband %s (%d points) because restframewavelength = %7.3f does not belong to the interval [%d,%d]' % (i,dic[i],res[1],wl_min_sal,wl_max_sal))
+        elif model == 'sugar':
+            res = wl_cut_sugar(i, head['@Z_HELIO'])
+            if res[0] == 'True':
+                f_in[i] = res[1]
+            else:
+                f_out[i] = res[1]
+#                if verbose:
+#                    print('We excluded passband %s (%d points) because more than 10 percent of the filter area it does not belong to the interval [%d,%d]' % (i,dic[i],wl_min_sug,wl_max_sug))
+        else:
+            print('ERROR: model name has to be salt2 or sugar')
 
-#    f_in = {}
-#    f_out = {}
-#    for i in dic.keys():
-#        if model == 'salt2':
-#            res = wl_cut_salt2(i, head['@MWEBV'], head['@Z_HELIO'])
-#            if res[0] == 'True':
-#                f_in[i] = res[1]
-#            else:
-#                f_out[i] = res[1]
-#                print('We excluded passband %s (%d points) because restframewavelength = %7.3f does not belong to the interval [%d,%d]' % (i,dic[i],res[1],wl_min_sal,wl_max_sal))
-#        elif model == 'sugar':
-#            res = wl_cut_sugar(i, head['@Z_HELIO'])
-#            if res[0] == 'True':
-#                f_in[i] = res[1]
-#            else:
-#                f_out[i] = res[1]
-#                print('We excluded passband %s (%d points) because more than 10 percent of the filter area it does not belong to the interval [%d,%d]' % (i,dic[i],wl_min_sug,wl_max_sug))
-#        else:
-#            print('ERROR: model name has to be salt2 or sugar')
-#
-#    mask = []
-#    for row in data:
-#        if row[1] in f_in.keys():
-#            mask.append(True)
-#        else:
-#            mask.append(False)
+    mask = []
+    for row in data:
+        if row[1] in f_in.keys():
+            mask.append(True)
+        else:
+            mask.append(False)
 #    mask = np.array(mask)
 #
-#    data_cut = sncosmo.select_data(data, mask)
+    data_cut = sncosmo.select_data(data, mask)
 
-    return head, data
+    return head, data_cut
 

@@ -71,7 +71,6 @@ class SUGARSource(sncosmo.Source):
 #                v = names_or_objs[k]
 #                if (v is not None and isinstance(v, six.string_types)):
 #                    names_or_objs[k] = os.path.join(modeldir, v)
-
         list_file = [f for f in os.listdir(modeldir) if f.startswith('sugar_template_')]
         names_or_objs = {}
         self._parameters = np.zeros(len(list_file))

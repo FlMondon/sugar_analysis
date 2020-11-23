@@ -94,8 +94,8 @@ class build_data(object):
       
     def integral_to_phot(self, wave, flux, var=None):
         
-        self.start = min(wave)
-        self.end =  max(wave)
+        self.start = np.min(wave)
+        self.end =  np.max(wave)
         # Interpolate filter over spectrum (natively regularly sampled)
         f = self.interpolate(wave)
         f *= wave/(CLIGHT*1.0e13*HPLANCK)
@@ -268,7 +268,7 @@ class read_csp(object):
         """
         import sfdmap
         from astropy.coordinates import Galactic
-        c = SkyCoord(ra+' '+dec, unit=(u.deg, u.deg))
+        c = SkyCoord(ra+' '+dec, unit=(u.hourangle, u.deg))
         m = sfdmap.SFDMap(self.sad_path+'sugar_analysis_data/sfddata-master', scaling=1.0)
         galcoords = c.transform_to(Galactic)
         gc = galcoords.galactic.l.deg,  galcoords.galactic.b.deg
