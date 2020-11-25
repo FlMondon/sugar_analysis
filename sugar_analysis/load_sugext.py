@@ -9,7 +9,7 @@ Created on Fri Jul  5 10:57:36 2019
 import sncosmo
 import numpy as np
 import os
-from astropy.extern import six
+import six
 from sncosmo.models import _SOURCES
 from scipy.interpolate import interp2d
 from .constant import wl_min_sug, wl_max_sug
@@ -79,21 +79,23 @@ class SUGAR_extSource(sncosmo.Source):
         names_or_objs['L0']  = os.path.join(modeldir, 'salt2_template_0.dat')
         names_or_objs['L1']  = os.path.join(modeldir, 'salt2_template_1.dat')
         names_or_objs['clfile'] = os.path.join(modeldir, 'salt2_color_correction.dat')
-        wave_list = []
+        wave_list_min = []
+        wave_list_max = []
         for i, key in enumerate(names_or_objs.keys()):
             if key != 'clfile':
                 phase, wave, values = sncosmo.read_griddata_ascii(names_or_objs[key])
                 self._model[key] = sncosmo.salt2utils.BicubicInterpolator(phase, wave, values) 
                 if key == 'M0':
                     # The "native" phases and wavelengths of the model are those
-                    self._phase = np.linspace(-12., 48, 21)
+                    self._phase = [-15] + np.linspace(-12., 48, 21)
                     wave_m0 = list(wave)
                 if key == 'L0':
                     for wl in wave:
-                        if wl <= wl_min_sug:
-                            wave_list.append(wl)
-        
-        wave_list = wave_list + wave_m0
+                        if wl <= wl_min_sug :
+                            wave_list_min.append(wl)
+                        elif wl >= wl_max_sug :
+                            wave_list_max.append(wl)
+        wave_list = wave_list_min + wave_m0 + wave_list_max
         wave_list = np.array(wave_list)     
         argso=np.argsort(wave_list)
         wave_list=wave_list[argso]        
@@ -102,31 +104,67 @@ class SUGAR_extSource(sncosmo.Source):
         self.trans_matrix = pkl.load(open(os.path.join(modeldir, transmat_path), 'rb'))
         # Set the colorlaw based on the "color correction" file.
         self._set_colorlaw_from_file(names_or_objs['clfile'])
-        
+        self.t_cut = -5
+
         self.mod_errfile = mod_errfile
         self.M_keys = names_or_objs.keys()
-        phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
-        self._model['mod_err'] = interp2d(wave, phase, values) 
+        if mod_errfile is not None:
+            phase, wave, values = sncosmo.read_griddata_ascii(mod_errfile)
+            self._model['mod_err'] = interp2d(wave, phase, values) 
         self._SCALE_FACTOR_SALT2 = 1e-12
 
     def _flux(self, phase, wave):
+#            wl_min_sug = 3800
+#            print(wave[0])
             flux = self._sug_flux(self._parameters, phase, wave)
-            if wave[0] <= wl_min_sug and wave[len(wave)-1] <= wl_min_sug:
-                self.salt2_param = self.compute_salt2_params_ext(self._parameters)
-                m0 = self._model['L0'](phase, wave)
-                m1 = self._model['L1'](phase, wave)
-#                flux = self.salt2_param[0]* self._SCALE_FACTOR_SALT2* (m0 + self.salt2_param[1] * m1)*10. ** (-0.4 * self._model['M4'](phase, wave) * self._parameters[3])
-                flux = self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0 +  self.salt2_param[1]* m1)* 10. ** (-0.4 * self.colorlaw(wave) * self.salt2_param[2])
-            elif wave[0] <= wl_min_sug:
+
+            
+#            if self.t_cut is not None:
+#                for i, p in enumerate(phase):
+#                    p_trans = 0
+#                    if p < self.t_cut + p_trans and p >= -15: 
+##                        print(p)
+#                        if  p_trans != 0:
+#                                
+#                            r = (p -self.t_cut) * (1./p_trans)
+#                            if r< 0 :
+#                                r = 0
+#                        else:
+#                            r=0
+#                        self.salt2_param = self.compute_salt2_params_ext(self._parameters)
+#                        m0 = self._model['L0'](p, wave)
+#                        m1 = self._model['L1'](p, wave)
+#                        flux_salt2 = self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0 +  self.salt2_param[1]* m1)* 10. ** (-0.4 * self.colorlaw(wave) * self.salt2_param[2])
+#                        flux[i, :] = r * flux[i, :] + (1-r) * flux_salt2
+#                        
+                        
+#                        print(flux[i, 0], self.salt2_param[0], self.salt2_param[1], self.salt2_param[2])
+#            if (wave[0] <= wl_min_sug and wave[len(wave)-1] <= wl_min_sug) or (wave[0] >= wl_max_sug and wave[len(wave)-1] >= wl_max_sug):
+#                self.salt2_param = self.compute_salt2_params_ext(self._parameters)
+#                m0 = self._model['L0'](phase, wave)
+#                m1 = self._model['L1'](phase, wave)
+##                flux = self.salt2_param[0]* self._SCALE_FACTOR_SALT2* (m0 + self.salt2_param[1] * m1)*10. ** (-0.4 * self._model['M4'](phase, wave) * self._parameters[3])
+#                flux = self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0 +  self.salt2_param[1]* m1)* 10. ** (-0.4 * self.colorlaw(wave) * self.salt2_param[2])
+            range_wave_transi = 100
+            if wave[0] <= wl_min_sug + range_wave_transi :
                 j = 0
                 self.salt2_param = self.compute_salt2_params_ext(self._parameters)
-                while wave[j] <= wl_min_sug and j <= len(wave)-2:
+                while wave[j] <= wl_min_sug + range_wave_transi  and j <= len(wave)-2:
                     m0 = self._model['L0'](phase, wave)
                     m1 = self._model['L1'](phase, wave)
-                    mc = self._model['M4'](phase, wave)
+#                    mc = self._model['M4'](phase, wave)
+                    if  range_wave_transi != 0:
+                            
+                        r = (wave[j] - wl_min_sug) * (1./range_wave_transi )
+                        if r< 0 :
+                            r = 0
+                    else:
+                        r=0
 #                    flux[:, j] = (self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0[:, j] +  self.salt2_param[1]* m1[:, j])*10. ** (-0.4 * mc[:, j] * self._parameters[3]) )
-                    flux[:, j] = self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0[:, j] +  self.salt2_param[1]* m1[:, j])* 10. ** (-0.4 * self.colorlaw(wave[j]) * self.salt2_param[2])
+                    flux_salt2 = self.salt2_param[0]* self._SCALE_FACTOR_SALT2 * (m0[:, j] +  self.salt2_param[1]* m1[:, j])* 10. ** (-0.4 * self.colorlaw(wave[j]) * self.salt2_param[2])
+                    flux[:, j] = flux[:, j] * r + (1-r) * flux_salt2
                     j +=1
+
             return flux
 
     def compute_salt2_params_ext(self, parameters):
@@ -258,9 +296,12 @@ class SUGAR_extSource(sncosmo.Source):
 
     def update_trans_matrix(self, A):
         self.trans_matrix = A
+    
+    def update_t_cut(self, t_cut):
+        self.t_cut = t_cut
         
 def register_SUGAR_ext(modeldir='../../sugar_model/',
-                   transmat_path='trans_matrix.pkl',
+                   transmat_path='trans_matrix_init.pkl',
                    mod_errfile='../../sugar_model/model_err_sug.dat',
                    version='1.0'):
     website = 'http://no'
@@ -269,7 +310,6 @@ def register_SUGAR_ext(modeldir='../../sugar_model/',
     for topdir, ver, ref in [('SUGAR_model', version, PF16ref)]:
         meta = {'type': 'SN Ia', 'subclass': '`~sncosmo.SUGARSource`',
                 'url': website, 'reference': ref}
-        print(transmat_path)
         _SOURCES.register_loader('sugar_ext', lambda relpath, mod_errfile, transmat_path, 
         name=None, version=None : SUGAR_extSource(modeldir=relpath,
                                               mod_errfile=mod_errfile,
