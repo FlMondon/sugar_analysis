@@ -23,7 +23,7 @@ from .fitting_lc import LC_Fitter
 from .load_sugar import register_SUGAR
 from .load_salt2_newerr import register_salt2_newerr
 from .Hubble_fit import read_input_data_SNf 
-from astropy.extern import six
+import six
 
 try:
     import george 
@@ -273,8 +273,8 @@ class build_sugar_error_model(object):
             counter_term = np.linalg.slogdet(np.dot(self.H.T,np.dot(self.w, self.H)))[1]
         else:
             counter_term = 0
-        L = - log_det_cov + chi2 + counter_term
-        print(-L, log_det_cov ,chi2 , counter_term)
+        L =  log_det_cov + chi2 + counter_term
+        print(sigmas2[0], -L, log_det_cov ,chi2 , counter_term, nb_p)
         return L
 
     def model_comp(self, band, phase, z):
@@ -328,7 +328,7 @@ class build_sugar_error_model(object):
 
         # -- Finally if no values have been set, let's do it
         for name in self.freeparameters:
-                self.param_input[name+"_guess"] = 0.07
+                self.param_input[name+"_guess"] = 0.05
                 self.param_input[name+"_boundaries"] = (0.,2.)
                 
     def fit(self, csp_file="../../sugar_analysis_data/resfitlc_csp_drop['cspu']_sugar_gold.pkl", **kwargs):
@@ -349,7 +349,22 @@ class build_sugar_error_model(object):
         values in the model or with: 0 for _guess, False for _fixed, and
         [None,None] for _boundaries
         """
-        #First step
+#        #First step
+        lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
+                        modelcov=False, qual_crit=False, 
+                        mod_errfile=None, 
+                        version_sug=str(0),  modeldir = self.modeldir, sub_sample=list(self.dic.keys()), 
+                        filter_drop_csp = ['cspu'], t0_fix=True, csp_file=csp_file)
+        lcf.fit_sample()
+        self.param_sug_path = 'param_errmod_%sit_%snode.pkl'%(str(0), str(self.nb_node))
+        lcf.write_result(specific_file=self.output_path+self.model_name+'/'+self.param_sug_path)
+        self.res_dic = {}
+        try:
+            self.dic =  pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path))
+        except:
+            self.dic = pkl.load(open(self.output_path+self.model_name+'/'+self.param_sug_path,
+                                     'rb'), encoding='latin1')
+        self.dic = self.dic['data']
         self.nb_point = 0.
         self.res_dic = {}
         for sn_name in self.dic.keys():
@@ -366,7 +381,7 @@ class build_sugar_error_model(object):
         i = 0
 
         if self.fit_iter :
-            while l < l_p and i <= 10 :
+            while i <= 4 :
                 l_p = l
                 lcf = LC_Fitter(model_name=self.model_name, sample='csp', sad_path=self.sad_path,
                                 modelcov=True, qual_crit=False, 
