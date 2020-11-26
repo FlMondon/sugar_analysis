@@ -258,7 +258,6 @@ class LC_Fitter(object):
 
             data_pcut = sncosmo.select_data(data_pcut, p_filtre)
             self.chi_sn_m5 = sncosmo.fitting.chisq(data_pcut, fitted_modelp)
-            print(resp.chisq, resp.ndof, self.chi_sn_m5)
         else:
 #            res, fitted_model = sncosmo.fit_lc(data, self.model, 
 #                                            ['t0']+self.param_sug+['A', 'Xgr'], 
@@ -290,7 +289,6 @@ class LC_Fitter(object):
                 chi2p = chi2*2
                 m = 0
                 data_new_p =  data
-                print(chi2 ,chi2p)
                 while chi2 < chi2p and m < 10:
                     print(m)
                     resp = res
@@ -398,7 +396,6 @@ class LC_Fitter(object):
                                                    modelcov  = self.modelcov,
                                                    phase_range=( t_min_salt2, 
                                                             t_max_salt2))
-            print(res.chisq, res.ndof, res.parameters[2], res.errors['x0'])
         else:
 #            res, fitted_model = sncosmo.fit_lc(data, self.model, 
 #                                                   ['t0',
@@ -464,7 +461,6 @@ class LC_Fitter(object):
         
                     chi2 = res.chisq
 
-                    print(chi2p, chi2)
                     self.table_sn = data_new_p
                     data_new_p = data_new
         return resp, fitted_modelp
