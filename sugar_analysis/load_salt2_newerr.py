@@ -9,7 +9,7 @@ Created on Mon Jun 17 17:21:54 2019
 import sncosmo
 import numpy as np
 import os
-from astropy.extern import six
+import six
 from sncosmo.models import _SOURCES
 from scipy.interpolate import interp2d
 
